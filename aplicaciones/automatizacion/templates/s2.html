@@ -4,671 +4,2974 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>agrotikos</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js">
 
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    </script>
-    <link rel="stylesheet" href="{% static 'css/app.css' %}">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <title>Analítica del cultivo | Agrotikos</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        rel="stylesheet"
+    >
+    <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+>
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/app.css' %}"
+    >
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3"></script>
+
     <style>
-        body {
-      background-color: #f2f4f7;
-            /* Reemplaza 'ruta/a/tu/imagen.jpg' con la ruta a tu imagen de fondo */
-            background-size: cover;
-            /* La imagen de fondo cubrirá todo el cuerpo */
-            background-position: center;
-            /* Centra la imagen de fondo */
-            background-repeat: no-repeat;
-            /* Evita que la imagen de fondo se repita */
-            /*transform: scale(1.15); /* Escala toda la página en un 25% */
+        :root {
+            --agro-dark: #16382d;
+            --agro-primary: #177558;
+            --agro-primary-dark: #0e5941;
+            --agro-soft: #e9f5f0;
+            --agro-background: #f3f6f5;
+            --agro-border: #dce6e2;
+            --agro-muted: #6d7c76;
+            --agro-text: #253630;
+            --warning-soft: #fff6dd;
+            --danger-soft: #fdecec;
+            --blue-soft: #ebf4fb;
         }
 
-        .navbar {
-            background-color: #343a40;
+        body {
+            min-height: 100vh;
+            color: var(--agro-text);
+            background: var(--agro-background);
+        }
+
+        .navbar-agro {
+            background: linear-gradient(
+                90deg,
+                #12392d,
+                #176247
+            );
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
         }
 
         .navbar-brand {
-            color: #fff !important;
+            font-weight: 700;
+            letter-spacing: 0.3px;
         }
 
-        .navbar-nav .nav-link {
-            color: #ffffff !important;
+        .page-header {
+            padding: 24px;
+            border: 1px solid var(--agro-border);
+            border-radius: 18px;
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(23, 117, 88, 0.14),
+                    rgba(255, 255, 255, 0.96)
+                );
+            box-shadow: 0 5px 18px rgba(30, 60, 50, 0.06);
         }
 
-        .container {
-            max-width: 960px;
+        .section-card {
+            border: 1px solid var(--agro-border);
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 5px 18px rgba(30, 60, 50, 0.07);
         }
 
-        .table th,
-        .table td {
-            padding: .75rem;
-            vertical-align: top;
-            border-top: 1px solid #dee2e6;
+        .section-card .card-body {
+            padding: 22px;
         }
 
-        .table thead th {
-            vertical-align: bottom;
-            border-bottom: 2px solid #dee2e6;
+        .section-title {
+            margin-bottom: 4px;
+            font-weight: 700;
         }
 
-        .table-striped tbody tr:nth-of-type(odd) {
-            background-color: rgba(0, 0, 0, 0.05);
+        .section-subtitle {
+            color: var(--agro-muted);
+            font-size: 0.9rem;
         }
 
-        .row {
-            --bs-gutter-x: 0;
+        .btn-agro {
+            color: #ffffff;
+            border: 1px solid var(--agro-primary);
+            background: linear-gradient(
+                135deg,
+                var(--agro-primary),
+                var(--agro-primary-dark)
+            );
+            box-shadow: 0 4px 10px rgba(23, 117, 88, 0.22);
         }
 
-        .card {
-            background-color: #ffffff;
-            border: 1px solid #dee2e6;
+        .btn-agro:hover,
+        .btn-agro:focus {
+            color: #ffffff;
+            border-color: var(--agro-primary-dark);
+            background: linear-gradient(
+                135deg,
+                #168563,
+                #0c503b
+            );
+            transform: translateY(-1px);
+        }
+
+        .btn-outline-agro {
+            color: var(--agro-primary);
+            border-color: var(--agro-primary);
+            background: #ffffff;
+        }
+
+        .btn-outline-agro:hover,
+        .btn-outline-agro.active {
+            color: #ffffff;
+            background: var(--agro-primary);
+        }
+
+        .quick-range {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .quick-range .btn {
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-            margin: 10px;
+            font-size: 0.88rem;
         }
 
+        .form-control,
+        .form-select {
+            min-height: 44px;
+            border-color: #cbd8d3;
+            border-radius: 10px;
+        }
 
-        @media (min-width: 768px) {
-            .col-md-6 {
-                | width: 50%;
-                max-width: 50%;
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--agro-primary);
+            box-shadow: 0 0 0 0.2rem rgba(23, 117, 88, 0.14);
+        }
+
+        .form-label {
+            margin-bottom: 7px;
+            font-weight: 600;
+        }
+
+        .metadata-box {
+            min-width: 250px;
+            padding: 13px 16px;
+            border: 1px solid var(--agro-border);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.78);
+        }
+
+        .kpi-card {
+            height: 100%;
+            padding: 17px;
+            border: 1px solid var(--agro-border);
+            border-radius: 15px;
+            background: #ffffff;
+            box-shadow: 0 4px 14px rgba(30, 60, 50, 0.05);
+        }
+
+        .kpi-card.soft-green {
+            background: var(--agro-soft);
+        }
+
+        .kpi-card.soft-blue {
+            background: var(--blue-soft);
+        }
+
+        .kpi-card.soft-warning {
+            background: var(--warning-soft);
+        }
+
+        .kpi-card.soft-danger {
+            background: var(--danger-soft);
+        }
+
+        .kpi-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            color: var(--agro-primary-dark);
+            background: rgba(255, 255, 255, 0.72);
+            font-size: 1.15rem;
+        }
+
+        .kpi-label {
+            color: var(--agro-muted);
+            font-size: 0.82rem;
+        }
+
+        .kpi-value {
+            margin-top: 3px;
+            font-size: 1.42rem;
+            font-weight: 750;
+            color: var(--agro-dark);
+        }
+
+        .kpi-footnote {
+            min-height: 18px;
+            margin-top: 5px;
+            color: var(--agro-muted);
+            font-size: 0.75rem;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            margin-right: 6px;
+            border-radius: 50%;
+            background: #8a9892;
+        }
+
+        .status-dot.online {
+            background: #1a9d65;
+        }
+
+        .status-dot.warning {
+            background: #dc9c19;
+        }
+
+        .status-dot.offline {
+            background: #c74a4a;
+        }
+
+        .sensor-group {
+            height: 100%;
+            padding: 18px;
+            border: 1px solid var(--agro-border);
+            border-radius: 14px;
+            background: #ffffff;
+        }
+
+        .sensor-group-title {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding-bottom: 12px;
+            margin-bottom: 7px;
+            border-bottom: 1px solid var(--agro-border);
+            color: var(--agro-primary-dark);
+            font-weight: 700;
+        }
+
+        .sensor-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 10px 2px;
+            border-bottom: 1px solid #edf1ef;
+        }
+
+        .sensor-row:last-child {
+            border-bottom: 0;
+        }
+
+        .sensor-label {
+            color: #43534c;
+        }
+
+        .sensor-value {
+            min-width: 95px;
+            text-align: right;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .chart-container {
+            position: relative;
+            min-height: 340px;
+        }
+
+        .chart-container.large {
+            min-height: 410px;
+        }
+
+        .stat-box {
+            height: 100%;
+            padding: 13px;
+            border: 1px solid var(--agro-border);
+            border-radius: 12px;
+            background: var(--agro-soft);
+        }
+
+        .stat-label {
+            color: var(--agro-muted);
+            font-size: 0.8rem;
+        }
+
+        .stat-value {
+            margin-top: 4px;
+            color: var(--agro-primary-dark);
+            font-size: 1.12rem;
+            font-weight: 700;
+        }
+
+        .observation-list {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .observation-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 11px;
+            padding: 11px 0;
+            border-bottom: 1px solid #edf1ef;
+        }
+
+        .observation-item:last-child {
+            border-bottom: 0;
+        }
+
+        .observation-icon {
+            width: 30px;
+            min-width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-soft);
+        }
+
+        .quality-bar {
+            height: 10px;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #e8eeeb;
+        }
+
+        .quality-bar-fill {
+            height: 100%;
+            border-radius: 8px;
+            background: linear-gradient(
+                90deg,
+                #239d70,
+                #157353
+            );
+        }
+
+        .records-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-soft);
+            font-weight: 600;
+        }
+
+        .history-container {
+            max-height: 590px;
+            overflow: auto;
+            border: 1px solid var(--agro-border);
+            border-radius: 12px;
+        }
+
+        .history-table {
+            margin: 0;
+            font-size: 0.8rem;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 10px 12px;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .history-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            color: #ffffff;
+            background: #285946;
+            border-color: #386c58;
+        }
+
+        .history-table tbody tr:hover {
+            background: #f0f8f5;
+        }
+
+        .empty-state {
+            padding: 35px 20px;
+            color: var(--agro-muted);
+            text-align: center;
+        }
+
+        .disclaimer-box {
+            padding: 14px 17px;
+            border-left: 4px solid #d59a23;
+            border-radius: 10px;
+            background: #fff8e7;
+            color: #72591d;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 767px) {
+            .page-header {
+                padding: 18px;
+            }
+
+            .metadata-box {
+                width: 100%;
+                min-width: auto;
+                text-align: left !important;
+            }
+
+            .quick-range {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container,
+            .chart-container.large {
+                min-height: 290px;
             }
         }
+        .dashboard-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
 
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-            border-radius: 20px;
-            margin: 9px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-        }
+#stationMap {
+    width: 100%;
+    height: 310px;
+    border-radius: 14px;
+    border: 1px solid var(--agro-border);
+}
 
-        .input-group {
-            width: 360px;
+.location-coordinate {
+    padding: 10px 13px;
+    border-radius: 10px;
+    background: var(--agro-soft);
+    color: var(--agro-primary-dark);
+    font-size: 0.88rem;
+    font-weight: 600;
+}
 
-            margin: 9px;
-        }
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
 
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
-        }
+    body {
+        background: #ffffff !important;
+    }
+
+    .no-print,
+    .navbar,
+    #tableSearch {
+        display: none !important;
+    }
+
+    main.container {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .section-card,
+    .kpi-card,
+    .page-header,
+    .sensor-group {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .chart-container,
+    .chart-container.large {
+        min-height: 280px !important;
+        height: 280px !important;
+        break-inside: avoid;
+    }
+
+    #stationMap {
+        height: 260px !important;
+    }
+
+    .history-container {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .history-table {
+        font-size: 7px !important;
+    }
+
+    .history-table th,
+    .history-table td {
+        padding: 3px 4px !important;
+    }
+
+    .disclaimer-box {
+        break-inside: avoid;
+    }
+}
     </style>
 </head>
 
-
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">agrotikos</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <form action="/inicio" method="post">
-                        {% csrf_token %}
-                        <button id="btn-monitoreo" type="submit" class="btn btn-primary">Inicio</button>
-                      </form>
-                </ul>
+
+<nav class="navbar navbar-expand-lg navbar-dark navbar-agro">
+    <div class="container">
+
+        <a
+            class="navbar-brand"
+            href="{% url 'inicio' %}"
+        >
+            <i class="fa-solid fa-seedling me-2"></i>
+            Agrotikos
+        </a>
+
+        <a
+            href="{% url 'inicio' %}"
+            class="btn btn-outline-light btn-sm"
+        >
+            <i class="fa-solid fa-house me-1"></i>
+            Inicio
+        </a>
+
+    </div>
+</nav>
+
+<main class="container py-4">
+
+    <!-- Encabezado -->
+    <section class="page-header mb-4">
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+            <div>
+                <h2 class="mb-1">
+                    Analítica del cultivo
+                </h2>
+
+                <p class="text-secondary mb-0">
+                    Estado hídrico, demanda atmosférica, suelo,
+                    meteorología y calidad de datos.
+                </p>
+            </div>
+
+           <div class="d-flex flex-column align-items-end gap-3">
+
+    <div class="dashboard-actions no-print">
+
+        <button
+            type="button"
+            id="downloadDashboardPdf"
+            class="btn btn-agro"
+        >
+            <i class="fa-solid fa-file-pdf me-2"></i>
+            Exportar PDF
+        </button>
+
+        <a
+            href="{% url 's2' %}"
+            class="btn btn-outline-agro"
+        >
+            <i class="fa-solid fa-rotate-left me-2"></i>
+            Restablecer
+        </a>
+
+    </div>
+
+    <div class="metadata-box text-end">
+
+        <div class="small text-secondary">
+            Última lectura
+        </div>
+
+        <div
+            id="latestDevice"
+            class="fw-bold"
+        >
+            —
+        </div>
+
+        <div
+            id="latestTimestamp"
+            class="small text-secondary"
+        >
+            Sin lecturas
+        </div>
+
+    </div>
+
+</div>
+
+        </div>
+
+    </section>
+
+    {% if database_error %}
+        <div class="alert alert-danger shadow-sm">
+            <i class="fa-solid fa-triangle-exclamation me-2"></i>
+
+            No fue posible consultar la base de datos de telemetría.
+            Verifica el túnel SSH y el servicio PostgreSQL.
+        </div>
+    {% endif %}
+
+    <!-- Filtros -->
+    <section class="card section-card mb-4">
+
+        <div class="card-body">
+
+            <div class="mb-3">
+                <h4 class="section-title">
+                    Filtros de análisis
+                </h4>
+
+                <div class="section-subtitle">
+                    Selecciona una estación y el período que deseas analizar.
+                </div>
+            </div>
+
+            <form
+                method="get"
+                action="{% url 's2' %}"
+            >
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-lg-4">
+
+                        <label
+                            for="deviceId"
+                            class="form-label"
+                        >
+                            Estación
+                        </label>
+
+                        <select
+                            id="deviceId"
+                            name="device_id"
+                            class="form-select"
+                        >
+                            {% for device in devices %}
+
+                                <option
+                                    value="{{ device }}"
+                                    {% if device == selected_device %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ device }}
+                                </option>
+
+                            {% empty %}
+
+                                <option value="">
+                                    No hay estaciones disponibles
+                                </option>
+
+                            {% endfor %}
+                        </select>
+
+                    </div>
+
+                    <div class="col-lg-5">
+
+                        <label class="form-label">
+                            Período rápido
+                        </label>
+
+                        <div class="quick-range">
+
+                            <button
+                                type="submit"
+                                name="range"
+                                value="7"
+                                class="btn {% if selected_range == '7' %}btn-agro{% else %}btn-outline-agro{% endif %}"
+                            >
+                                Última semana
+                            </button>
+
+                            <button
+                                type="submit"
+                                name="range"
+                                value="15"
+                                class="btn {% if selected_range == '15' %}btn-agro{% else %}btn-outline-agro{% endif %}"
+                            >
+                                15 días
+                            </button>
+
+                            <button
+                                type="submit"
+                                name="range"
+                                value="30"
+                                class="btn {% if selected_range == '30' %}btn-agro{% else %}btn-outline-agro{% endif %}"
+                            >
+                                Último mes
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-lg-3">
+
+                        <label class="form-label d-none d-lg-block">
+                            Consulta
+                        </label>
+
+                        <button
+                            type="submit"
+                            name="range"
+                            value="{{ selected_range }}"
+                            class="btn btn-agro w-100"
+                        >
+                            <i class="fa-solid fa-arrows-rotate me-2"></i>
+                            Actualizar datos
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <hr class="my-4">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-md-4">
+
+                        <label
+                            for="dateFrom"
+                            class="form-label"
+                        >
+                            Fecha inicial
+                        </label>
+
+                        <input
+                            type="date"
+                            id="dateFrom"
+                            name="date_from"
+                            class="form-control"
+                            value="{{ date_from }}"
+                        >
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        <label
+                            for="dateTo"
+                            class="form-label"
+                        >
+                            Fecha final
+                        </label>
+
+                        <input
+                            type="date"
+                            id="dateTo"
+                            name="date_to"
+                            class="form-control"
+                            value="{{ date_to }}"
+                        >
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        <button
+                            type="submit"
+                            name="range"
+                            value="custom"
+                            class="btn btn-agro w-100"
+                        >
+                            <i class="fa-solid fa-calendar-check me-2"></i>
+                            Aplicar rango de fechas
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </section>
+
+    <!-- Resumen ejecutivo -->
+    <section class="mb-4">
+
+        <div class="mb-3">
+            <h4 class="section-title">
+                Resumen ejecutivo
+            </h4>
+
+            <div class="section-subtitle">
+                Estado actual de la estación y variables prioritarias.
             </div>
         </div>
-    </nav>
-    <div class="container mt-4">
-      <div class="container-glass content-pad">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <h2 class="mb-0">Sensores del cultivo</h2>
-          <div class="d-flex flex-wrap gap-2">
-            <button class="btn btn-primary btn-sm sensor-btn" data-sensor="humedad_suelo">Humedad suelo</button>
-            <button class="btn btn-primary btn-sm sensor-btn" data-sensor="ph">pH cultivo</button>
-            <button class="btn btn-primary btn-sm sensor-btn" data-sensor="temp_suelo">Temp. suelo</button>
-            <button class="btn btn-secondary btn-sm sensor-btn" data-sensor="co2">CO2</button>
-            <button class="btn btn-secondary btn-sm sensor-btn" data-sensor="oxigeno">Oxi­geno</button>
-            <button class="btn btn-secondary btn-sm sensor-btn" data-sensor="amoniaco">Amoniaco</button>
-            <button class="btn btn-secondary btn-sm sensor-btn" data-sensor="uv">Luz UV</button>
-            <button class="btn btn-secondary btn-sm sensor-btn" data-sensor="presion">Presion</button>
-            <button class="btn btn-secondary btn-sm sensor-btn" data-sensor="luminosidad">Luminosidad</button>
-            <button class="btn btn-secondary btn-sm sensor-btn" data-sensor="lluvia">Lluvia</button>
-            <button class="btn btn-secondary btn-sm sensor-btn" data-sensor="humedad_aire">Humedad aire</button>
-            <button class="btn btn-secondary btn-sm sensor-btn" data-sensor="temp_aire">Temp. aire</button>
-          </div>
-        </div>
-        <hr>
+
         <div class="row g-3">
-          <div class="col-12 col-lg-8">
-            <div class="card frosted">
-              <div class="card-body">
-                <h5 class="card-title mb-2"><span id="chartTitle">Promedios del cultivo (ultimas 12 h)</span></h5>
-                <canvas id="sensorChart" height="120"></canvas>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-lg-4">
-            <div class="card frosted mb-3">
-              <div class="card-body">
-                <h6 class="card-title">Resumen</h6>
-                <div class="d-flex justify-content-between"><span>Promedio</span><span id="statAvg">€”</span></div>
-                <div class="d-flex justify-content-between"><span>Minimo</span><span id="statMin">€”</span></div>
-                <div class="d-flex justify-content-between"><span>Maximo</span><span id="statMax">€”</span></div>
-                <div class="d-flex justify-content-between"><span>Ultimo</span><span id="statLast">€”</span></div>
-              </div>
-            </div>
-            <div class="small muted">Sugerencia: selecciona un sensor para ver su serie temporal. Sin selección se muestran promedios.</div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <div class="container mt-4">
-      <div class="card frosted">
+            <div class="col-6 col-xl-3">
+                <div class="kpi-card soft-green">
+
+                    <div class="d-flex justify-content-between gap-2">
+                        <div>
+                            <div class="kpi-label">
+                                Estado de estación
+                            </div>
+
+                            <div
+                                id="kpiStationStatus"
+                                class="kpi-value fs-6"
+                            >
+                                —
+                            </div>
+                        </div>
+
+                        <div class="kpi-icon">
+                            <i class="fa-solid fa-tower-broadcast"></i>
+                        </div>
+                    </div>
+
+                    <div
+                        id="kpiStationAge"
+                        class="kpi-footnote"
+                    >
+                        —
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-6 col-xl-3">
+                <div class="kpi-card soft-blue">
+
+                    <div class="d-flex justify-content-between gap-2">
+                        <div>
+                            <div class="kpi-label">
+                                Humedad del suelo
+                            </div>
+
+                            <div
+                                id="kpiSoilMoisture"
+                                class="kpi-value"
+                            >
+                                —
+                            </div>
+                        </div>
+
+                        <div class="kpi-icon">
+                            <i class="fa-solid fa-droplet"></i>
+                        </div>
+                    </div>
+
+                    <div
+                        id="kpiSoilTrend"
+                        class="kpi-footnote"
+                    >
+                        —
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-6 col-xl-3">
+                <div class="kpi-card soft-warning">
+
+                    <div class="d-flex justify-content-between gap-2">
+                        <div>
+                            <div class="kpi-label">
+                                VPD actual
+                            </div>
+
+                            <div
+                                id="kpiVpd"
+                                class="kpi-value"
+                            >
+                                —
+                            </div>
+                        </div>
+
+                        <div class="kpi-icon">
+                            <i class="fa-solid fa-wind"></i>
+                        </div>
+                    </div>
+
+                    <div class="kpi-footnote">
+                        Demanda atmosférica calculada
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-6 col-xl-3">
+                <div class="kpi-card">
+
+                    <div class="d-flex justify-content-between gap-2">
+                        <div>
+                            <div class="kpi-label">
+                                Temperatura del aire
+                            </div>
+
+                            <div
+                                id="kpiAirTemperature"
+                                class="kpi-value"
+                            >
+                                —
+                            </div>
+                        </div>
+
+                        <div class="kpi-icon">
+                            <i class="fa-solid fa-temperature-half"></i>
+                        </div>
+                    </div>
+
+                    <div
+                        id="kpiAirHumidity"
+                        class="kpi-footnote"
+                    >
+                        —
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-6 col-xl-3">
+                <div class="kpi-card">
+
+                    <div class="d-flex justify-content-between gap-2">
+                        <div>
+                            <div class="kpi-label">
+                                Lluvia reportada
+                            </div>
+
+                            <div
+                                id="kpiRain"
+                                class="kpi-value"
+                            >
+                                —
+                            </div>
+                        </div>
+
+                        <div class="kpi-icon">
+                            <i class="fa-solid fa-cloud-rain"></i>
+                        </div>
+                    </div>
+
+                    <div class="kpi-footnote">
+                        Valor de la lectura más reciente
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-6 col-xl-3">
+                <div class="kpi-card">
+
+                    <div class="d-flex justify-content-between gap-2">
+                        <div>
+                            <div class="kpi-label">
+                                ET0 reportada
+                            </div>
+
+                            <div
+                                id="kpiEt0"
+                                class="kpi-value"
+                            >
+                                —
+                            </div>
+                        </div>
+
+                        <div class="kpi-icon">
+                            <i class="fa-solid fa-sun-plant-wilt"></i>
+                        </div>
+                    </div>
+
+                    <div class="kpi-footnote">
+                        Evapotranspiración de referencia
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-6 col-xl-3">
+                <div class="kpi-card soft-green">
+
+                    <div class="d-flex justify-content-between gap-2">
+                        <div>
+                            <div class="kpi-label">
+                                Integridad de datos
+                            </div>
+
+                            <div
+                                id="kpiIntegrity"
+                                class="kpi-value"
+                            >
+                                —
+                            </div>
+                        </div>
+
+                        <div class="kpi-icon">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                    </div>
+
+                    <div
+                        id="kpiInvalidValues"
+                        class="kpi-footnote"
+                    >
+                        —
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-6 col-xl-3">
+                <div class="kpi-card soft-blue">
+
+                    <div class="d-flex justify-content-between gap-2">
+                        <div>
+                            <div class="kpi-label">
+                                Continuidad estimada
+                            </div>
+
+                            <div
+                                id="kpiCompleteness"
+                                class="kpi-value"
+                            >
+                                —
+                            </div>
+                        </div>
+
+                        <div class="kpi-icon">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </div>
+                    </div>
+
+                    <div
+                        id="kpiInterval"
+                        class="kpi-footnote"
+                    >
+                        —
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Observaciones -->
+    <section class="card section-card mb-4">
+
         <div class="card-body">
-          <h5 class="card-title mb-2"><i class="fa-solid fa-map-location-dot me-2"></i>Mapa de sensores</h5>
-          <div id="fieldMap" style="height:380px;border-radius:12px;"></div>
+
+            <div class="row g-4">
+
+                <div class="col-lg-7">
+                    <section class="card section-card mb-4">
+
+    <div class="card-body">
+
+        <div class="row g-4 align-items-stretch">
+
+            <div class="col-lg-8">
+
+                <div class="mb-3">
+                    <h4 class="section-title">
+                        Ubicación de la estación 253 Oscar Rugeles
+                    </h4>
+
+                    <div class="section-subtitle">
+                        Estación instalada en Rancho Crimen.
+                    </div>
+                </div>
+
+                <div id="stationMap"></div>
+
+            </div>
+
+            <div class="col-lg-4">
+
+                <div class="h-100 d-flex flex-column justify-content-center">
+
+                    <div class="mb-3">
+                        <div class="small text-secondary">
+                            Nombre del sitio
+                        </div>
+
+                        <div class="fs-5 fw-bold">
+                            Rancho Crimen
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="small text-secondary">
+                            Coordenadas
+                        </div>
+
+                        <div class="location-coordinate mt-1">
+                            3°57'26.08"N<br>
+                            73°29'44.61"W
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="small text-secondary">
+                            Coordenadas decimales
+                        </div>
+
+                        <div class="location-coordinate mt-1">
+                            3.957244, -73.495725
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
-      </div>
-      <div class="card frosted mt-3">
+
+    </div>
+
+</section>
+                    <h4 class="section-title">
+                        Observaciones del período
+                    </h4>
+
+                    <div class="section-subtitle mb-3">
+                        Hallazgos descriptivos calculados a partir de los sensores.
+                    </div>
+
+                    <ul
+                        id="observationList"
+                        class="observation-list"
+                    ></ul>
+
+                </div>
+
+                <div class="col-lg-5">
+
+                    <h5 class="mb-3">
+                        Calidad de la información
+                    </h5>
+
+                    <div class="mb-3">
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Valores válidos</span>
+
+                            <strong id="qualityIntegrityValue">
+                                —
+                            </strong>
+                        </div>
+
+                        <div class="quality-bar">
+                            <div
+                                id="qualityIntegrityBar"
+                                class="quality-bar-fill"
+                                style="width: 0"
+                            ></div>
+                        </div>
+
+                    </div>
+
+                    <div class="row g-3">
+
+                        <div class="col-6">
+                            <div class="stat-box">
+                                <div class="stat-label">
+                                    Valores faltantes
+                                </div>
+
+                                <div
+                                    id="qualityMissing"
+                                    class="stat-value"
+                                >
+                                    —
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="stat-box">
+                                <div class="stat-label">
+                                    Valores inválidos
+                                </div>
+
+                                <div
+                                    id="qualityInvalid"
+                                    class="stat-value"
+                                >
+                                    —
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="stat-box">
+                                <div class="stat-label">
+                                    Registros
+                                </div>
+
+                                <div
+                                    id="qualityRecords"
+                                    class="stat-value"
+                                >
+                                    —
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="stat-box">
+                                <div class="stat-label">
+                                    Intervalo mediano
+                                </div>
+
+                                <div
+                                    id="qualityInterval"
+                                    class="stat-value"
+                                >
+                                    —
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Estado hídrico -->
+    <section class="card section-card mb-4">
+
         <div class="card-body">
-          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <h6 class="card-title mb-0">Lecturas del sensor: <span id="selectedInfo" class="fw-semibold">—</span></h6>
-            <small class="muted">Última actualización: <span id="selectedAt">—</span></small>
-          </div>
-          <div class="table-responsive mt-2">
-            <table class="table table-sm align-middle mb-0">
-              <thead>
-                <tr><th>Parámetro</th><th>Valor</th></tr>
-              </thead>
-              <tbody id="sensorReadings">
-                <tr><td colspan="2" class="muted">Selecciona un sensor en el mapa para ver todas sus lecturas.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-    <script>
-      // Mapa de sensores: cada sensor mide TODOS los parámetros. Al hacer clic, muestra todas sus lecturas.
-      window.addEventListener('load', function(){
-        if(!window.L) return;
-        var mapEl = document.getElementById('fieldMap');
-        if(!mapEl) return;
 
-        function rr(min,max,dec=2){ return +(Math.random()*(max-min)+min).toFixed(dec); }
-        function buildSensorData(){
-          // Valores realistas para cultivo de arroz
-          return {
-            humedad_suelo: rr(80,95),              // %
-            ph: rr(5.5,6.5),                       // pH
-            temp_suelo: rr(24,30),                 // °C
-            co2: rr(420,800,0),                    // ppm
-            oxigeno: rr(20.5,21.0,2),              // %
-            amoniaco: rr(0,2,2),                   // ppm
-            uv: rr(0,9,2),                         // índice UV
-            presion: rr(1008,1015,1),              // hPa
-            luminosidad: rr(30,80,2),              // %
-            lluvia: rr(0,8,1),                     // mm/h
-            humedad_aire: rr(70,95,1),             // %
-            temp_aire: rr(26,34,1),                // °C
-          };
-        }
+            <div class="mb-3">
+                <h4 class="section-title">
+                    Estado hídrico
+                </h4>
 
-        var center = [3.4206, -76.1542];
-        var map = L.map('fieldMap').setView(center, 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
-        var delta = 0.0015;
-        var bounds = [[center[0]-delta, center[1]-delta],[center[0]+delta, center[1]+delta]];
-        L.rectangle(bounds, { color: '#22c55e', weight: 1, fillOpacity: 0.05 }).addTo(map);
-
-        // Simula 6 nodos de sensores en el lote
-        window.sensors = [
-          { id:'Nodo-01', pos:[center[0]+0.0006, center[1]-0.0008] },
-          { id:'Nodo-02', pos:[center[0]-0.0004, center[1]-0.0006] },
-          { id:'Nodo-03', pos:[center[0]+0.0005, center[1]+0.0005] },
-          { id:'Nodo-04', pos:[center[0],        center[1]+0.0009] },
-          { id:'Nodo-05', pos:[center[0]-0.0002, center[1]+0.0004] },
-          { id:'Nodo-06', pos:[center[0]-0.0007, center[1]+0.0001] },
-        ].map(function(s){ s.data = buildSensorData(); return s; });
-
-        function formatValue(key, val){
-          switch(key){
-            case 'humedad_suelo': return val+' %';
-            case 'ph': return val+'';
-            case 'temp_suelo': return val+' °C';
-            case 'co2': return val+' ppm';
-            case 'oxigeno': return val+' %';
-            case 'amoniaco': return val+' ppm';
-            case 'uv': return val+'';
-            case 'presion': return val+' hPa';
-            case 'luminosidad': return val+' %';
-            case 'lluvia': return (val>0? val+' mm/h':'No');
-            case 'humedad_aire': return val+' %';
-            case 'temp_aire': return val+' °C';
-          }
-          return val;
-        }
-
-        function renderSensorPanel(sensor){
-          var infoEl = document.getElementById('selectedInfo');
-          var atEl = document.getElementById('selectedAt');
-          var tbody = document.getElementById('sensorReadings');
-          if(infoEl) infoEl.textContent = sensor.id;
-          if(atEl) atEl.textContent = new Date().toLocaleString('es-CO');
-          if(!tbody) return;
-          var order = [
-            ['Datos del suelo',''],
-            ['Humedad del suelo','humedad_suelo'],
-            ['pH del cultivo','ph'],
-            ['Temperatura del suelo','temp_suelo'],
-            ['Datos del exterior',''],
-            ['CO2','co2'],
-            ['Oxígeno','oxigeno'],
-            ['Amoniaco','amoniaco'],
-            ['Luz ultravioleta','uv'],
-            ['Presión barométrica','presion'],
-            ['Luminosidad','luminosidad'],
-            ['Lluvia','lluvia'],
-            ['Humedad aire','humedad_aire'],
-            ['Temperatura aire','temp_aire'],
-          ];
-          var html = '';
-          order.forEach(function(item){
-            if(!item[1]){ html += '<tr><td colspan="2"><strong>'+item[0]+'</strong></td></tr>'; return; }
-            var k = item[1]; var label = item[0]; var val = formatValue(k, sensor.data[k]);
-            html += '<tr><td>'+label+'</td><td><span class="fw-semibold">'+val+'</span></td></tr>';
-          });
-          tbody.innerHTML = html;
-        }
-
-        window.selectedSensor = null;
-        window.selectSensor = function(sensor){ window.selectedSensor = sensor; renderSensorPanel(sensor); };
-
-        window.sensors.forEach(function(s){
-          var marker = L.marker(s.pos).addTo(map).bindPopup(s.id);
-          marker.on('click', function(){
-            window.selectSensor(s);
-          });
-        });
-        map.fitBounds(bounds);
-      });
-    </script>
-
-    <h1 class="text-center mt-4">Datos promedio del suelo</h1>
-    <div class="container">
-      <div class="row g-3">
-        <div class="col-md-4">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-droplet fa-lg"></i></div>
-              <div class="fw-semibold">Humedad del suelo</div>
-              <div class="display-6"><span id="kpi_hs">—</span></div>
+                <div class="section-subtitle">
+                    Humedad del suelo comparada con lluvia y ET0 reportadas.
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-vial fa-lg"></i></div>
-              <div class="fw-semibold">pH del cultivo</div>
-              <div class="display-6"><span id="kpi_ph">—</span></div>
+
+            <div class="chart-container large">
+                <canvas id="waterChart"></canvas>
             </div>
-          </div>
+
         </div>
-        <div class="col-md-4">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-temperature-three-quarters fa-lg"></i></div>
-              <div class="fw-semibold">Temperatura del suelo</div>
-              <div class="display-6"><span id="kpi_ts">—</span></div>
+
+    </section>
+
+    <!-- Demanda atmosférica -->
+    <section class="card section-card mb-4">
+
+        <div class="card-body">
+
+            <div class="mb-3">
+                <h4 class="section-title">
+                    Demanda atmosférica
+                </h4>
+
+                <div class="section-subtitle">
+                    Temperatura, humedad relativa y déficit de presión de vapor.
+                </div>
             </div>
-          </div>
+
+            <div class="chart-container large">
+                <canvas id="atmosphereChart"></canvas>
+            </div>
+
         </div>
-      </div>
+
+    </section>
+
+    <!-- Resumen diario -->
+    <div class="row g-4 mb-4">
+
+        <div class="col-xl-7">
+
+            <section class="card section-card h-100">
+
+                <div class="card-body">
+
+                    <div class="mb-3">
+                        <h4 class="section-title">
+                            Comportamiento térmico diario
+                        </h4>
+
+                        <div class="section-subtitle">
+                            Temperaturas mínima, promedio y máxima por día.
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="dailyTemperatureChart"></canvas>
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
+        <div class="col-xl-5">
+
+            <section class="card section-card h-100">
+
+                <div class="card-body">
+
+                    <div class="mb-3">
+                        <h4 class="section-title">
+                            Viento por dirección
+                        </h4>
+
+                        <div class="section-subtitle">
+                            Frecuencia y velocidad promedio por sector.
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="windChart"></canvas>
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
     </div>
 
-    <h1 class="text-center mt-4">Datos promedio del exterior</h1>
-    <div class="container">
-      <div class="row g-3">
-        <div class="col-md-3">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-cloud fa-lg"></i></div>
-              <div class="fw-semibold">CO2</div>
-              <div class="display-6"><span id="kpi_co2">—</span></div>
+    <!-- Suelo -->
+    <section class="card section-card mb-4">
+
+        <div class="card-body">
+
+            <div class="mb-3">
+                <h4 class="section-title">
+                    Comportamiento químico del suelo
+                </h4>
+
+                <div class="section-subtitle">
+                    Tendencias de pH, conductividad eléctrica y salinidad.
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-wind fa-lg"></i></div>
-              <div class="fw-semibold">Oxígeno</div>
-              <div class="display-6"><span id="kpi_o2">—</span></div>
+
+            <div class="chart-container large">
+                <canvas id="soilChemistryChart"></canvas>
             </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-triangle-exclamation fa-lg"></i></div>
-              <div class="fw-semibold">Amoniaco</div>
-              <div class="display-6"><span id="kpi_nh3">—</span></div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-sun fa-lg"></i></div>
-              <div class="fw-semibold">Luz ultravioleta</div>
-              <div class="display-6"><span id="kpi_uv">—</span></div>
-            </div>
-          </div>
+
         </div>
 
-        <div class="col-md-3">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-gauge fa-lg"></i></div>
-              <div class="fw-semibold">Presión barométrica</div>
-              <div class="display-6"><span id="kpi_pr">—</span></div>
+    </section>
+
+    <!-- Explorador -->
+    <section class="card section-card mb-4">
+
+        <div class="card-body">
+
+            <div class="row g-3 align-items-end mb-4">
+
+                <div class="col-lg-8">
+
+                    <label
+                        for="sensorSelector"
+                        class="form-label"
+                    >
+                        Explorador de variables
+                    </label>
+
+                    <select
+                        id="sensorSelector"
+                        class="form-select"
+                    ></select>
+
+                </div>
+
+                <div class="col-lg-4">
+
+                    <div class="records-badge w-100 justify-content-center">
+                        <i class="fa-solid fa-database"></i>
+
+                        <span>
+                            {{ history_readings|length }}
+                            registros encontrados
+                        </span>
+                    </div>
+
+                </div>
+
             </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-regular fa-lightbulb fa-lg"></i></div>
-              <div class="fw-semibold">Luminosidad</div>
-              <div class="display-6"><span id="kpi_lux">—</span></div>
+
+            <div class="chart-container large">
+                <canvas id="sensorChart"></canvas>
             </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-cloud-showers-heavy fa-lg"></i></div>
-              <div class="fw-semibold">Lluvia</div>
-              <div class="display-6"><span id="kpi_rain">—</span></div>
+
+            <div class="row g-3 mt-3">
+
+                <div class="col-6 col-md-3">
+                    <div class="stat-box">
+                        <div class="stat-label">Promedio</div>
+                        <div id="statAvg" class="stat-value">—</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="stat-box">
+                        <div class="stat-label">Mínimo</div>
+                        <div id="statMin" class="stat-value">—</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="stat-box">
+                        <div class="stat-label">Máximo</div>
+                        <div id="statMax" class="stat-value">—</div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="stat-box">
+                        <div class="stat-label">Último valor</div>
+                        <div id="statLast" class="stat-value">—</div>
+                    </div>
+                </div>
+
             </div>
-          </div>
+
         </div>
-        <div class="col-md-3">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-water fa-lg"></i></div>
-              <div class="fw-semibold">Humedad aire</div>
-              <div class="display-6"><span id="kpi_ha">—</span></div>
+
+    </section>
+
+    <!-- Última lectura -->
+    <section class="mb-4">
+
+        <div class="mb-3">
+            <h4 class="section-title">
+                Última lectura detallada
+            </h4>
+
+            <div class="section-subtitle">
+                Valores más recientes de suelo y estación meteorológica.
             </div>
-          </div>
         </div>
-        <div class="col-md-3">
-          <div class="card frosted h-100">
-            <div class="card-body text-center">
-              <div class="mb-1"><i class="fa-solid fa-temperature-high fa-lg"></i></div>
-              <div class="fw-semibold">Temperatura aire</div>
-              <div class="display-6"><span id="kpi_ta">—</span></div>
+
+        <div
+            id="latestSensorGroups"
+            class="row g-3"
+        ></div>
+
+    </section>
+
+    <!-- Tabla -->
+    <section class="card section-card mb-4">
+
+        <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+
+                <div>
+                    <h4 class="section-title">
+                        Tabla histórica detallada
+                    </h4>
+
+                    <div class="section-subtitle">
+                        Cada fila corresponde a una lectura recibida.
+                    </div>
+                </div>
+
+                <a
+                    href="{% url 's2' %}?device_id={{ selected_device|urlencode }}&range={{ selected_range }}&date_from={{ date_from }}&date_to={{ date_to }}&export=csv"
+                    class="btn btn-outline-success"
+                >
+                    <i class="fa-solid fa-file-csv me-2"></i>
+                    Descargar CSV
+                </a>
+
             </div>
-          </div>
+
+            <div class="row g-3 mb-3">
+
+                <div class="col-lg-6">
+
+                    <div class="input-group">
+
+                        <span class="input-group-text">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+
+                        <input
+                            type="search"
+                            id="tableSearch"
+                            class="form-control"
+                            placeholder="Buscar en la tabla..."
+                        >
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="history-container">
+
+                <table class="table table-striped table-hover history-table">
+
+                    <thead>
+                        <tr id="historyTableHead"></tr>
+                    </thead>
+
+                    <tbody id="historyTableBody"></tbody>
+
+                </table>
+
+            </div>
+
         </div>
-      </div>
+
+    </section>
+
+    <div class="disclaimer-box">
+        <strong>Nota técnica:</strong>
+        los gráficos son descriptivos. Las decisiones de riego,
+        nutrición o aplicación de productos deben considerar el cultivo,
+        la etapa fenológica, el suelo, la profundidad de medición y la
+        calibración de los sensores. El balance lluvia menos ET0 se presenta
+        únicamente como indicador comparativo.
     </div>
-        <h1 class="text-center mt-4"></h1>
-        <div class="container">
-            <form action="/get_data_sensor" method="post" class="d-flex justify-content-center">
-                {% csrf_token %}
-                <button id="btn-datos-cultivo" type="submit" class="btn btn-primary">Actualizar</button>
-            </form>
-            <form action="/inicio" method="post" class="d-flex justify-content-center">
-                {% csrf_token %}
-                <button id="btn-datos-cultivo" type="submit" class="btn btn-primary">Regresar</button>
-            </form>
 
-        </div>
+</main>
 
-        <script>
-            // Aquí debes reemplazar los datos de ejemplo con tus datos reales
-            var humedadData = {
-                labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-                datasets: [{
-                    label: 'Humedad del suelo',
-                    data: [12, 19, 3, 5, 2, 3],
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            };
+{{ sensor_definitions|json_script:"sensor-definitions-data" }}
+{{ latest_sensor_data|json_script:"latest-sensor-data" }}
+{{ latest_metadata|json_script:"latest-metadata-data" }}
+{{ history_readings|json_script:"history-readings-data" }}
+{{ dashboard_analytics|json_script:"dashboard-analytics-data" }}
 
-            var Humedad_airedata = {
-                labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-                datasets: [{
-                    label: 'Ph del cultivo',
-                    data: [12, 13, 11, 12, 12, 12],
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            };
-            var Temperatura_airedata = {
-                labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-                datasets: [{
-                    label: 'Ph del cultivo',
-                    data: [2, 3, 5, 7, 8, 10],
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            };
-            var phData = {
-                labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-                datasets: [{
-                    label: 'Ph del cultivo',
-                    data: [2, 3, 5, 7, 8, 10],
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            };
-
-            var temperaturaData = {
-                labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-                datasets: [{
-                    label: 'Temperatura del suelo',
-                    data: [33, 231, 232, 23, 24, 25],
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            };
-            var Amoniacodata = {
-                labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-                datasets: [{
-                    label: 'Temperatura del suelo',
-                    data: [20, 121, 22, 123, 24, 25],
-                    fill: false,
-                    borderColor: 'rgb(75, 199, 192)',
-                    tension: 0.1
-                }]
-            };
-            var CO2data = {
-                labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-                datasets: [{
-                    label: 'Temperatura del suelo',
-                    data: [3, 21, 12, 23, 24, 15],
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            };
-            var Oxigenodata = {
-                labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio'],
-                datasets: [{
-                    label: 'Temperatura del suelo',
-                    data: [270, 271, 272, 273, 274, 275],
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            };
-
-            var humedadChart = new Chart(document.getElementById('humedadChart'), {
-                type: 'line',
-                data: humedadData,
-            });
-
-            var phChart = new Chart(document.getElementById('phChart'), {
-                type: 'line',
-                data: phData,
-            });
-
-            var temperaturaChart = new Chart(document.getElementById('temperaturaChart'), {
-                type: 'line',
-                data: temperaturaData,
-            });
-
-        </script>
 <script>
-// Panel interactivo de sensores (demo arroz)
-function lastHoursLabels(n=12){const out=[];const now=new Date();for(let i=n-1;i>=0;i--){const d=new Date(now.getTime()-i*3600*1000);out.push(d.getHours().toString().padStart(2,'0')+':00');}return out;}
-function randRange(min,max){ return +(Math.random()*(max-min)+min).toFixed(2); }
-function series(n, min, max){ return Array.from({length:n},()=>randRange(min,max)); }
-const labelsInteractive = lastHoursLabels(12);
-const ds = {
-  humedad_suelo: { label: 'Humedad del suelo (%)', unit:'%', data: series(12, 80, 95), color: '#10b981' },
-  ph:            { label: 'pH del cultivo', unit:'',    data: series(12, 5.5, 6.5), color: '#8b5cf6' },
-  temp_suelo:    { label: 'Temperatura del suelo (°C)', unit:'°C', data: series(12, 24, 30), color: '#f59e0b' },
-  co2:           { label: 'CO2 (ppm)', unit:'ppm', data: series(12, 420, 800), color: '#0ea5e9' },
-  oxigeno:       { label: 'Oxígeno (%)', unit:'%', data: series(12, 20.5, 21.0), color: '#22c55e' },
-  amoniaco:      { label: 'Amoniaco (ppm)', unit:'ppm', data: series(12, 0, 2), color: '#ef4444' },
-  uv:            { label: 'Índice UV', unit:'', data: series(12, 0, 9), color: '#e11d48' },
-  presion:       { label: 'Presión (hPa)', unit:'hPa', data: series(12, 995, 1015), color: '#64748b' },
-  luminosidad:   { label: 'Luminosidad (%)', unit:'%', data: series(12, 30, 100), color: '#06b6d4' },
-  lluvia:        { label: 'Lluvia (mm/h)', unit:'mm/h', data: series(12, 0, 8), color: '#3b82f6' },
-  humedad_aire:  { label: 'Humedad del aire (%)', unit:'%', data: series(12, 70, 95), color: '#22c55e' },
-  temp_aire:     { label: 'Temperatura del aire (°C)', unit:'°C', data: series(12, 26, 34), color: '#f97316' },
+    const sensorDefinitions = JSON.parse(
+        document.getElementById(
+            "sensor-definitions-data"
+        ).textContent
+    );
+
+    const latestSensorData = JSON.parse(
+        document.getElementById(
+            "latest-sensor-data"
+        ).textContent
+    );
+
+    const latestMetadata = JSON.parse(
+        document.getElementById(
+            "latest-metadata-data"
+        ).textContent
+    );
+
+    const historyReadings = JSON.parse(
+        document.getElementById(
+            "history-readings-data"
+        ).textContent
+    );
+
+    const dashboardAnalytics = JSON.parse(
+        document.getElementById(
+            "dashboard-analytics-data"
+        ).textContent
+    );
+
+    const summary = dashboardAnalytics.summary || {};
+    const dailyData = dashboardAnalytics.daily || [];
+    const windRose = dashboardAnalytics.wind_rose || [];
+
+    const numberFormatter = new Intl.NumberFormat(
+        "es-CO",
+        {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }
+    );
+
+    function numeric(value) {
+        if (
+            value === null ||
+            value === undefined ||
+            value === ""
+        ) {
+            return null;
+        }
+
+        const parsed = Number(value);
+
+        return Number.isFinite(parsed)
+            ? parsed
+            : null;
+    }
+
+    function formatValue(value, unit = "") {
+        const parsed = numeric(value);
+
+        if (parsed === null) {
+            return "—";
+        }
+
+        const formatted = numberFormatter.format(parsed);
+
+        return unit
+            ? `${formatted} ${unit}`
+            : formatted;
+    }
+
+    function formatDate(value) {
+        if (!value) {
+            return "—";
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return value;
+        }
+
+        return date.toLocaleString(
+            "es-CO",
+            {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+    }
+
+    function getTimestamp(reading) {
+        return (
+            reading.local_timestamp ||
+            reading.event_timestamp ||
+            reading.received_at
+        );
+    }
+
+    function chartLabels() {
+        return historyReadings.map(
+            reading => formatDate(
+                getTimestamp(reading)
+            )
+        );
+    }
+
+    function sensorValues(key) {
+        return historyReadings.map(
+            reading => numeric(reading[key])
+        );
+    }
+
+    function latestValue(key) {
+        return numeric(
+            latestSensorData[key]
+        );
+    }
+
+    function setText(id, value) {
+        const element = document.getElementById(id);
+
+        if (element) {
+            element.textContent = value;
+        }
+    }
+
+    function renderLatestMetadata() {
+        setText(
+            "latestDevice",
+            latestMetadata?.device_id || "Sin estación"
+        );
+
+        setText(
+            "latestTimestamp",
+            formatDate(
+                latestMetadata?.event_timestamp ||
+                latestMetadata?.received_at
+            )
+        );
+    }
+
+    function renderExecutiveKpis() {
+        const status =
+            summary.station_status || "Sin datos";
+
+        let statusClass = "offline";
+
+        if (status === "Actualizada") {
+            statusClass = "online";
+        } else if (
+            status === "Sin actualización reciente"
+        ) {
+            statusClass = "warning";
+        }
+
+        document.getElementById(
+            "kpiStationStatus"
+        ).innerHTML = `
+            <span class="status-dot ${statusClass}"></span>
+            ${status}
+        `;
+
+        setText(
+            "kpiStationAge",
+            summary.latest_age_minutes !== null &&
+            summary.latest_age_minutes !== undefined
+                ? `Hace ${formatValue(
+                    summary.latest_age_minutes,
+                    "min"
+                )}`
+                : "Sin fecha disponible"
+        );
+
+        setText(
+            "kpiSoilMoisture",
+            formatValue(
+                latestValue(
+                    "sensor_2_soil_moisture_percent"
+                ),
+                "%"
+            )
+        );
+
+        const moistureChange = numeric(
+            summary.soil_moisture_change
+        );
+
+        let moistureText =
+            "Sin tendencia calculable";
+
+        if (moistureChange !== null) {
+            if (moistureChange > 0) {
+                moistureText =
+                    `Aumentó ${formatValue(
+                        moistureChange,
+                        "puntos"
+                    )} en el período`;
+            } else if (moistureChange < 0) {
+                moistureText =
+                    `Disminuyó ${formatValue(
+                        Math.abs(moistureChange),
+                        "puntos"
+                    )} en el período`;
+            } else {
+                moistureText =
+                    "Sin cambio neto en el período";
+            }
+        }
+
+        setText(
+            "kpiSoilTrend",
+            moistureText
+        );
+
+        setText(
+            "kpiVpd",
+            formatValue(
+                summary.latest_vpd_kpa,
+                "kPa"
+            )
+        );
+
+        setText(
+            "kpiAirTemperature",
+            formatValue(
+                latestValue("air_temperature_c"),
+                "°C"
+            )
+        );
+
+        setText(
+            "kpiAirHumidity",
+            `Humedad relativa: ${formatValue(
+                latestValue(
+                    "air_humidity_percent"
+                ),
+                "%"
+            )}`
+        );
+
+        setText(
+            "kpiRain",
+            formatValue(
+                latestValue("rain_mm"),
+                "mm"
+            )
+        );
+
+        setText(
+            "kpiEt0",
+            formatValue(
+                latestValue("et0_mm"),
+                "mm"
+            )
+        );
+
+        setText(
+            "kpiIntegrity",
+            formatValue(
+                summary.data_integrity_percent,
+                "%"
+            )
+        );
+
+        setText(
+            "kpiInvalidValues",
+            `${summary.invalid_values || 0} valores inválidos`
+        );
+
+        setText(
+            "kpiCompleteness",
+            summary.completeness_percent !== null &&
+            summary.completeness_percent !== undefined
+                ? formatValue(
+                    summary.completeness_percent,
+                    "%"
+                )
+                : "—"
+        );
+
+        setText(
+            "kpiInterval",
+            summary.median_interval_minutes !== null &&
+            summary.median_interval_minutes !== undefined
+                ? `Lectura cada ${formatValue(
+                    summary.median_interval_minutes,
+                    "min"
+                )}`
+                : "Intervalo no calculable"
+        );
+    }
+
+    function addObservation(icon, title, description) {
+        const list =
+            document.getElementById(
+                "observationList"
+            );
+
+        const item =
+            document.createElement("li");
+
+        item.className = "observation-item";
+
+        item.innerHTML = `
+            <div class="observation-icon">
+                <i class="${icon}"></i>
+            </div>
+
+            <div>
+                <div class="fw-semibold">
+                    ${title}
+                </div>
+
+                <div class="small text-secondary">
+                    ${description}
+                </div>
+            </div>
+        `;
+
+        list.appendChild(item);
+    }
+
+    function renderObservations() {
+        const list =
+            document.getElementById(
+                "observationList"
+            );
+
+        list.innerHTML = "";
+
+        if (!historyReadings.length) {
+            addObservation(
+                "fa-solid fa-circle-info",
+                "Sin información suficiente",
+                "No existen lecturas dentro del período seleccionado."
+            );
+
+            return;
+        }
+
+        addObservation(
+            "fa-solid fa-tower-broadcast",
+            "Estado de comunicación",
+            summary.station_status === "Actualizada"
+                ? "La estación presenta una lectura reciente."
+                : "La estación no presenta una actualización reciente o no fue posible calcularla."
+        );
+
+        const moistureChange = numeric(
+            summary.soil_moisture_change
+        );
+
+        if (moistureChange !== null) {
+            if (moistureChange < 0) {
+                addObservation(
+                    "fa-solid fa-arrow-trend-down",
+                    "Tendencia de humedad descendente",
+                    `La humedad del suelo disminuyó ${formatValue(
+                        Math.abs(moistureChange),
+                        "puntos porcentuales"
+                    )} entre la primera y la última lectura del período.`
+                );
+            } else if (moistureChange > 0) {
+                addObservation(
+                    "fa-solid fa-arrow-trend-up",
+                    "Recuperación de humedad",
+                    `La humedad del suelo aumentó ${formatValue(
+                        moistureChange,
+                        "puntos porcentuales"
+                    )} entre la primera y la última lectura.`
+                );
+            } else {
+                addObservation(
+                    "fa-solid fa-minus",
+                    "Humedad sin cambio neto",
+                    "La primera y la última lectura presentan el mismo valor de humedad."
+                );
+            }
+        }
+
+        const vpdValues = historyReadings
+            .map(
+                reading =>
+                    numeric(reading.vpd_kpa)
+            )
+            .filter(
+                value => value !== null
+            );
+
+        if (vpdValues.length) {
+            addObservation(
+                "fa-solid fa-wind",
+                "Demanda atmosférica registrada",
+                `El VPD máximo calculado durante el período fue ${formatValue(
+                    Math.max(...vpdValues),
+                    "kPa"
+                )}. Debe interpretarse según el cultivo y su etapa de desarrollo.`
+            );
+        }
+
+        const rainyDays = dailyData.filter(
+            day =>
+                numeric(day.rain_reported) > 0
+        ).length;
+
+        addObservation(
+            "fa-solid fa-cloud-rain",
+            "Días con lluvia reportada",
+            `${rainyDays} de ${dailyData.length} días presentan un valor de lluvia superior a cero.`
+        );
+
+        addObservation(
+            "fa-solid fa-shield-halved",
+            "Calidad del conjunto",
+            `La integridad física estimada de los datos es ${formatValue(
+                summary.data_integrity_percent,
+                "%"
+            )}, con ${summary.missing_values || 0} valores faltantes y ${summary.invalid_values || 0} valores inválidos.`
+        );
+    }
+
+    function renderQuality() {
+        const integrity =
+            numeric(
+                summary.data_integrity_percent
+            ) || 0;
+
+        setText(
+            "qualityIntegrityValue",
+            formatValue(integrity, "%")
+        );
+
+        document.getElementById(
+            "qualityIntegrityBar"
+        ).style.width = `${Math.max(
+            0,
+            Math.min(100, integrity)
+        )}%`;
+
+        setText(
+            "qualityMissing",
+            summary.missing_values || 0
+        );
+
+        setText(
+            "qualityInvalid",
+            summary.invalid_values || 0
+        );
+
+        setText(
+            "qualityRecords",
+            historyReadings.length
+        );
+
+        setText(
+            "qualityInterval",
+            summary.median_interval_minutes !== null &&
+            summary.median_interval_minutes !== undefined
+                ? formatValue(
+                    summary.median_interval_minutes,
+                    "min"
+                )
+                : "—"
+        );
+    }
+
+    function createWaterChart() {
+        new Chart(
+            document.getElementById(
+                "waterChart"
+            ),
+            {
+                type: "bar",
+
+                data: {
+                    labels: chartLabels(),
+
+                    datasets: [
+                        {
+                            type: "line",
+                            label: "Humedad del suelo (%)",
+                            data: sensorValues(
+                                "sensor_2_soil_moisture_percent"
+                            ),
+                            yAxisID: "moisture",
+                            borderColor: "#177558",
+                            backgroundColor:
+                                "rgba(23,117,88,0.10)",
+                            borderWidth: 2,
+                            pointRadius: 2,
+                            tension: 0.25
+                        },
+                        {
+                            type: "bar",
+                            label: "Lluvia reportada (mm)",
+                            data: sensorValues(
+                                "rain_mm"
+                            ),
+                            yAxisID: "water",
+                            backgroundColor:
+                                "rgba(49,139,200,0.45)",
+                            borderColor: "#318bc8",
+                            borderWidth: 1
+                        },
+                        {
+                            type: "line",
+                            label: "ET0 reportada (mm)",
+                            data: sensorValues(
+                                "et0_mm"
+                            ),
+                            yAxisID: "water",
+                            borderColor: "#d89025",
+                            backgroundColor:
+                                "rgba(216,144,37,0.10)",
+                            borderDash: [6, 5],
+                            borderWidth: 2,
+                            pointRadius: 1,
+                            tension: 0.2
+                        }
+                    ]
+                },
+
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: "index"
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 12
+                            }
+                        },
+                        moisture: {
+                            position: "left",
+                            title: {
+                                display: true,
+                                text: "Humedad (%)"
+                            }
+                        },
+                        water: {
+                            position: "right",
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: "Agua reportada (mm)"
+                            }
+                        }
+                    }
+                }
+            }
+        );
+    }
+
+    function createAtmosphereChart() {
+        new Chart(
+            document.getElementById(
+                "atmosphereChart"
+            ),
+            {
+                type: "line",
+
+                data: {
+                    labels: chartLabels(),
+
+                    datasets: [
+                        {
+                            label: "Temperatura (°C)",
+                            data: sensorValues(
+                                "air_temperature_c"
+                            ),
+                            yAxisID: "temperature",
+                            borderColor: "#cc6348",
+                            backgroundColor:
+                                "rgba(204,99,72,0.09)",
+                            pointRadius: 1,
+                            borderWidth: 2,
+                            tension: 0.25
+                        },
+                        {
+                            label: "Humedad relativa (%)",
+                            data: sensorValues(
+                                "air_humidity_percent"
+                            ),
+                            yAxisID: "humidity",
+                            borderColor: "#318bc8",
+                            backgroundColor:
+                                "rgba(49,139,200,0.08)",
+                            pointRadius: 1,
+                            borderWidth: 2,
+                            tension: 0.25
+                        },
+                        {
+                            label: "VPD (kPa)",
+                            data: historyReadings.map(
+                                reading =>
+                                    numeric(
+                                        reading.vpd_kpa
+                                    )
+                            ),
+                            yAxisID: "vpd",
+                            borderColor: "#8a5bb5",
+                            backgroundColor:
+                                "rgba(138,91,181,0.08)",
+                            borderDash: [6, 4],
+                            pointRadius: 1,
+                            borderWidth: 2,
+                            tension: 0.25
+                        }
+                    ]
+                },
+
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: "index"
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 12
+                            }
+                        },
+                        temperature: {
+                            position: "left",
+                            title: {
+                                display: true,
+                                text: "Temperatura °C"
+                            }
+                        },
+                        humidity: {
+                            position: "right",
+                            min: 0,
+                            max: 100,
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: "Humedad %"
+                            }
+                        },
+                        vpd: {
+                            position: "right",
+                            offset: true,
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: "VPD kPa"
+                            }
+                        }
+                    }
+                }
+            }
+        );
+    }
+
+    function createDailyTemperatureChart() {
+        new Chart(
+            document.getElementById(
+                "dailyTemperatureChart"
+            ),
+            {
+                type: "line",
+
+                data: {
+                    labels: dailyData.map(
+                        day => day.date
+                    ),
+
+                    datasets: [
+                        {
+                            label: "Mínima",
+                            data: dailyData.map(
+                                day =>
+                                    numeric(
+                                        day.air_temperature_min
+                                    )
+                            ),
+                            borderColor: "#318bc8",
+                            pointRadius: 3,
+                            borderWidth: 2,
+                            tension: 0.2
+                        },
+                        {
+                            label: "Promedio",
+                            data: dailyData.map(
+                                day =>
+                                    numeric(
+                                        day.air_temperature_avg
+                                    )
+                            ),
+                            borderColor: "#177558",
+                            pointRadius: 3,
+                            borderWidth: 2,
+                            tension: 0.2
+                        },
+                        {
+                            label: "Máxima",
+                            data: dailyData.map(
+                                day =>
+                                    numeric(
+                                        day.air_temperature_max
+                                    )
+                            ),
+                            borderColor: "#cc6348",
+                            pointRadius: 3,
+                            borderWidth: 2,
+                            tension: 0.2
+                        }
+                    ]
+                },
+
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: "index"
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: "Temperatura °C"
+                            }
+                        }
+                    }
+                }
+            }
+        );
+    }
+
+    function createWindChart() {
+        new Chart(
+            document.getElementById(
+                "windChart"
+            ),
+            {
+                type: "bar",
+
+                data: {
+                    labels: windRose.map(
+                        item => item.sector
+                    ),
+
+                    datasets: [
+                        {
+                            label: "Cantidad de lecturas",
+                            data: windRose.map(
+                                item =>
+                                    numeric(
+                                        item.count
+                                    ) || 0
+                            ),
+                            yAxisID: "count",
+                            backgroundColor:
+                                "rgba(23,117,88,0.58)"
+                        },
+                        {
+                            type: "line",
+                            label: "Velocidad promedio (m/s)",
+                            data: windRose.map(
+                                item =>
+                                    numeric(
+                                        item.average_speed
+                                    )
+                            ),
+                            yAxisID: "speed",
+                            borderColor: "#d89025",
+                            pointRadius: 4,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        count: {
+                            position: "left",
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: "Lecturas"
+                            }
+                        },
+                        speed: {
+                            position: "right",
+                            beginAtZero: true,
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: "m/s"
+                            }
+                        }
+                    }
+                }
+            }
+        );
+    }
+
+    function createSoilChemistryChart() {
+        new Chart(
+            document.getElementById(
+                "soilChemistryChart"
+            ),
+            {
+                type: "line",
+
+                data: {
+                    labels: chartLabels(),
+
+                    datasets: [
+                        {
+                            label: "pH",
+                            data: sensorValues(
+                                "sensor_2_ph"
+                            ),
+                            yAxisID: "ph",
+                            borderColor: "#8a5bb5",
+                            pointRadius: 2,
+                            borderWidth: 2,
+                            tension: 0.2
+                        },
+                        {
+                            label: "EC",
+                            data: sensorValues(
+                                "sensor_2_ec"
+                            ),
+                            yAxisID: "conductivity",
+                            borderColor: "#177558",
+                            pointRadius: 2,
+                            borderWidth: 2,
+                            tension: 0.2
+                        },
+                        {
+                            label: "Salinidad",
+                            data: sensorValues(
+                                "sensor_2_salinity"
+                            ),
+                            yAxisID: "conductivity",
+                            borderColor: "#d89025",
+                            pointRadius: 2,
+                            borderDash: [5, 4],
+                            borderWidth: 2,
+                            tension: 0.2
+                        }
+                    ]
+                },
+
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: "index"
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 12
+                            }
+                        },
+                        ph: {
+                            position: "left",
+                            min: 0,
+                            max: 14,
+                            title: {
+                                display: true,
+                                text: "pH"
+                            }
+                        },
+                        conductivity: {
+                            position: "right",
+                            beginAtZero: true,
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            title: {
+                                display: true,
+                                text: "Valor reportado"
+                            }
+                        }
+                    }
+                }
+            }
+        );
+    }
+
+    function renderLatestSensors() {
+        const container =
+            document.getElementById(
+                "latestSensorGroups"
+            );
+
+        container.innerHTML = "";
+
+        const groups = {};
+
+        sensorDefinitions.forEach(
+            sensor => {
+                if (!groups[sensor.group]) {
+                    groups[sensor.group] = [];
+                }
+
+                groups[sensor.group].push(sensor);
+            }
+        );
+
+        Object.entries(groups).forEach(
+            ([groupName, sensors]) => {
+                const column =
+                    document.createElement("div");
+
+                column.className =
+                    "col-12 col-lg-6";
+
+                const card =
+                    document.createElement("div");
+
+                card.className =
+                    "sensor-group";
+
+                card.innerHTML = `
+                    <div class="sensor-group-title">
+                        <i class="${
+                            groupName
+                                .toLowerCase()
+                                .includes("suelo")
+                                ? "fa-solid fa-seedling"
+                                : "fa-solid fa-cloud-sun"
+                        }"></i>
+
+                        <span>${groupName}</span>
+                    </div>
+                `;
+
+                sensors.forEach(
+                    sensor => {
+                        const row =
+                            document.createElement(
+                                "div"
+                            );
+
+                        row.className =
+                            "sensor-row";
+
+                        row.innerHTML = `
+                            <span class="sensor-label">
+                                ${sensor.label}
+                            </span>
+
+                            <span class="sensor-value">
+                                ${formatValue(
+                                    latestSensorData[
+                                        sensor.key
+                                    ],
+                                    sensor.unit
+                                )}
+                            </span>
+                        `;
+
+                        card.appendChild(row);
+                    }
+                );
+
+                column.appendChild(card);
+                container.appendChild(column);
+            }
+        );
+    }
+
+    const sensorSelector =
+        document.getElementById(
+            "sensorSelector"
+        );
+
+    sensorDefinitions.forEach(
+        sensor => {
+            const option =
+                document.createElement("option");
+
+            option.value = sensor.key;
+            option.textContent =
+                `${sensor.group} — ${sensor.label}`;
+
+            sensorSelector.appendChild(option);
+        }
+    );
+
+    const preferredSensor =
+        "sensor_2_soil_moisture_percent";
+
+    if (
+        sensorDefinitions.some(
+            sensor =>
+                sensor.key === preferredSensor
+        )
+    ) {
+        sensorSelector.value =
+            preferredSensor;
+    }
+
+    const explorerChart = new Chart(
+        document.getElementById(
+            "sensorChart"
+        ),
+        {
+            type: "line",
+
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: "",
+                        data: [],
+                        borderColor: "#177558",
+                        backgroundColor:
+                            "rgba(23,117,88,0.12)",
+                        fill: true,
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        tension: 0.25,
+                        spanGaps: true
+                    }
+                ]
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: "index"
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            maxTicksLimit: 12
+                        }
+                    }
+                }
+            }
+        }
+    );
+
+    function updateExplorer() {
+        const key =
+            sensorSelector.value;
+
+        const definition =
+            sensorDefinitions.find(
+                sensor =>
+                    sensor.key === key
+            );
+
+        if (!definition) {
+            return;
+        }
+
+        const values =
+            sensorValues(key);
+
+        explorerChart.data.labels =
+            chartLabels();
+
+        explorerChart.data.datasets[0].label =
+            definition.unit
+                ? `${definition.label} (${definition.unit})`
+                : definition.label;
+
+        explorerChart.data.datasets[0].data =
+            values;
+
+        explorerChart.update();
+
+        const valid = values.filter(
+            value => value !== null
+        );
+
+        if (!valid.length) {
+            setText("statAvg", "—");
+            setText("statMin", "—");
+            setText("statMax", "—");
+            setText("statLast", "—");
+            return;
+        }
+
+        const average =
+            valid.reduce(
+                (total, value) =>
+                    total + value,
+                0
+            ) / valid.length;
+
+        setText(
+            "statAvg",
+            formatValue(
+                average,
+                definition.unit
+            )
+        );
+
+        setText(
+            "statMin",
+            formatValue(
+                Math.min(...valid),
+                definition.unit
+            )
+        );
+
+        setText(
+            "statMax",
+            formatValue(
+                Math.max(...valid),
+                definition.unit
+            )
+        );
+
+        setText(
+            "statLast",
+            formatValue(
+                valid[valid.length - 1],
+                definition.unit
+            )
+        );
+    }
+
+    function renderHistoryTable(
+        filterText = ""
+    ) {
+        const head =
+            document.getElementById(
+                "historyTableHead"
+            );
+
+        const body =
+            document.getElementById(
+                "historyTableBody"
+            );
+
+        head.innerHTML = "";
+        body.innerHTML = "";
+
+        const headers = [
+            "Fecha",
+            "Estación"
+        ];
+
+        headers.forEach(
+            label => {
+                const th =
+                    document.createElement("th");
+
+                th.textContent = label;
+                head.appendChild(th);
+            }
+        );
+
+        sensorDefinitions.forEach(
+            sensor => {
+                const th =
+                    document.createElement("th");
+
+                th.textContent =
+                    sensor.unit
+                        ? `${sensor.label} (${sensor.unit})`
+                        : sensor.label;
+
+                head.appendChild(th);
+            }
+        );
+
+        const normalizedFilter =
+            filterText
+                .trim()
+                .toLowerCase();
+
+        const filteredReadings =
+            [...historyReadings]
+                .reverse()
+                .filter(
+                    reading => {
+                        if (!normalizedFilter) {
+                            return true;
+                        }
+
+                        return JSON.stringify(
+                            reading
+                        )
+                            .toLowerCase()
+                            .includes(
+                                normalizedFilter
+                            );
+                    }
+                );
+
+        if (!filteredReadings.length) {
+            const row =
+                document.createElement("tr");
+
+            const cell =
+                document.createElement("td");
+
+            cell.colSpan =
+                sensorDefinitions.length + 2;
+
+            cell.className =
+                "empty-state";
+
+            cell.textContent =
+                "No hay registros que coincidan con la búsqueda.";
+
+            row.appendChild(cell);
+            body.appendChild(row);
+
+            return;
+        }
+
+        filteredReadings.forEach(
+            reading => {
+                const row =
+                    document.createElement("tr");
+
+                const dateCell =
+                    document.createElement("td");
+
+                dateCell.textContent =
+                    formatDate(
+                        getTimestamp(reading)
+                    );
+
+                const deviceCell =
+                    document.createElement("td");
+
+                deviceCell.textContent =
+                    reading.device_id || "—";
+
+                row.appendChild(dateCell);
+                row.appendChild(deviceCell);
+
+                sensorDefinitions.forEach(
+                    sensor => {
+                        const cell =
+                            document.createElement(
+                                "td"
+                            );
+
+                        cell.textContent =
+                            formatValue(
+                                reading[
+                                    sensor.key
+                                ],
+                                sensor.unit
+                            );
+
+                        row.appendChild(cell);
+                    }
+                );
+
+                body.appendChild(row);
+            }
+        );
+    }
+
+    sensorSelector.addEventListener(
+        "change",
+        updateExplorer
+    );
+
+    document
+        .getElementById("tableSearch")
+        .addEventListener(
+            "input",
+            event => {
+                renderHistoryTable(
+                    event.target.value
+                );
+            }
+        );
+
+    renderLatestMetadata();
+    renderExecutiveKpis();
+    renderObservations();
+    renderQuality();
+    renderLatestSensors();
+    renderHistoryTable();
+
+    createWaterChart();
+    createAtmosphereChart();
+    createDailyTemperatureChart();
+    createWindChart();
+    createSoilChemistryChart();
+
+    if (sensorDefinitions.length) {
+        updateExplorer();
+    }
+    const stationCoordinates = {
+    latitude: 3.957244,
+    longitude: -73.495725
 };
-function stats(arr){const avg=(arr.reduce((a,b)=>a+b,0)/arr.length);const min=Math.min(...arr), max=Math.max(...arr), last=arr[arr.length-1];return {avg:+avg.toFixed(2),min:+min.toFixed(2),max:+max.toFixed(2),last:+last.toFixed(2)};}
-function updateQuickKPIs(){try{const uv = stats(ds.uv.data).last;const p = stats(ds.presion.data).last;const l = stats(ds.luminosidad.data).last;const rain = stats(ds.lluvia.data).last;document.getElementById('valor1').textContent = uv + '';document.getElementById('valor2').textContent = p + ' hPa';document.getElementById('valor3').textContent = l + ' %';document.getElementById('valor4').textContent = (rain>0? (rain.toFixed(1)+' mm/h') : 'No');}catch(e){}}
-(function initInteractive(){
-  const canvas=document.getElementById('sensorChart');
-  if(!canvas){updateQuickKPIs();return;}
-  const ctx=canvas.getContext('2d');
-  let mainChart=new Chart(ctx,{type:'line',data:{labels:labelsInteractive,datasets:[{label:'Promedios del cultivo',data: ds.humedad_suelo.data.map((_,i)=>+(((ds.humedad_suelo.data[i]/100)*50)+((ds.temp_suelo.data[i]/40)*25)+((ds.humedad_aire.data[i]/100)*25)).toFixed(2)),borderColor:'#2563eb',tension:0.2,fill:false}]},options:{responsive:true,scales:{y:{beginAtZero:false}}}});
 
-  function setStatsDisplay(s, u){
-    const A=document.getElementById('statAvg'); if(!A) return;
-    A.textContent=s.avg+(u?' '+u:'');
-    document.getElementById('statMin').textContent=s.min+(u?' '+u:'');
-    document.getElementById('statMax').textContent=s.max+(u?' '+u:'');
-    document.getElementById('statLast').textContent=s.last+(u?' '+u:'');
-  }
-
-  function updateMainChartFor(key){
-    const d=ds[key]; if(!d) return;
-    const s=stats(d.data);
-    mainChart.data.labels=labelsInteractive;
-    mainChart.data.datasets=[{label:d.label,data:d.data,borderColor:d.color,tension:0.2,fill:false}];
-    document.getElementById('chartTitle').textContent=d.label+' (últimas 12 h)';
-    mainChart.update();
-    setStatsDisplay(s,d.unit);
-  }
-
-  function regenSensor(key){
-    switch(key){
-      case 'humedad_suelo': ds.humedad_suelo.data = series(12,80,95); break;
-      case 'ph':            ds.ph.data            = series(12,5.5,6.5); break;
-      case 'temp_suelo':    ds.temp_suelo.data    = series(12,24,30); break;
-      case 'co2':           ds.co2.data           = series(12,420,800); break;
-      case 'oxigeno':       ds.oxigeno.data       = series(12,20.5,21.0); break;
-      case 'amoniaco':      ds.amoniaco.data      = series(12,0,2); break;
-      case 'uv':            ds.uv.data            = series(12,0,9); break;
-      case 'presion':       ds.presion.data       = series(12,995,1015); break;
-      case 'luminosidad':   ds.luminosidad.data   = series(12,30,100); break;
-      case 'lluvia':        ds.lluvia.data        = series(12,0,8); break;
-      case 'humedad_aire':  ds.humedad_aire.data  = series(12,70,95); break;
-      case 'temp_aire':     ds.temp_aire.data     = series(12,26,34); break;
+const stationMap = L.map(
+    "stationMap",
+    {
+        scrollWheelZoom: false
     }
-  }
+).setView(
+    [
+        stationCoordinates.latitude,
+        stationCoordinates.longitude
+    ],
+    15
+);
 
-  function regenerateInteractiveData(){
-    Object.keys(ds).forEach(regenSensor);
-    updateQuickKPIs();
-    updateAverageKPIs();
-    // Si hay un sensor activo, actualizarlo; si no, recalc promedios
-    const activeBtn = document.querySelector('.sensor-btn.active');
-    if(activeBtn){
-      updateMainChartFor(activeBtn.dataset.sensor);
-    } else {
-      const agg = ds.humedad_suelo.data.map((_,i)=>+(((ds.humedad_suelo.data[i]/100)*50)+((ds.temp_suelo.data[i]/40)*25)+((ds.humedad_aire.data[i]/100)*25)).toFixed(2));
-      mainChart.data.datasets=[{label:'Promedios del cultivo', data: agg, borderColor:'#2563eb', tension:0.2, fill:false}];
-      mainChart.update();
-      setStatsDisplay(stats(agg),'');
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        maxZoom: 19,
+        attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }
-  }
+).addTo(stationMap);
 
-  // Listeners de botones de sensores
-  document.querySelectorAll('.sensor-btn').forEach(b=>b.addEventListener('click',e=>{
-    document.querySelectorAll('.sensor-btn').forEach(bb=>bb.classList.remove('active'));
-    e.currentTarget.classList.add('active');
-    updateMainChartFor(e.currentTarget.dataset.sensor);
-  }));
+const stationMarker = L.marker(
+    [
+        stationCoordinates.latitude,
+        stationCoordinates.longitude
+    ]
+).addTo(stationMap);
 
-  // Interceptar el formulario de Actualizar para simular nueva toma de datos
-  const forms = Array.from(document.getElementsByTagName('form'));
-  const updateForm = forms.find(f=> (f.getAttribute('action')||'').includes('/get_data_sensor'));
-  if(updateForm){ updateForm.addEventListener('submit', (ev)=>{ ev.preventDefault(); regenerateInteractiveData(); }); }
+stationMarker
+    .bindPopup(`
+        <div style="min-width:180px">
+            <strong>Rancho Crimen</strong><br>
+            Estación: ${latestMetadata?.device_id || "station_253"}<br>
+            <small>
+                3.957244, -73.495725
+            </small>
+        </div>
+    `)
+    .openPopup();
 
-  // Inicializar
-  updateQuickKPIs();
-  const agg = ds.humedad_suelo.data.map((_,i)=>+(((ds.humedad_suelo.data[i]/100)*50)+((ds.temp_suelo.data[i]/40)*25)+((ds.humedad_aire.data[i]/100)*25)).toFixed(2));
-  setStatsDisplay(stats(agg),'');
-  updateAverageKPIs();
-})();
+L.circle(
+    [
+        stationCoordinates.latitude,
+        stationCoordinates.longitude
+    ],
+    {
+        radius: 80,
+        color: "#177558",
+        fillColor: "#177558",
+        fillOpacity: 0.12,
+        weight: 2
+    }
+).addTo(stationMap);
 
-// KPIs promedio con alertas
-function updateAverageKPIs(){
-  function avg(arr){return +(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(2)}
-  function setKPI(id, value, unit, isAlert){
-    const el=document.getElementById(id); if(!el) return; el.textContent = value + (unit? ' '+unit:'');
-    el.classList.remove('text-danger','text-success');
-    el.classList.add(isAlert? 'text-danger' : 'text-success');
-  }
-  // calcular promedios
-  const a_hs = avg(ds.humedad_suelo.data);
-  const a_ph = avg(ds.ph.data);
-  const a_ts = avg(ds.temp_suelo.data);
-  const a_co2 = avg(ds.co2.data);
-  const a_o2 = avg(ds.oxigeno.data);
-  const a_nh3 = avg(ds.amoniaco.data);
-  const a_uv = avg(ds.uv.data);
-  const a_pr = avg(ds.presion.data);
-  const a_lux = avg(ds.luminosidad.data);
-  const a_rain = avg(ds.lluvia.data);
-  const a_ha = avg(ds.humedad_aire.data);
-  const a_ta = avg(ds.temp_aire.data);
+document
+    .getElementById("downloadDashboardPdf")
+    .addEventListener(
+        "click",
+        () => {
+            stationMap.invalidateSize();
 
-  // umbrales (aprox) para arroz
-  setKPI('kpi_hs', a_hs.toFixed(0), '%', (a_hs<75 || a_hs>98));
-  setKPI('kpi_ph', a_ph.toFixed(2), '', (a_ph<5.5 || a_ph>6.8));
-  setKPI('kpi_ts', a_ts.toFixed(1), '°C', (a_ts<24 || a_ts>32));
-
-  setKPI('kpi_co2', a_co2.toFixed(0), 'ppm', (a_co2>900));
-  setKPI('kpi_o2', a_o2.toFixed(2), '%', (a_o2<20.5 || a_o2>21.1));
-  setKPI('kpi_nh3', a_nh3.toFixed(2), 'ppm', (a_nh3>1.5));
-  setKPI('kpi_uv', a_uv.toFixed(2), '', (a_uv>8));
-  setKPI('kpi_pr', a_pr.toFixed(1), 'hPa', (a_pr<995 || a_pr>1018));
-  setKPI('kpi_lux', a_lux.toFixed(2), '%', false);
-  setKPI('kpi_rain', (a_rain>0? a_rain.toFixed(1):0), 'mm/h', false);
-  setKPI('kpi_ha', a_ha.toFixed(0), '%', false);
-  setKPI('kpi_ta', a_ta.toFixed(1), '°C', (a_ta<24 || a_ta>35));
-}
+            setTimeout(
+                () => {
+                    window.print();
+                },
+                300
+            );
+        }
+    );
 </script>
-</body>
 
+</body>
 </html>

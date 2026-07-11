@@ -78,8 +78,16 @@ WSGI_APPLICATION = "osiris_dev.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME":  "osiris.sqlite3",
-    }
+        "NAME": BASE_DIR / "osiris.sqlite3",
+    },
+    "telemetry": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "agro_platform",
+        "USER": "agro_app",
+        "PASSWORD": "1234",
+        "HOST": "127.0.0.1",
+        "PORT": "15432",
+    },
 }
 
 
@@ -99,9 +107,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "es-co"
+TIME_ZONE = "America/Bogota"
 
-TIME_ZONE = "UTC"
+USE_I18N = True
+USE_TZ = True
 
 USE_I18N = True
 

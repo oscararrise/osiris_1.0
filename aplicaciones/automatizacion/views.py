@@ -1,11 +1,948 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .models import data, SensorData, ControlData, Support
+from .models import (
+    data,
+    SensorData,
+    ControlData,
+    Support,
+    SensorReading,
+)
 from django.http import JsonResponse
 from django.core.mail import EmailMessage
 from django.http import HttpResponse
 from datetime import datetime
 import json 
+import logging
+import math
+
+from collections import defaultdict
+from statistics import mean, median
+from datetime import timedelta
+
+from django.db import DatabaseError
+from django.utils import timezone
+logger = logging.getLogger(__name__)
+import csv
+
+from datetime import datetime, time, timedelta
+
+from django.utils import timezone
+from django.utils.dateparse import parse_date
+
+
+SENSOR_DEFINITIONS = [
+
+    # Suelo 2
+    {
+        "key": "sensor_2_soil_temperature_c",
+        "label": "Temperatura del suelo",
+        "unit": "°C",
+        "group": "Sensor de suelo 2",
+    },
+    {
+        "key": "sensor_2_soil_moisture_percent",
+        "label": "Humedad del suelo",
+        "unit": "%",
+        "group": "Sensor de suelo 2",
+    },
+    {
+        "key": "sensor_2_ec",
+        "label": "Conductividad eléctrica",
+        "unit": "",
+        "group": "Sensor de suelo 2",
+    },
+    {
+        "key": "sensor_2_ph",
+        "label": "pH",
+        "unit": "",
+        "group": "Sensor de suelo 2",
+    },
+    {
+        "key": "sensor_2_nitrogen",
+        "label": "Nitrógeno",
+        "unit": "",
+        "group": "Sensor de suelo 2",
+    },
+    {
+        "key": "sensor_2_phosphorus",
+        "label": "Fósforo",
+        "unit": "",
+        "group": "Sensor de suelo 2",
+    },
+    {
+        "key": "sensor_2_potassium",
+        "label": "Potasio",
+        "unit": "",
+        "group": "Sensor de suelo 2",
+    },
+    {
+        "key": "sensor_2_salinity",
+        "label": "Salinidad",
+        "unit": "",
+        "group": "Sensor de suelo 2",
+    },
+
+    # Estación meteorológica
+    {
+        "key": "air_temperature_c",
+        "label": "Temperatura del aire",
+        "unit": "°C",
+        "group": "Estación meteorológica",
+    },
+    {
+        "key": "air_humidity_percent",
+        "label": "Humedad relativa",
+        "unit": "%",
+        "group": "Estación meteorológica",
+    },
+    {
+        "key": "atmospheric_pressure_hpa",
+        "label": "Presión atmosférica",
+        "unit": "hPa",
+        "group": "Estación meteorológica",
+    },
+    {
+        "key": "wind_speed_ms",
+        "label": "Velocidad del viento",
+        "unit": "m/s",
+        "group": "Estación meteorológica",
+    },
+    {
+        "key": "wind_direction_degree",
+        "label": "Dirección del viento",
+        "unit": "°",
+        "group": "Estación meteorológica",
+    },
+    {
+        "key": "rain_mm",
+        "label": "Precipitación",
+        "unit": "mm",
+        "group": "Estación meteorológica",
+    },
+    {
+        "key": "solar_radiation_wm2",
+        "label": "Radiación solar",
+        "unit": "W/m²",
+        "group": "Estación meteorológica",
+    },
+    {
+        "key": "illumination_klux",
+        "label": "Iluminación",
+        "unit": "klux",
+        "group": "Estación meteorológica",
+    },
+    {
+        "key": "sunshine_duration_h",
+        "label": "Duración de brillo solar",
+        "unit": "h",
+        "group": "Estación meteorológica",
+    },
+    {
+        "key": "dew_point_temperature_c",
+        "label": "Punto de rocío",
+        "unit": "°C",
+        "group": "Estación meteorológica",
+    },
+    {
+        "key": "et0_mm",
+        "label": "Evapotranspiración de referencia",
+        "unit": "mm",
+        "group": "Estación meteorológica",
+    },
+
+    # Nivel
+]
+
+SENSOR_FIELDS = [
+    sensor["key"]
+    for sensor in SENSOR_DEFINITIONS
+]
+
+
+WIND_SECTORS = [
+    "N",
+    "NE",
+    "E",
+    "SE",
+    "S",
+    "SO",
+    "O",
+    "NO",
+]
+
+
+def safe_number(value):
+    """
+    Convierte un valor a float y rechaza NaN o infinitos.
+    """
+
+    if value is None or value == "":
+        return None
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    return number if math.isfinite(number) else None
+
+
+def average(values):
+    valid_values = [
+        value
+        for value in values
+        if value is not None
+    ]
+
+    return mean(valid_values) if valid_values else None
+
+
+def minimum(values):
+    valid_values = [
+        value
+        for value in values
+        if value is not None
+    ]
+
+    return min(valid_values) if valid_values else None
+
+
+def maximum(values):
+    valid_values = [
+        value
+        for value in values
+        if value is not None
+    ]
+
+    return max(valid_values) if valid_values else None
+
+
+def round_value(value, digits=2):
+    if value is None:
+        return None
+
+    return round(value, digits)
+
+
+def calculate_vpd_kpa(temperature_c, humidity_percent):
+    """
+    Calcula el déficit de presión de vapor en kPa.
+
+    Usa temperatura del aire y humedad relativa.
+    """
+
+    temperature = safe_number(temperature_c)
+    humidity = safe_number(humidity_percent)
+
+    if temperature is None or humidity is None:
+        return None
+
+    if humidity < 0 or humidity > 100:
+        return None
+
+    saturation_pressure = (
+        0.6108
+        * math.exp(
+            (17.27 * temperature)
+            / (temperature + 237.3)
+        )
+    )
+
+    vpd = saturation_pressure * (
+        1 - humidity / 100
+    )
+
+    return max(vpd, 0)
+
+
+def get_wind_sector(direction_degree):
+    direction = safe_number(direction_degree)
+
+    if direction is None:
+        return None
+
+    if direction < 0 or direction > 360:
+        return None
+
+    index = int(
+        ((direction % 360) + 22.5) // 45
+    ) % 8
+
+    return WIND_SECTORS[index]
+
+
+def validate_sensor_value(field, value):
+    """
+    Valida únicamente límites físicamente posibles.
+
+    No evalúa si el valor es adecuado para un cultivo.
+    """
+
+    validators = {
+        "sensor_2_soil_temperature_c": (
+            lambda number: -30 <= number <= 80
+        ),
+        "sensor_2_soil_moisture_percent": (
+            lambda number: 0 <= number <= 100
+        ),
+        "sensor_2_ec": (
+            lambda number: number >= 0
+        ),
+        "sensor_2_ph": (
+            lambda number: 0 <= number <= 14
+        ),
+        "sensor_2_nitrogen": (
+            lambda number: number >= 0
+        ),
+        "sensor_2_phosphorus": (
+            lambda number: number >= 0
+        ),
+        "sensor_2_potassium": (
+            lambda number: number >= 0
+        ),
+        "sensor_2_salinity": (
+            lambda number: number >= 0
+        ),
+        "air_temperature_c": (
+            lambda number: -80 <= number <= 70
+        ),
+        "air_humidity_percent": (
+            lambda number: 0 <= number <= 100
+        ),
+        "atmospheric_pressure_hpa": (
+            lambda number: 300 <= number <= 1100
+        ),
+        "wind_speed_ms": (
+            lambda number: number >= 0
+        ),
+        "wind_direction_degree": (
+            lambda number: 0 <= number <= 360
+        ),
+        "rain_mm": (
+            lambda number: number >= 0
+        ),
+        "solar_radiation_wm2": (
+            lambda number: number >= 0
+        ),
+        "illumination_klux": (
+            lambda number: number >= 0
+        ),
+        "sunshine_duration_h": (
+            lambda number: 0 <= number <= 24
+        ),
+        "dew_point_temperature_c": (
+            lambda number: -100 <= number <= 70
+        ),
+        "et0_mm": (
+            lambda number: number >= 0
+        ),
+    }
+
+    validator = validators.get(field)
+
+    if validator is None:
+        return True
+
+    return validator(value)
+
+def build_agro_analytics(readings):
+    """
+    Construye estadísticas para el dashboard agrícola.
+
+    readings debe venir ordenado cronológicamente.
+    """
+
+    enriched_readings = []
+    daily_buckets = defaultdict(
+        lambda: {
+            "air_temperature": [],
+            "air_humidity": [],
+            "soil_moisture": [],
+            "soil_temperature": [],
+            "vpd": [],
+            "solar_radiation": [],
+            "wind_speed": [],
+            "rain": [],
+            "et0": [],
+        }
+    )
+
+    wind_data = {
+        sector: {
+            "count": 0,
+            "speeds": [],
+        }
+        for sector in WIND_SECTORS
+    }
+
+    timestamps = []
+
+    missing_values = 0
+    invalid_values = 0
+
+    total_expected_values = (
+        len(readings) * len(SENSOR_FIELDS)
+    )
+
+    for original_reading in readings:
+        reading = dict(original_reading)
+
+        timestamp = (
+            reading.get("event_timestamp")
+            or reading.get("received_at")
+        )
+
+        local_timestamp = None
+
+        if timestamp:
+            if timezone.is_aware(timestamp):
+                local_timestamp = timezone.localtime(
+                    timestamp
+                )
+            else:
+                local_timestamp = timestamp
+
+            timestamps.append(timestamp)
+
+        temperature = safe_number(
+            reading.get("air_temperature_c")
+        )
+
+        humidity = safe_number(
+            reading.get("air_humidity_percent")
+        )
+
+        soil_moisture = safe_number(
+            reading.get(
+                "sensor_2_soil_moisture_percent"
+            )
+        )
+
+        soil_temperature = safe_number(
+            reading.get(
+                "sensor_2_soil_temperature_c"
+            )
+        )
+
+        solar_radiation = safe_number(
+            reading.get("solar_radiation_wm2")
+        )
+
+        wind_speed = safe_number(
+            reading.get("wind_speed_ms")
+        )
+
+        rain = safe_number(
+            reading.get("rain_mm")
+        )
+
+        et0 = safe_number(
+            reading.get("et0_mm")
+        )
+
+        vpd = calculate_vpd_kpa(
+            temperature,
+            humidity,
+        )
+
+        reading["vpd_kpa"] = round_value(
+            vpd,
+            3,
+        )
+
+        reading["local_timestamp"] = (
+            local_timestamp.isoformat()
+            if local_timestamp
+            else None
+        )
+
+        if local_timestamp:
+            date_key = (
+                local_timestamp
+                .date()
+                .isoformat()
+            )
+
+            bucket = daily_buckets[date_key]
+
+            bucket["air_temperature"].append(
+                temperature
+            )
+
+            bucket["air_humidity"].append(
+                humidity
+            )
+
+            bucket["soil_moisture"].append(
+                soil_moisture
+            )
+
+            bucket["soil_temperature"].append(
+                soil_temperature
+            )
+
+            bucket["vpd"].append(vpd)
+
+            bucket["solar_radiation"].append(
+                solar_radiation
+            )
+
+            bucket["wind_speed"].append(
+                wind_speed
+            )
+
+            bucket["rain"].append(rain)
+            bucket["et0"].append(et0)
+
+        wind_sector = get_wind_sector(
+            reading.get(
+                "wind_direction_degree"
+            )
+        )
+
+        if wind_sector:
+            wind_data[wind_sector]["count"] += 1
+
+            if wind_speed is not None:
+                wind_data[wind_sector][
+                    "speeds"
+                ].append(wind_speed)
+
+        for field in SENSOR_FIELDS:
+            value = safe_number(
+                reading.get(field)
+            )
+
+            if value is None:
+                missing_values += 1
+                continue
+
+            if not validate_sensor_value(
+                field,
+                value,
+            ):
+                invalid_values += 1
+
+        enriched_readings.append(reading)
+
+    daily_summary = []
+
+    for date_key in sorted(daily_buckets):
+        bucket = daily_buckets[date_key]
+
+        # Se usa el máximo diario porque lluvia, ET0 y
+        # brillo solar parecen venir como acumulados diarios.
+        # Esto debe confirmarse con el fabricante.
+        rain_reported = maximum(
+            bucket["rain"]
+        )
+
+        et0_reported = maximum(
+            bucket["et0"]
+        )
+
+        daily_summary.append(
+            {
+                "date": date_key,
+
+                "air_temperature_min": round_value(
+                    minimum(
+                        bucket["air_temperature"]
+                    )
+                ),
+
+                "air_temperature_avg": round_value(
+                    average(
+                        bucket["air_temperature"]
+                    )
+                ),
+
+                "air_temperature_max": round_value(
+                    maximum(
+                        bucket["air_temperature"]
+                    )
+                ),
+
+                "air_humidity_avg": round_value(
+                    average(
+                        bucket["air_humidity"]
+                    )
+                ),
+
+                "soil_moisture_min": round_value(
+                    minimum(
+                        bucket["soil_moisture"]
+                    )
+                ),
+
+                "soil_moisture_avg": round_value(
+                    average(
+                        bucket["soil_moisture"]
+                    )
+                ),
+
+                "soil_moisture_max": round_value(
+                    maximum(
+                        bucket["soil_moisture"]
+                    )
+                ),
+
+                "soil_temperature_avg": round_value(
+                    average(
+                        bucket["soil_temperature"]
+                    )
+                ),
+
+                "vpd_avg": round_value(
+                    average(bucket["vpd"]),
+                    3,
+                ),
+
+                "vpd_max": round_value(
+                    maximum(bucket["vpd"]),
+                    3,
+                ),
+
+                "solar_radiation_avg": round_value(
+                    average(
+                        bucket["solar_radiation"]
+                    )
+                ),
+
+                "wind_speed_avg": round_value(
+                    average(
+                        bucket["wind_speed"]
+                    )
+                ),
+
+                "rain_reported": round_value(
+                    rain_reported
+                ),
+
+                "et0_reported": round_value(
+                    et0_reported
+                ),
+
+                "water_balance_proxy": (
+                    round_value(
+                        rain_reported
+                        - et0_reported
+                    )
+                    if (
+                        rain_reported is not None
+                        and et0_reported is not None
+                    )
+                    else None
+                ),
+            }
+        )
+
+    wind_rose = []
+
+    for sector in WIND_SECTORS:
+        values = wind_data[sector]
+
+        wind_rose.append(
+            {
+                "sector": sector,
+                "count": values["count"],
+                "average_speed": round_value(
+                    average(values["speeds"])
+                ),
+            }
+        )
+
+    timestamps = sorted(
+        set(timestamps)
+    )
+
+    median_interval_minutes = None
+    completeness_percent = None
+    latest_age_minutes = None
+    station_status = "Sin datos"
+
+    if timestamps:
+        latest_timestamp = timestamps[-1]
+
+        latest_age_minutes = (
+            timezone.now() - latest_timestamp
+        ).total_seconds() / 60
+
+        latest_age_minutes = round(
+            max(latest_age_minutes, 0),
+            1,
+        )
+
+        station_status = "Actualizada"
+
+    if len(timestamps) >= 2:
+        intervals = []
+
+        for previous, current in zip(
+            timestamps,
+            timestamps[1:],
+        ):
+            interval_minutes = (
+                current - previous
+            ).total_seconds() / 60
+
+            if interval_minutes > 0:
+                intervals.append(
+                    interval_minutes
+                )
+
+        if intervals:
+            median_interval_minutes = round(
+                median(intervals),
+                1,
+            )
+
+            total_period_minutes = (
+                timestamps[-1]
+                - timestamps[0]
+            ).total_seconds() / 60
+
+            expected_readings = (
+                total_period_minutes
+                / median_interval_minutes
+            ) + 1
+
+            completeness_percent = round(
+                min(
+                    100,
+                    (
+                        len(timestamps)
+                        / expected_readings
+                    ) * 100,
+                ),
+                1,
+            )
+
+            stale_limit = max(
+                median_interval_minutes * 3,
+                15,
+            )
+
+            if (
+                latest_age_minutes is not None
+                and latest_age_minutes
+                > stale_limit
+            ):
+                station_status = (
+                    "Sin actualización reciente"
+                )
+
+    valid_values = (
+        total_expected_values
+        - missing_values
+        - invalid_values
+    )
+
+    data_integrity_percent = (
+        round(
+            (
+                valid_values
+                / total_expected_values
+            ) * 100,
+            1,
+        )
+        if total_expected_values
+        else 0
+    )
+
+    soil_moisture_values = [
+        safe_number(
+            reading.get(
+                "sensor_2_soil_moisture_percent"
+            )
+        )
+        for reading in enriched_readings
+    ]
+
+    soil_moisture_values = [
+        value
+        for value in soil_moisture_values
+        if value is not None
+    ]
+
+    soil_moisture_change = None
+
+    if len(soil_moisture_values) >= 2:
+        soil_moisture_change = round(
+            soil_moisture_values[-1]
+            - soil_moisture_values[0],
+            2,
+        )
+
+    latest_reading = (
+        enriched_readings[-1]
+        if enriched_readings
+        else None
+    )
+
+    summary = {
+        "station_status": station_status,
+        "latest_age_minutes": latest_age_minutes,
+        "median_interval_minutes": (
+            median_interval_minutes
+        ),
+        "completeness_percent": (
+            completeness_percent
+        ),
+        "data_integrity_percent": (
+            data_integrity_percent
+        ),
+        "missing_values": missing_values,
+        "invalid_values": invalid_values,
+        "soil_moisture_change": (
+            soil_moisture_change
+        ),
+        "latest_vpd_kpa": (
+            latest_reading.get("vpd_kpa")
+            if latest_reading
+            else None
+        ),
+    }
+
+    return {
+        "summary": summary,
+        "daily": daily_summary,
+        "wind_rose": wind_rose,
+        "readings": enriched_readings,
+    }
+
+def get_history_range(request):
+    """
+    Obtiene el período solicitado.
+
+    range=7       Últimos 7 días
+    range=15      Últimos 15 días
+    range=30      Últimos 30 días
+    range=custom  Fechas personalizadas
+    """
+
+    range_key = request.GET.get("range", "7")
+    today = timezone.localdate()
+
+    if range_key == "custom":
+        date_from = parse_date(request.GET.get("date_from", ""))
+        date_to = parse_date(request.GET.get("date_to", ""))
+
+        if not date_from or not date_to or date_from > date_to:
+            range_key = "7"
+            date_to = today
+            date_from = today - timedelta(days=6)
+    else:
+        allowed_ranges = {
+            "7": 7,
+            "15": 15,
+            "30": 30,
+        }
+
+        days = allowed_ranges.get(range_key, 7)
+        range_key = str(days)
+
+        date_to = today
+        date_from = today - timedelta(days=days - 1)
+
+    current_timezone = timezone.get_current_timezone()
+
+    start_datetime = timezone.make_aware(
+        datetime.combine(date_from, time.min),
+        current_timezone,
+    )
+
+    # El límite superior es exclusivo.
+    end_datetime = timezone.make_aware(
+        datetime.combine(date_to + timedelta(days=1), time.min),
+        current_timezone,
+    )
+
+    return {
+        "range_key": range_key,
+        "date_from": date_from,
+        "date_to": date_to,
+        "start_datetime": start_datetime,
+        "end_datetime": end_datetime,
+    }
+
+
+def export_sensor_history(queryset):
+    """
+    Descarga el histórico filtrado en formato CSV compatible con Excel.
+    """
+
+    response = HttpResponse(
+        content_type="text/csv; charset=utf-8",
+    )
+
+    filename = f"historico_sensores_{timezone.localdate()}.csv"
+
+    response["Content-Disposition"] = (
+        f'attachment; filename="{filename}"'
+    )
+
+    # BOM para que Excel reconozca correctamente tildes y ñ.
+    response.write("\ufeff")
+
+    writer = csv.writer(response)
+
+    headers = [
+        "Fecha del evento",
+        "Fecha de recepción",
+        "Estación",
+    ]
+
+    for sensor in SENSOR_DEFINITIONS:
+        label = sensor["label"]
+        unit = sensor["unit"]
+
+        headers.append(
+            f"{label} ({unit})" if unit else label
+        )
+
+    writer.writerow(headers)
+
+    rows = queryset.values(
+        "event_timestamp",
+        "received_at",
+        "device_id",
+        *SENSOR_FIELDS,
+    )
+
+    for reading in rows:
+        event_timestamp = reading["event_timestamp"]
+        received_at = reading["received_at"]
+
+        if event_timestamp:
+            event_timestamp = timezone.localtime(
+                event_timestamp
+            ).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            event_timestamp = ""
+
+        if received_at:
+            received_at = timezone.localtime(
+                received_at
+            ).strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            received_at = ""
+
+        row = [
+            event_timestamp,
+            received_at,
+            reading["device_id"],
+        ]
+
+        row.extend(
+            reading[field]
+            for field in SENSOR_FIELDS
+        )
+
+        writer.writerow(row)
+
+    return response
+
 
 def actualizar_control_data(request):
     if request.method == 'POST':
@@ -88,7 +1025,144 @@ def s1(request):
     return render(request, "s1.html")
 
 def s2(request):
-    return render(request, "s2.html")
+    selected_device = request.GET.get(
+        "device_id",
+        "",
+    ).strip()
+
+    history_range = get_history_range(request)
+
+    try:
+        all_readings = SensorReading.objects.using(
+            "telemetry"
+        )
+
+        devices = list(
+            all_readings
+            .order_by("device_id")
+            .values_list("device_id", flat=True)
+            .distinct()
+        )
+
+        if not selected_device:
+            latest_global = (
+                all_readings
+                .order_by("-received_at")
+                .first()
+            )
+
+            if latest_global:
+                selected_device = latest_global.device_id
+
+        readings = all_readings
+
+        if selected_device:
+            readings = readings.filter(
+                device_id=selected_device
+            )
+
+        latest_reading = (
+            readings
+            .order_by("-received_at")
+            .first()
+        )
+
+        history_queryset = (
+            readings
+            .filter(
+                received_at__gte=history_range["start_datetime"],
+                received_at__lt=history_range["end_datetime"],
+            )
+            .order_by("received_at")
+        )
+
+        # Descarga exactamente los datos filtrados.
+        if request.GET.get("export") == "csv":
+            return export_sensor_history(
+                history_queryset
+            )
+
+        history_readings = list(
+            history_queryset.values(
+                "id",
+                "device_id",
+                "event_timestamp",
+                "received_at",
+                *SENSOR_FIELDS,
+            )
+        )
+        dashboard_analytics = build_agro_analytics(
+    history_readings
+)
+
+        history_readings = dashboard_analytics[
+            "readings"
+        ]
+
+        latest_sensor_data = {}
+        latest_metadata = None
+
+        if latest_reading:
+            latest_sensor_data = {
+                field: getattr(latest_reading, field)
+                for field in SENSOR_FIELDS
+            }
+
+            latest_metadata = {
+                "device_id": latest_reading.device_id,
+                "event_timestamp": latest_reading.event_timestamp,
+                "received_at": latest_reading.received_at,
+            }
+
+        context = {
+    "devices": devices,
+    "selected_device": selected_device,
+    "selected_range": history_range["range_key"],
+    "date_from": history_range["date_from"].isoformat(),
+    "date_to": history_range["date_to"].isoformat(),
+    "latest_reading": latest_reading,
+    "latest_metadata": latest_metadata,
+    "latest_sensor_data": latest_sensor_data,
+    "history_readings": history_readings,
+    "sensor_fields": SENSOR_FIELDS,
+    "sensor_definitions": SENSOR_DEFINITIONS,
+    "dashboard_analytics": dashboard_analytics,
+    "database_error": False,
+}
+
+    except DatabaseError:
+        logger.exception(
+            "No fue posible consultar la base de telemetría"
+        )
+
+        context = {
+            "devices": [],
+            "selected_device": selected_device,
+            "selected_range": history_range["range_key"],
+            "date_from": history_range["date_from"].isoformat(),
+            "date_to": history_range["date_to"].isoformat(),
+            "latest_reading": None,
+            "latest_metadata": None,
+            "latest_sensor_data": {},
+            "history_readings": [],
+            "sensor_fields": SENSOR_FIELDS,
+            "sensor_definitions": SENSOR_DEFINITIONS,
+            "database_error": True,
+            "dashboard_analytics": {
+    "summary": {},
+    "daily": [],
+    "wind_rose": [],
+    "readings": [],
+},
+        }
+    print(
+    dashboard_analytics["summary"]
+)
+    return render(
+        request,
+        "s2.html",
+        context,
+    )
 
 def s3(request):
     return render(request, "s3.html")

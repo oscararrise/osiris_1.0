@@ -35,3 +35,58 @@ class Support(models.Model):
     support_information = models.CharField(max_length=255)
     class Meta:
         db_table = 'support'
+
+
+class SensorReading(models.Model):
+    id = models.BigIntegerField(primary_key=True)
+    raw_message_id = models.BigIntegerField()
+    device_id = models.CharField(max_length=255)
+
+    event_timestamp = models.DateTimeField(null=True, blank=True)
+    received_at = models.DateTimeField()
+
+    # Sensor de suelo 1
+    sensor_1_soil_temperature_c = models.FloatField(null=True, blank=True)
+    sensor_1_soil_moisture_percent = models.FloatField(null=True, blank=True)
+    sensor_1_ec = models.FloatField(null=True, blank=True)
+    sensor_1_ph = models.FloatField(null=True, blank=True)
+    sensor_1_nitrogen = models.FloatField(null=True, blank=True)
+    sensor_1_phosphorus = models.FloatField(null=True, blank=True)
+    sensor_1_potassium = models.FloatField(null=True, blank=True)
+    sensor_1_salinity = models.FloatField(null=True, blank=True)
+
+    # Sensor de suelo 2
+    sensor_2_soil_temperature_c = models.FloatField(null=True, blank=True)
+    sensor_2_soil_moisture_percent = models.FloatField(null=True, blank=True)
+    sensor_2_ec = models.FloatField(null=True, blank=True)
+    sensor_2_ph = models.FloatField(null=True, blank=True)
+    sensor_2_nitrogen = models.FloatField(null=True, blank=True)
+    sensor_2_phosphorus = models.FloatField(null=True, blank=True)
+    sensor_2_potassium = models.FloatField(null=True, blank=True)
+    sensor_2_salinity = models.FloatField(null=True, blank=True)
+
+    # Estación meteorológica
+    air_temperature_c = models.FloatField(null=True, blank=True)
+    air_humidity_percent = models.FloatField(null=True, blank=True)
+    atmospheric_pressure_hpa = models.FloatField(null=True, blank=True)
+    wind_speed_ms = models.FloatField(null=True, blank=True)
+    wind_direction_degree = models.FloatField(null=True, blank=True)
+    rain_mm = models.FloatField(null=True, blank=True)
+    solar_radiation_wm2 = models.FloatField(null=True, blank=True)
+    illumination_klux = models.FloatField(null=True, blank=True)
+    sunshine_duration_h = models.FloatField(null=True, blank=True)
+    dew_point_temperature_c = models.FloatField(null=True, blank=True)
+    et0_mm = models.FloatField(null=True, blank=True)
+
+    # Sensor de nivel
+    level_temperature_c = models.FloatField(null=True, blank=True)
+    level_value = models.FloatField(null=True, blank=True)
+
+    created_at = models.DateTimeField()
+
+    class Meta:
+        managed = False
+        db_table = '"telemetry"."sensor_readings"'
+
+    def __str__(self):
+        return f"{self.device_id} - {self.received_at}"
