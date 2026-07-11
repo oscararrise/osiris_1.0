@@ -1,83 +1,821 @@
-﻿{%load static%}
+﻿{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>agrotikos</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
-    crossorigin="anonymous"></script>
-  <style>
-    body {
-      background-color: #f2f4f7;
-      /* Reemplaza 'ruta/a/tu/imagen.jpg' con la ruta a tu imagen de fondo */
-      background-size: cover;
-      /* Ajusta el tamaño de la imagen de fondo para cubrir todo el cuerpo */
-      background-position: center;
-      /* Centra la imagen de fondo */
-      background-repeat: no-repeat;
-      /* Evita que la imagen de fondo se repita */
-    }
+    <meta charset="UTF-8">
 
-    .wrapper {
-      display: flex;
-      align-items: center;
-      /* Centra verticalmente el contenido */
-      justify-content: center;
-      /* Centra horizontalmente el contenido */
-      height: 80vh;
-      /* Establece la altura del contenedor al 100% del viewport */
-    }
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    .form-container {
-      text-align: center;
-      /* Centra el contenido dentro del contenedor */
-      max-width: 300px;
-      /* Ajusta el ancho máximo del contenedor segÃºn sea necesario */
-      margin: 0 auto;
-      /* Centra horizontalmente el contenedor */
-    }
-  </style>
-  <!-- Global enhanced styles -->
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <meta
+        name="description"
+        content="Acceso a la plataforma agrícola Agrotikos"
+    >
+
+    <title>Iniciar sesión | Agrotikos</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/app.css' %}"
+    >
+
+    <style>
+        :root {
+            --agro-dark: #14382c;
+            --agro-dark-soft: #1d4c3b;
+            --agro-primary: #177558;
+            --agro-primary-dark: #0f5942;
+            --agro-primary-light: #e8f5f0;
+            --agro-background: #f3f6f5;
+            --agro-border: #d9e5df;
+            --agro-text: #263630;
+            --agro-muted: #6c7b75;
+            --agro-white: #ffffff;
+            --agro-danger: #b64242;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--agro-text);
+            background:
+                radial-gradient(
+                    circle at 90% 10%,
+                    rgba(23, 117, 88, 0.12),
+                    transparent 32%
+                ),
+                radial-gradient(
+                    circle at 10% 90%,
+                    rgba(23, 117, 88, 0.07),
+                    transparent 28%
+                ),
+                var(--agro-background);
+        }
+
+        .login-layout {
+            display: grid;
+            min-height: 100vh;
+            grid-template-columns: minmax(0, 1.08fr) minmax(430px, 0.92fr);
+        }
+
+        .brand-panel {
+            position: relative;
+            display: flex;
+            overflow: hidden;
+            align-items: center;
+            padding: 64px;
+            color: #ffffff;
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(20, 56, 44, 0.98),
+                    rgba(23, 117, 88, 0.94)
+                );
+        }
+
+        .brand-panel::before {
+            position: absolute;
+            top: -170px;
+            right: -130px;
+            width: 440px;
+            height: 440px;
+            content: "";
+            border: 65px solid rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+        }
+
+        .brand-panel::after {
+            position: absolute;
+            bottom: -140px;
+            left: -90px;
+            width: 360px;
+            height: 360px;
+            content: "";
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 680px;
+        }
+
+        .brand-header {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 52px;
+        }
+
+        .brand-logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            color: var(--agro-dark);
+            background: #ffffff;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+            font-size: 1.35rem;
+        }
+
+        .brand-name {
+            font-size: 1.45rem;
+            font-weight: 780;
+            letter-spacing: 0.3px;
+        }
+
+        .brand-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            margin-bottom: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.08);
+            font-size: 0.82rem;
+            font-weight: 650;
+        }
+
+        .brand-title {
+            max-width: 620px;
+            margin-bottom: 18px;
+            font-size: clamp(2.35rem, 5vw, 4.2rem);
+            font-weight: 800;
+            line-height: 1.02;
+            letter-spacing: -1.8px;
+        }
+
+        .brand-description {
+            max-width: 580px;
+            margin-bottom: 36px;
+            color: rgba(255, 255, 255, 0.76);
+            font-size: 1.04rem;
+            line-height: 1.75;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(8px);
+        }
+
+        .feature-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            min-width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            color: var(--agro-dark);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .feature-title {
+            color: #ffffff;
+            font-size: 0.87rem;
+            font-weight: 680;
+        }
+
+        .feature-text {
+            margin-top: 2px;
+            color: rgba(255, 255, 255, 0.61);
+            font-size: 0.73rem;
+        }
+
+        .login-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 44px;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 470px;
+        }
+
+        .mobile-brand {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            color: var(--agro-dark);
+            font-size: 1.25rem;
+            font-weight: 760;
+        }
+
+        .mobile-brand-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            color: #ffffff;
+            background: linear-gradient(
+                135deg,
+                var(--agro-primary),
+                var(--agro-primary-dark)
+            );
+        }
+
+        .login-card {
+            padding: 38px;
+            border: 1px solid var(--agro-border);
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 16px 45px rgba(30, 65, 51, 0.11);
+            backdrop-filter: blur(12px);
+        }
+
+        .login-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 54px;
+            height: 54px;
+            margin-bottom: 22px;
+            border-radius: 16px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+            font-size: 1.35rem;
+        }
+
+        .login-title {
+            margin-bottom: 8px;
+            font-size: 1.75rem;
+            font-weight: 780;
+            letter-spacing: -0.4px;
+        }
+
+        .login-description {
+            margin-bottom: 28px;
+            color: var(--agro-muted);
+            line-height: 1.6;
+        }
+
+        .form-label {
+            margin-bottom: 8px;
+            color: #34463f;
+            font-size: 0.88rem;
+            font-weight: 650;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            z-index: 2;
+            color: var(--agro-muted);
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .form-select,
+        .form-control {
+            min-height: 50px;
+            border: 1px solid #cbd9d3;
+            border-radius: 12px;
+            color: var(--agro-text);
+            background-color: #ffffff;
+        }
+
+        .form-select {
+            padding-left: 43px;
+        }
+
+        .form-control.with-icon {
+            padding-right: 48px;
+            padding-left: 43px;
+        }
+
+        .form-select:focus,
+        .form-control:focus {
+            border-color: var(--agro-primary);
+            box-shadow: 0 0 0 0.2rem rgba(23, 117, 88, 0.13);
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 13px;
+            z-index: 3;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            color: var(--agro-muted);
+            border: 0;
+            border-radius: 9px;
+            background: transparent;
+            transform: translateY(-50%);
+        }
+
+        .password-toggle:hover,
+        .password-toggle:focus {
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .btn-login {
+            display: flex;
+            min-height: 50px;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            width: 100%;
+            margin-top: 24px;
+            color: #ffffff;
+            border: 1px solid var(--agro-primary);
+            border-radius: 12px;
+            background: linear-gradient(
+                135deg,
+                var(--agro-primary),
+                var(--agro-primary-dark)
+            );
+            box-shadow: 0 6px 15px rgba(23, 117, 88, 0.22);
+            font-weight: 680;
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease;
+        }
+
+        .btn-login:hover,
+        .btn-login:focus {
+            color: #ffffff;
+            border-color: var(--agro-primary-dark);
+            box-shadow: 0 9px 20px rgba(23, 117, 88, 0.28);
+            transform: translateY(-1px);
+        }
+
+        .alert-login {
+            display: flex;
+            align-items: flex-start;
+            gap: 11px;
+            padding: 13px 15px;
+            margin-bottom: 22px;
+            color: #853838;
+            border: 1px solid #efcccc;
+            border-radius: 12px;
+            background: #fdf0f0;
+            font-size: 0.88rem;
+        }
+
+        .alert-login i {
+            margin-top: 2px;
+        }
+
+        .login-help {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 13px 14px;
+            margin-top: 22px;
+            color: var(--agro-muted);
+            border-radius: 12px;
+            background: #f5f8f7;
+            font-size: 0.8rem;
+            line-height: 1.5;
+        }
+
+        .login-help i {
+            margin-top: 2px;
+            color: var(--agro-primary);
+        }
+
+        .login-footer {
+            margin-top: 24px;
+            color: var(--agro-muted);
+            text-align: center;
+            font-size: 0.78rem;
+        }
+
+        @media (max-width: 991px) {
+            .login-layout {
+                display: block;
+            }
+
+            .brand-panel {
+                display: none;
+            }
+
+            .login-panel {
+                min-height: 100vh;
+                padding: 28px 20px;
+            }
+
+            .mobile-brand {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 575px) {
+            .login-card {
+                padding: 28px 22px;
+                border-radius: 18px;
+            }
+
+            .login-panel {
+                align-items: flex-start;
+                padding-top: 34px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg bg-body-tertiary">
-    <!-- Tu código navbar aquí -->
-  </nav>
-  <div class="wrapper">
-    <div class="container">
-      <div class="row">
-        <div class="col-md-4 form-container">
-          <div class="table-responsive container-glass content-pad">
-            <!-- Muestra mensajes de error aquí -->
-            {% if messages %}
-              <div class="alert alert-danger" role="alert">
-                {% for message in messages %}
-                  {% if message.tags == 'error' %}{{ message }}{% endif %}
-                {% endfor %}
-              </div>
-            {% endif %}
-            <h2 class="mb-3">Iniciar sesión</h2>
-            <form action="login" method="post">
-              {% csrf_token %}
-              <select class="form-control" name="user_id">
-                <option value="">Selecciona un usuario</option>
-                {% for user in users %}
-                <option value="{{ user.id }}">{{ user.nombre }}</option>
-                {% endfor %}
-              </select>
-              <input type="password" class="form-control mb-2" name="clave" id="clave" placeholder="Ingrese su clave">
-              <button type="submit" class="btn btn-primary">Iniciar sesión</button>
-            </form>
-          </div>
+
+<div class="login-layout">
+
+    <!-- Panel institucional -->
+    <section class="brand-panel">
+
+        <div class="brand-content">
+
+            <div class="brand-header">
+
+                <span class="brand-logo">
+                    <i class="fa-solid fa-seedling"></i>
+                </span>
+
+                <span class="brand-name">
+                    Agrotikos
+                </span>
+
+            </div>
+
+            <div class="brand-eyebrow">
+                <i class="fa-solid fa-leaf"></i>
+                Plataforma de gestión agrícola
+            </div>
+
+            <h1 class="brand-title">
+                Tecnología para entender mejor tu cultivo
+            </h1>
+
+            <p class="brand-description">
+                Centraliza la información de la finca, consulta la
+                telemetría de los sensores y accede a herramientas
+                para monitoreo, análisis y automatización agrícola.
+            </p>
+
+            <div class="feature-grid">
+
+                <div class="feature-item">
+
+                    <span class="feature-icon">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </span>
+
+                    <div>
+                        <div class="feature-title">
+                            Analítica del cultivo
+                        </div>
+
+                        <div class="feature-text">
+                            Históricos e indicadores
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="feature-item">
+
+                    <span class="feature-icon">
+                        <i class="fa-solid fa-cloud-sun"></i>
+                    </span>
+
+                    <div>
+                        <div class="feature-title">
+                            Estación meteorológica
+                        </div>
+
+                        <div class="feature-text">
+                            Variables ambientales
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="feature-item">
+
+                    <span class="feature-icon">
+                        <i class="fa-solid fa-droplet"></i>
+                    </span>
+
+                    <div>
+                        <div class="feature-title">
+                            Sensores de suelo
+                        </div>
+
+                        <div class="feature-text">
+                            Humedad, pH y nutrientes
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="feature-item">
+
+                    <span class="feature-icon">
+                        <i class="fa-solid fa-gears"></i>
+                    </span>
+
+                    <div>
+                        <div class="feature-title">
+                            Automatización
+                        </div>
+
+                        <div class="feature-text">
+                            Control y seguimiento
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
-      </div>
-    </div>
-  </div>
+
+    </section>
+
+    <!-- Formulario de acceso -->
+    <section class="login-panel">
+
+        <div class="login-wrapper">
+
+            <div class="mobile-brand">
+
+                <span class="mobile-brand-icon">
+                    <i class="fa-solid fa-seedling"></i>
+                </span>
+
+                <span>
+                    Agrotikos
+                </span>
+
+            </div>
+
+            <div class="login-card">
+
+                <div class="login-icon">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+
+                <h2 class="login-title">
+                    Bienvenido
+                </h2>
+
+                <p class="login-description">
+                    Selecciona tu usuario e ingresa tu clave para
+                    acceder al centro de operaciones.
+                </p>
+
+                {% if messages %}
+
+                    {% for message in messages %}
+
+                        {% if message.tags == "error" %}
+
+                            <div
+                                class="alert-login"
+                                role="alert"
+                            >
+                                <i class="fa-solid fa-circle-exclamation"></i>
+
+                                <span>
+                                    {{ message }}
+                                </span>
+                            </div>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+                {% endif %}
+
+                <form
+                    action="{% url 'login' %}"
+                    method="post"
+                >
+
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+
+                        <label
+                            for="userId"
+                            class="form-label"
+                        >
+                            Usuario
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <i class="fa-solid fa-user input-icon"></i>
+
+                            <select
+                                id="userId"
+                                name="user_id"
+                                class="form-select"
+                                required
+                            >
+
+                                <option
+                                    value=""
+                                    selected
+                                    disabled
+                                >
+                                    Selecciona un usuario
+                                </option>
+
+                                {% for user in users %}
+
+                                    <option value="{{ user.id }}">
+                                        {{ user.nombre }}
+                                    </option>
+
+                                {% empty %}
+
+                                    <option
+                                        value=""
+                                        disabled
+                                    >
+                                        No hay usuarios disponibles
+                                    </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                    <div>
+
+                        <label
+                            for="clave"
+                            class="form-label"
+                        >
+                            Clave de acceso
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <i class="fa-solid fa-lock input-icon"></i>
+
+                            <input
+                                type="password"
+                                id="clave"
+                                name="clave"
+                                class="form-control with-icon"
+                                placeholder="Ingresa tu clave"
+                                autocomplete="current-password"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                id="togglePassword"
+                                class="password-toggle"
+                                aria-label="Mostrar clave"
+                                aria-pressed="false"
+                            >
+                                <i
+                                    id="passwordIcon"
+                                    class="fa-solid fa-eye"
+                                ></i>
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="btn btn-login"
+                    >
+                        <span>
+                            Iniciar sesión
+                        </span>
+
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+
+                </form>
+
+                <div class="login-help">
+
+                    <i class="fa-solid fa-circle-info"></i>
+
+                    <span>
+                        Usa las credenciales asignadas para ingresar
+                        a los módulos disponibles de la plataforma.
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="login-footer">
+                Agrotikos — Plataforma de gestión agrícola
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+<script>
+    const passwordInput =
+        document.getElementById("clave");
+
+    const togglePasswordButton =
+        document.getElementById("togglePassword");
+
+    const passwordIcon =
+        document.getElementById("passwordIcon");
+
+    togglePasswordButton.addEventListener(
+        "click",
+        () => {
+            const passwordIsVisible =
+                passwordInput.type === "text";
+
+            passwordInput.type =
+                passwordIsVisible
+                    ? "password"
+                    : "text";
+
+            passwordIcon.className =
+                passwordIsVisible
+                    ? "fa-solid fa-eye"
+                    : "fa-solid fa-eye-slash";
+
+            togglePasswordButton.setAttribute(
+                "aria-label",
+                passwordIsVisible
+                    ? "Mostrar clave"
+                    : "Ocultar clave"
+            );
+
+            togglePasswordButton.setAttribute(
+                "aria-pressed",
+                String(!passwordIsVisible)
+            );
+
+            passwordInput.focus();
+        }
+    );
+</script>
+
 </body>
+</html>

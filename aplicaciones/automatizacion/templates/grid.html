@@ -1,145 +1,1537 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>agrotikos</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" rel="stylesheet">
-  <style>
-    body { background-color: #f2f4f7; background-size: cover; background-position: center; background-repeat: no-repeat; }
-    .navbar { background-color: #343a40; }
-    .navbar-brand, .navbar-nav .nav-link { color: #fff !important; }
-    .event-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px; }
-    .event-card { background-color: #fff; border: 10px solid #dee2e6; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,.1); transition: transform .3s ease; }
-    .event-card:hover { transform: translateY(-5px); }
-    .event-card .card-body { padding: 20px; }
-    .event-card .card-title { font-size: 24px; margin-bottom: 10px; color: #343a40; }
-    .event-card .card-text { color: #102b42; }
-    .event-card .fa-solid { color: #140e69; }
-    .btn-primary { background-color: #007bff; border-color: #007bff; border-radius: 20px; transition: background-color .3s ease, border-color .3s ease; }
-    .btn-primary:hover { background-color: #0056b3; border-color: #0056b3; }
-  </style>
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Centro de operaciones | Agrotikos</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/app.css' %}"
+    >
+
+    <style>
+        :root {
+            --agro-dark: #14382c;
+            --agro-dark-soft: #1c4b3a;
+            --agro-primary: #177558;
+            --agro-primary-dark: #0f5942;
+            --agro-primary-light: #e8f5f0;
+            --agro-background: #f3f6f5;
+            --agro-border: #dae5e0;
+            --agro-text: #263630;
+            --agro-muted: #6b7b75;
+            --agro-white: #ffffff;
+            --agro-warning: #d99625;
+            --agro-blue: #3387bd;
+            --agro-purple: #7959a8;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--agro-text);
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(23, 117, 88, 0.08),
+                    transparent 34%
+                ),
+                var(--agro-background);
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        /* =========================================================
+   BANNER DEL INICIO
+   ========================================================= */
+
+.home-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1050;
+    display: flex;
+    min-height: 74px;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background:
+        linear-gradient(
+            100deg,
+            #14382c 0%,
+            #176247 55%,
+            #177558 100%
+        );
+    box-shadow: 0 5px 18px rgba(18, 57, 45, 0.2);
+}
+
+.home-navbar-content {
+    display: flex;
+    min-height: 74px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.home-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.home-brand:hover,
+.home-brand:focus {
+    color: #ffffff;
+}
+
+.home-brand-icon {
+    display: inline-flex;
+    width: 45px;
+    height: 45px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 13px;
+    color: #14382c;
+    background: #ffffff;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.14);
+    font-size: 1.2rem;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.home-brand:hover .home-brand-icon {
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+    transform: translateY(-1px);
+}
+
+.home-brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+
+.home-brand-text strong {
+    font-size: 1.08rem;
+    font-weight: 750;
+    letter-spacing: 0.2px;
+}
+
+.home-brand-text small {
+    margin-top: 4px;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.7rem;
+}
+
+.home-navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.home-current-section {
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 11px;
+    color: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.07);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.home-logout-button {
+    display: inline-flex;
+    min-height: 41px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 15px;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.68);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 0.86rem;
+    font-weight: 650;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.home-logout-button:hover,
+.home-logout-button:focus {
+    color: #14382c;
+    border-color: #ffffff;
+    background: #ffffff;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 575px) {
+    .home-navbar,
+    .home-navbar-content {
+        min-height: 66px;
+    }
+
+    .home-brand-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+    }
+
+    .home-brand-text small {
+        display: none;
+    }
+
+    .home-logout-button {
+        width: 41px;
+        height: 41px;
+        padding: 0;
+    }
+}
+
+        .brand-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            color: var(--agro-dark);
+            background: #ffffff;
+        }
+
+        .btn-logout {
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .btn-logout:hover,
+        .btn-logout:focus {
+            color: var(--agro-dark);
+            border-color: #ffffff;
+            background: #ffffff;
+        }
+
+        .hero-section {
+            position: relative;
+            overflow: hidden;
+            padding: 34px;
+            border: 1px solid var(--agro-border);
+            border-radius: 22px;
+            background:
+                linear-gradient(
+                    125deg,
+                    rgba(20, 56, 44, 0.98),
+                    rgba(23, 117, 88, 0.92)
+                );
+            box-shadow: 0 12px 32px rgba(25, 66, 51, 0.15);
+        }
+
+        .hero-section::before {
+            position: absolute;
+            top: -90px;
+            right: -60px;
+            width: 280px;
+            height: 280px;
+            content: "";
+            border: 45px solid rgba(255, 255, 255, 0.06);
+            border-radius: 50%;
+        }
+
+        .hero-section::after {
+            position: absolute;
+            right: 140px;
+            bottom: -90px;
+            width: 190px;
+            height: 190px;
+            content: "";
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 20px;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.09);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .hero-title {
+            max-width: 680px;
+            margin-bottom: 12px;
+            color: #ffffff;
+            font-size: clamp(2rem, 5vw, 3.15rem);
+            font-weight: 780;
+            line-height: 1.07;
+        }
+
+        .hero-description {
+            max-width: 700px;
+            margin-bottom: 0;
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 1.02rem;
+            line-height: 1.7;
+        }
+
+        .hero-summary {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            min-width: 270px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 17px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+        }
+
+        .summary-item {
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .summary-label {
+            color: rgba(255, 255, 255, 0.68);
+            font-size: 0.75rem;
+        }
+
+        .summary-value {
+            margin-top: 3px;
+            color: #ffffff;
+            font-size: 1.08rem;
+            font-weight: 700;
+        }
+
+        .toolbar-card {
+            padding: 18px;
+            border: 1px solid var(--agro-border);
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 5px 18px rgba(32, 68, 54, 0.06);
+        }
+
+        .search-wrapper {
+            position: relative;
+        }
+
+        .search-wrapper .search-icon {
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            z-index: 2;
+            color: var(--agro-muted);
+            transform: translateY(-50%);
+        }
+
+        .search-wrapper input {
+            min-height: 46px;
+            padding-left: 43px;
+            border-color: #cddbd5;
+            border-radius: 12px;
+        }
+
+        .search-wrapper input:focus {
+            border-color: var(--agro-primary);
+            box-shadow: 0 0 0 0.2rem rgba(23, 117, 88, 0.13);
+        }
+
+        .category-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            padding: 8px 14px;
+            color: var(--agro-primary-dark);
+            border: 1px solid var(--agro-border);
+            border-radius: 20px;
+            background: #ffffff;
+            font-size: 0.84rem;
+            font-weight: 600;
+            transition:
+                color 0.2s ease,
+                border-color 0.2s ease,
+                background 0.2s ease;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            color: #ffffff;
+            border-color: var(--agro-primary);
+            background: var(--agro-primary);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 18px;
+        }
+
+        .section-title {
+            margin-bottom: 4px;
+            font-weight: 750;
+        }
+
+        .section-description {
+            margin-bottom: 0;
+            color: var(--agro-muted);
+            font-size: 0.92rem;
+        }
+
+        .module-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+            font-size: 0.84rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        .module-card {
+            position: relative;
+            display: flex;
+            height: 100%;
+            min-height: 270px;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 22px;
+            border: 1px solid var(--agro-border);
+            border-radius: 18px;
+            background: #ffffff;
+            box-shadow: 0 7px 22px rgba(33, 71, 56, 0.07);
+            transition:
+                transform 0.25s ease,
+                box-shadow 0.25s ease,
+                border-color 0.25s ease;
+        }
+
+        .module-card:hover {
+            border-color: rgba(23, 117, 88, 0.45);
+            box-shadow: 0 14px 30px rgba(33, 71, 56, 0.14);
+            transform: translateY(-6px);
+        }
+
+        .module-card.featured {
+            border-color: rgba(23, 117, 88, 0.4);
+            background:
+                linear-gradient(
+                    145deg,
+                    #ffffff,
+                    #edf8f4
+                );
+        }
+
+        .featured-badge {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            padding: 5px 9px;
+            border-radius: 16px;
+            color: #ffffff;
+            background: var(--agro-primary);
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .module-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            margin-bottom: 20px;
+            border-radius: 16px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+            font-size: 1.42rem;
+        }
+
+        .module-icon.blue {
+            color: #286f9e;
+            background: #eaf4fb;
+        }
+
+        .module-icon.warning {
+            color: #996713;
+            background: #fff4dc;
+        }
+
+        .module-icon.purple {
+            color: #674791;
+            background: #f1eafa;
+        }
+
+        .module-icon.red {
+            color: #a64040;
+            background: #fbeaea;
+        }
+
+        .module-title {
+            margin-bottom: 8px;
+            font-size: 1.15rem;
+            font-weight: 730;
+            line-height: 1.25;
+        }
+
+        .module-description {
+            flex: 1;
+            margin-bottom: 20px;
+            color: var(--agro-muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .module-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .module-category {
+            color: var(--agro-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .module-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 14px;
+            color: #ffffff;
+            border-radius: 10px;
+            background: linear-gradient(
+                135deg,
+                var(--agro-primary),
+                var(--agro-primary-dark)
+            );
+            font-size: 0.85rem;
+            font-weight: 650;
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease;
+        }
+
+        .module-link:hover {
+            color: #ffffff;
+            box-shadow: 0 5px 12px rgba(23, 117, 88, 0.22);
+            transform: translateX(2px);
+        }
+
+        .empty-modules {
+            display: none;
+            padding: 40px 20px;
+            border: 1px dashed var(--agro-border);
+            border-radius: 16px;
+            color: var(--agro-muted);
+            text-align: center;
+            background: #ffffff;
+        }
+
+        .footer-agro {
+            padding: 28px 0;
+            margin-top: 45px;
+            color: var(--agro-muted);
+            border-top: 1px solid var(--agro-border);
+            font-size: 0.84rem;
+        }
+
+        @media (max-width: 991px) {
+            .hero-summary {
+                width: 100%;
+                margin-top: 25px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .hero-section {
+                padding: 24px 20px;
+            }
+
+            .hero-summary {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .section-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .module-card {
+                min-height: auto;
+            }
+
+            .category-filters {
+                width: 100%;
+            }
+
+            .filter-btn {
+                flex: 1;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg navbar-dark">
+
+<nav class="home-navbar">
+
     <div class="container">
-      <a class="navbar-brand" href="#">agrotikos</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <form action="/salir" method="post">
-            {% csrf_token %}
-            <button id="btn-monitoreo" type="submit" class="btn btn-primary">Salir</button>
-          </form>
-        </ul>
-      </div>
-    </div>
-  </nav>
 
-  <div class="container event-grid">
-    <div class="row">
-      <!-- 1. Monitoreo de su finca -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Monitoreo de su finca</h5>
-        <p class="card-text"><i class="fa-solid fa-passport fa-4x"></i></p>
-        <form action="/s1" method="post">{% csrf_token %}<button id="btn-monitoreo" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
+        <div class="home-navbar-content">
 
-      <!-- 2. Análisis NVID -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Análisis NVID</h5>
-        <p class="card-text"><i class="fa-solid fa-seedling fa-4x"></i></p>
-        <form action="/nvid" method="post">{% csrf_token %}<button id="btn-nvid" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
+            <a
+                href="{% url 'inicio' %}"
+                class="home-brand"
+            >
+                <span class="home-brand-icon">
+                    <i class="fa-solid fa-seedling"></i>
+                </span>
 
-      <!-- 3. Datos del cultivo -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Datos del cultivo</h5>
-        <p class="card-text"><i class="fa-solid fa-tree fa-4x"></i></p>
-        <form action="/s2" method="post">{% csrf_token %}<button id="btn-datos-cultivo" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
+                <span class="home-brand-text">
+                    <strong>Agrotikos</strong>
+                    <small>Gestión agrícola inteligente</small>
+                </span>
+            </a>
 
-      <!-- 4. Control del cultivo -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Control del cultivo</h5>
-        <p class="card-text"><i class="fa-solid fa-users-gear fa-4x"></i></p>
-        <form action="/control" method="post">{% csrf_token %}<button id="btn-control" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
+            <div class="home-navbar-actions">
 
-      <!-- 5. Centro de configuración por IA -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Centro de configuración por IA</h5>
-        <p class="card-text"><i class="fa-solid fa-cloud fa-4x"></i></p>
-        <form action="/ia" method="post">{% csrf_token %}<button id="btn-ia" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
+                <span class="home-current-section d-none d-md-flex">
+                    <i class="fa-solid fa-grip"></i>
+                    Centro de operaciones
+                </span>
 
-      <!-- 6. Seguridad -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Seguridad</h5>
-        <p class="card-text"><i class="fa-solid fa-eye-slash fa-4x"></i></p>
-        <form action="/yolov5" method="post">{% csrf_token %}<button id="btn-seguridad" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
+                <form
+                    action="/salir"
+                    method="post"
+                    class="m-0"
+                >
+                    {% csrf_token %}
 
-      <!-- 7. Habla con tu cultivo -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Habla con tu cultivo</h5>
-        <p class="card-text"><i class="fa-solid fa-comment fa-4x"></i></p>
-        <form action="/chat" method="post">{% csrf_token %}<button id="btn-chat" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
+                    <button
+                        type="submit"
+                        class="home-logout-button"
+                    >
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
 
-      <!-- 8. Cercas virtuales -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Cercas virtuales</h5>
-        <p class="card-text"><i class="fa-solid fa-cow fa-4x"></i></p>
-        <form action="/cercas" method="post">{% csrf_token %}<button id="btn-cercas" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
+                        <span class="d-none d-sm-inline">
+                            Salir
+                        </span>
+                    </button>
+                </form>
 
-      <!-- Drones y tareas -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Drones y tareas</h5>
-        <p class="card-text">
-          <svg class="icon-drone" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-            <g fill="currentColor">
-              <circle cx="12" cy="12" r="8"/>
-              <circle cx="52" cy="12" r="8"/>
-              <circle cx="12" cy="52" r="8"/>
-              <circle cx="52" cy="52" r="8"/>
-              <rect x="28" y="24" width="8" height="16" rx="2"/>
-              <rect x="22" y="30" width="20" height="8" rx="2"/>
-              <rect x="30" y="8" width="4" height="48" fill-opacity="0.35"/>
-              <rect x="8" y="30" width="48" height="4" fill-opacity="0.35"/>
-            </g>
-          </svg>
-        </p>
-        <form action="/drones" method="post">{% csrf_token %}<button id="btn-drones" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
+            </div>
 
-      <!-- 9. Reportes -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Reportes</h5>
-        <p class="card-text"><i class="fa-solid fa-file-lines fa-4x"></i></p>
-        <form action="/reported" method="post">{% csrf_token %}<button id="btn-reported" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
-
-      <!-- 10. Soporte -->
-      <div class="col-md-4 mb-4"><div class="event-card"><div class="card-body">
-        <h5 class="card-title">Soporte</h5>
-        <p class="card-text"><i class="fa-solid fa-handshake-angle fa-4x"></i></p>
-        <form action="/support" method="post">{% csrf_token %}<button id="btn-support" type="submit" class="btn btn-primary">Ingresar</button></form>
-      </div></div></div>
+        </div>
 
     </div>
-  </div>
+
+</nav>
+
+<main class="container py-4">
+
+    <!-- Encabezado principal -->
+    <section class="hero-section mb-4">
+
+        <div class="row align-items-center">
+
+            <div class="col-lg-8 hero-content">
+
+                <div class="hero-eyebrow">
+                    <i class="fa-solid fa-leaf"></i>
+                    Centro de operaciones agrícolas
+                </div>
+
+                <h1 class="hero-title">
+                    Gestion  integral tu finca desde un solo lugar
+                </h1>
+
+                <p class="hero-description">
+                    Monitorea el cultivo, analiza datos ambientales,
+                    administra tareas y accede a las herramientas de
+                    automatización de Agrotikos.
+                </p>
+
+            </div>
+
+            <div class="col-lg-4">
+
+                <div class="hero-summary">
+
+                    <div class="summary-item">
+                        <div class="summary-label">
+                            Plataforma
+                        </div>
+
+                        <div class="summary-value">
+                            Agrotikos
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-label">
+                            Módulos
+                        </div>
+
+                        <div
+                            id="heroModuleCount"
+                            class="summary-value"
+                        >
+                            10
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-label">
+                            Enfoque
+                        </div>
+
+                        <div class="summary-value">
+                            Agricultura
+                        </div>
+                    </div>
+
+                    <div class="summary-item">
+                        <div class="summary-label">
+                            Fecha
+                        </div>
+
+                        <div
+                            id="currentDate"
+                            class="summary-value"
+                        >
+                            —
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Buscador y categorías -->
+    <section class="toolbar-card mb-4">
+
+        <div class="row g-3 align-items-center">
+
+            <div class="col-lg-5">
+
+                <div class="search-wrapper">
+
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+
+                    <input
+                        type="search"
+                        id="moduleSearch"
+                        class="form-control"
+                        placeholder="Buscar módulo..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+            </div>
+
+            <div class="col-lg-7">
+
+                <div
+                    class="category-filters justify-content-lg-end"
+                    role="group"
+                    aria-label="Categorías de módulos"
+                >
+
+                    <button
+                        type="button"
+                        class="filter-btn active"
+                        data-filter="all"
+                    >
+                        Todos
+                    </button>
+
+                    <button
+                        type="button"
+                        class="filter-btn"
+                        data-filter="monitoreo"
+                    >
+                        Monitoreo
+                    </button>
+
+                    <button
+                        type="button"
+                        class="filter-btn"
+                        data-filter="automatizacion"
+                    >
+                        Automatización
+                    </button>
+
+                    <button
+                        type="button"
+                        class="filter-btn"
+                        data-filter="inteligencia"
+                    >
+                        Inteligencia
+                    </button>
+
+                    <button
+                        type="button"
+                        class="filter-btn"
+                        data-filter="gestion"
+                    >
+                        Gestión
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Módulos -->
+    <section>
+
+        <div class="section-header">
+
+            <div>
+                <h2 class="section-title">
+                    Módulos de la plataforma
+                </h2>
+
+                <p class="section-description">
+                    Selecciona una herramienta para comenzar.
+                </p>
+            </div>
+
+            <div class="module-count">
+                <i class="fa-solid fa-layer-group"></i>
+
+                <span id="visibleModuleCount">
+                    10 módulos disponibles
+                </span>
+            </div>
+
+        </div>
+
+        <div
+            id="moduleGrid"
+            class="row g-4"
+        >
+
+            <!-- Datos del cultivo -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="monitoreo"
+                data-name="datos cultivo sensores telemetria dashboard analitica"
+            >
+
+                <article class="module-card featured">
+
+                    <span class="featured-badge">
+                        DATOS REALES
+                    </span>
+
+                    <div class="module-icon">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Datos del cultivo
+                    </h3>
+
+                    <p class="module-description">
+                        Consulta telemetría, históricos, tendencias,
+                        calidad de datos y variables meteorológicas
+                        de la estación.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            MONITOREO
+                        </span>
+
+                        <a
+                            id="btn-datos-cultivo"
+                            href="{% url 's2' %}"
+                            class="module-link"
+                        >
+                            Abrir dashboard
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <!-- Monitoreo -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="monitoreo"
+                data-name="monitoreo finca clima mapa noticias recomendaciones"
+            >
+
+                <article class="module-card">
+
+                    <div class="module-icon blue">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Monitoreo de la finca
+                    </h3>
+
+                    <p class="module-description">
+                        Visualiza información general de la finca,
+                        condiciones meteorológicas, mapas y
+                        recomendaciones operativas.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            MONITOREO
+                        </span>
+
+                        <a
+                            id="btn-monitoreo"
+                            href="{% url 's1' %}"
+                            class="module-link"
+                        >
+                            Ingresar
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <!-- NDVI -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="monitoreo"
+                data-name="ndvi nvid vegetacion drones imagenes cultivo salud"
+            >
+
+                <article class="module-card">
+
+                    <div class="module-icon">
+                        <i class="fa-solid fa-leaf"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Análisis NDVI
+                    </h3>
+
+                    <p class="module-description">
+                        Analiza imágenes del cultivo y variaciones
+                        de vegetación para identificar zonas que
+                        requieren revisión.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            ANALÍTICA
+                        </span>
+
+                        <a
+                            id="btn-nvid"
+                            href="{% url 'nvid' %}"
+                            class="module-link"
+                        >
+                            Ingresar
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <!-- Control -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="automatizacion"
+                data-name="control cultivo bombas riego actuadores automatizacion"
+            >
+
+                <article class="module-card">
+
+                    <div class="module-icon warning">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Control del cultivo
+                    </h3>
+
+                    <p class="module-description">
+                        Supervisa y administra dispositivos,
+                        sistemas de riego, bombas y acciones de
+                        automatización del cultivo.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            AUTOMATIZACIÓN
+                        </span>
+
+                        <a
+                            id="btn-control"
+                            href="{% url 's3' %}"
+                            class="module-link"
+                        >
+                            Ingresar
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <!-- IA -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="inteligencia"
+                data-name="inteligencia artificial ia configuracion recomendaciones"
+            >
+
+                <article class="module-card">
+
+                    <div class="module-icon purple">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Centro de configuración por IA
+                    </h3>
+
+                    <p class="module-description">
+                        Gestiona parámetros y configuraciones
+                        asistidas para apoyar la operación y el
+                        seguimiento de la finca.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            INTELIGENCIA
+                        </span>
+
+                        <a
+                            id="btn-ia"
+                            href="{% url 'ia' %}"
+                            class="module-link"
+                        >
+                            Ingresar
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <!-- Chat -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="inteligencia"
+                data-name="chat habla cultivo asistente preguntas recomendaciones"
+            >
+
+                <article class="module-card">
+
+                    <div class="module-icon purple">
+                        <i class="fa-solid fa-comments"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Habla con tu cultivo
+                    </h3>
+
+                    <p class="module-description">
+                        Consulta el asistente agrícola sobre clima,
+                        riego, fertilización, plagas y manejo
+                        general de la producción.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            ASISTENTE
+                        </span>
+
+                        <a
+                            id="btn-chat"
+                            href="{% url 'chat' %}"
+                            class="module-link"
+                        >
+                            Ingresar
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <!-- Drones -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="automatizacion"
+                data-name="drones tareas vuelos rutas inspeccion cultivo"
+            >
+
+                <article class="module-card">
+
+                    <div class="module-icon blue">
+                        <i class="fa-solid fa-helicopter-symbol"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Drones y tareas
+                    </h3>
+
+                    <p class="module-description">
+                        Planifica recorridos, inspecciones y tareas
+                        de campo apoyadas mediante drones y rutas
+                        de supervisión.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            AUTOMATIZACIÓN
+                        </span>
+
+                        <a
+                            id="btn-drones"
+                            href="{% url 'drones' %}"
+                            class="module-link"
+                        >
+                            Ingresar
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <!-- Cercas -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="gestion"
+                data-name="cercas virtuales ganado geocercas animales lotes"
+            >
+
+                <article class="module-card">
+
+                    <div class="module-icon warning">
+                        <i class="fa-solid fa-draw-polygon"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Cercas virtuales
+                    </h3>
+
+                    <p class="module-description">
+                        Consulta geocercas, límites de lotes y
+                        zonas configuradas para el seguimiento de
+                        animales y áreas productivas.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            GESTIÓN
+                        </span>
+
+                        <a
+                            id="btn-cercas"
+                            href="{% url 'cercas' %}"
+                            class="module-link"
+                        >
+                            Ingresar
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <!-- Seguridad -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="inteligencia"
+                data-name="seguridad vision artificial yolov5 camaras deteccion"
+            >
+
+                <article class="module-card">
+
+                    <div class="module-icon red">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Seguridad y visión artificial
+                    </h3>
+
+                    <p class="module-description">
+                        Accede a las herramientas de detección,
+                        cámaras y análisis visual para supervisar
+                        eventos en la finca.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            INTELIGENCIA
+                        </span>
+
+                        <a
+                            id="btn-seguridad"
+                            href="{% url 'yolov5' %}"
+                            class="module-link"
+                        >
+                            Ingresar
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <!-- Reportes -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="gestion"
+                data-name="reportes informes estadisticas resultados historial"
+            >
+
+                <article class="module-card">
+
+                    <div class="module-icon blue">
+                        <i class="fa-solid fa-file-chart-column"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Reportes
+                    </h3>
+
+                    <p class="module-description">
+                        Consulta informes, indicadores y resultados
+                        consolidados para apoyar el seguimiento y
+                        la toma de decisiones.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            GESTIÓN
+                        </span>
+
+                        <a
+                            id="btn-reported"
+                            href="{% url 'reported' %}"
+                            class="module-link"
+                        >
+                            Ingresar
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+            <!-- Soporte -->
+            <div
+                class="col-md-6 col-xl-4 module-item"
+                data-category="gestion"
+                data-name="soporte ayuda solicitudes problemas contacto"
+            >
+
+                <article class="module-card">
+
+                    <div class="module-icon">
+                        <i class="fa-solid fa-headset"></i>
+                    </div>
+
+                    <h3 class="module-title">
+                        Soporte
+                    </h3>
+
+                    <p class="module-description">
+                        Registra solicitudes, reporta incidentes y
+                        contacta al equipo encargado del soporte
+                        de la plataforma.
+                    </p>
+
+                    <div class="module-footer">
+
+                        <span class="module-category">
+                            SOPORTE
+                        </span>
+
+                        <a
+                            id="btn-support"
+                            href="{% url 'support' %}"
+                            class="module-link"
+                        >
+                            Ingresar
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+        </div>
+
+        <div
+            id="emptyModules"
+            class="empty-modules mt-4"
+        >
+            <i class="fa-solid fa-magnifying-glass fa-2x mb-3"></i>
+
+            <h5>
+                No encontramos módulos
+            </h5>
+
+            <p class="mb-0">
+                Cambia la búsqueda o selecciona otra categoría.
+            </p>
+        </div>
+
+    </section>
+
+</main>
+
+<footer class="footer-agro">
+
+    <div class="container">
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+            <span>
+                <i class="fa-solid fa-seedling me-2"></i>
+                Agrotikos — Plataforma de gestión agrícola
+            </span>
+
+            <span>
+                Centro de operaciones
+            </span>
+
+        </div>
+
+    </div>
+
+</footer>
+
+<script>
+    const moduleItems = Array.from(
+        document.querySelectorAll(".module-item")
+    );
+
+    const filterButtons = Array.from(
+        document.querySelectorAll(".filter-btn")
+    );
+
+    const searchInput =
+        document.getElementById("moduleSearch");
+
+    const visibleModuleCount =
+        document.getElementById("visibleModuleCount");
+
+    const heroModuleCount =
+        document.getElementById("heroModuleCount");
+
+    const emptyModules =
+        document.getElementById("emptyModules");
+
+    let activeFilter = "all";
+
+    function normalizeText(value) {
+        return String(value || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .trim();
+    }
+
+    function updateModules() {
+        const searchTerm = normalizeText(
+            searchInput.value
+        );
+
+        let visibleCount = 0;
+
+        moduleItems.forEach((item) => {
+            const category =
+                item.dataset.category;
+
+            const searchableText = normalizeText(
+                `${item.dataset.name} ${item.textContent}`
+            );
+
+            const matchesCategory =
+                activeFilter === "all" ||
+                category === activeFilter;
+
+            const matchesSearch =
+                !searchTerm ||
+                searchableText.includes(searchTerm);
+
+            const isVisible =
+                matchesCategory && matchesSearch;
+
+            item.style.display = isVisible
+                ? ""
+                : "none";
+
+            if (isVisible) {
+                visibleCount += 1;
+            }
+        });
+
+        visibleModuleCount.textContent =
+            `${visibleCount} ${
+                visibleCount === 1
+                    ? "módulo disponible"
+                    : "módulos disponibles"
+            }`;
+
+        emptyModules.style.display =
+            visibleCount === 0
+                ? "block"
+                : "none";
+    }
+
+    filterButtons.forEach((button) => {
+        button.addEventListener(
+            "click",
+            () => {
+                activeFilter =
+                    button.dataset.filter;
+
+                filterButtons.forEach(
+                    (item) =>
+                        item.classList.remove(
+                            "active"
+                        )
+                );
+
+                button.classList.add("active");
+
+                updateModules();
+            }
+        );
+    });
+
+    searchInput.addEventListener(
+        "input",
+        updateModules
+    );
+
+    const currentDate = new Date();
+
+    document.getElementById(
+        "currentDate"
+    ).textContent = currentDate.toLocaleDateString(
+        "es-CO",
+        {
+            day: "2-digit",
+            month: "short"
+        }
+    );
+
+    heroModuleCount.textContent =
+        moduleItems.length;
+
+    updateModules();
+</script>
 
 </body>
-<script type="text/javascript" src='{% static "js/grid.js" %}'></script>
-
 </html>
