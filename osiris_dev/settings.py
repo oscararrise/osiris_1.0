@@ -26,8 +26,15 @@ SECRET_KEY = "django-insecure-60kg6d+!&rkds8p=(nw)1a$1cvpy@a^es#n-8p(6m$2(xe(tz-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "192.168.5.138",
+".trycloudflare.com",
+"demeter.agrotikos.com"
+]
 
+CSRF_TRUSTED_ORIGINS = ["https://demeter.agrotikos.com","https://*.trycloudflare.com"]
 
 # Application definition
 
@@ -86,7 +93,7 @@ DATABASES = {
         "USER": "agro_app",
         "PASSWORD": "1234",
         "HOST": "127.0.0.1",
-        "PORT": "15432",
+        "PORT": "5432",
     },
 }
 
