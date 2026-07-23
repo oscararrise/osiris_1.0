@@ -1,393 +1,1195 @@
 ﻿{% load static %}
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>agrotikos</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.10.0/daygrid/main.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" rel="stylesheet">
+    <meta name="description" content="Centro de monitoreo agroclimático de Agrotikos">
+    <title>Monitorea tu finca | Agrotikos</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+
     <style>
+        :root {
+            --agro-dark: #14382c;
+            --agro-dark-soft: #1c4b3a;
+            --agro-primary: #177558;
+            --agro-primary-dark: #0f5942;
+            --agro-primary-light: #e8f5f0;
+            --agro-background: #f3f6f5;
+            --agro-border: #dae5e0;
+            --agro-text: #263630;
+            --agro-muted: #6b7b75;
+            --agro-white: #ffffff;
+            --agro-warning: #d99625;
+            --agro-warning-soft: #fff6dd;
+            --agro-danger: #c84b4b;
+            --agro-danger-soft: #fdecec;
+            --agro-blue: #3387bd;
+            --agro-blue-soft: #ebf4fb;
+            --agro-purple: #7959a8;
+            --agro-purple-soft: #f2edfa;
+            --agro-shadow: 0 5px 18px rgba(30, 60, 50, 0.07);
+        }
+
+        * { box-sizing: border-box; }
+
         body {
-            background-color: #f2f4f7;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--agro-text);
+            background:
+                radial-gradient(circle at top right, rgba(23, 117, 88, 0.08), transparent 34%),
+                var(--agro-background);
         }
 
-        .navbar {
-            background-color: #343a40;
+        a { text-decoration: none; }
+
+        .top-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1050;
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(100deg, #14382c 0%, #176247 55%, #177558 100%);
+            box-shadow: 0 5px 18px rgba(18, 57, 45, 0.18);
         }
 
-        .navbar-brand {
-            color: #fff !important;
+        .top-navbar-content {
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
         }
 
-        .navbar-nav .nav-link {
-            color: #ffffff !important;
+        .top-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
         }
 
-        .event-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0px;
-            margin-top: 10px;
+        .top-brand:hover { color: #fff; }
+
+        .top-brand-icon {
+            display: inline-flex;
+            width: 44px;
+            height: 44px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 13px;
+            color: var(--agro-dark);
+            background: #fff;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.14);
+            font-size: 1.2rem;
         }
 
-        .event-card {
-            background-color: #fff;
-            border: 10px solid #dee2e6;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-            margin: 10px;
+        .top-brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
         }
 
-        .event-card:hover {
-            transform: translateY(-5px);
+        .top-brand-text strong {
+            font-size: 1.08rem;
+            font-weight: 750;
         }
 
-        .event-card .card-body {
-            padding: 20px;
-            overflow-y: auto;
+        .top-brand-text small {
+            margin-top: 3px;
+            color: rgba(255,255,255,.67);
+            font-size: .7rem;
         }
 
-        .event-card .card-title {
-            font-size: 24px;
-            margin-bottom: 10px;
-            color: #343a40;
+        .top-navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .event-card .card-text {
-            color: #6c757d;
+        .top-navbar-section {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 13px;
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 11px;
+            color: rgba(255,255,255,.82);
+            background: rgba(255,255,255,.07);
+            font-size: .82rem;
+            font-weight: 600;
         }
 
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
+        .top-home-button {
+            display: inline-flex;
+            min-height: 40px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border: 1px solid rgba(255,255,255,.7);
+            border-radius: 11px;
+            color: #fff;
+            background: rgba(255,255,255,.08);
+            font-size: .86rem;
+            font-weight: 650;
+            transition: .2s ease;
+        }
+
+        .top-home-button:hover {
+            color: var(--agro-dark);
+            border-color: #fff;
+            background: #fff;
+            transform: translateY(-1px);
+        }
+
+        .page-shell {
+            padding-top: 28px;
+            padding-bottom: 45px;
+        }
+
+        .hero-section {
+            position: relative;
+            overflow: hidden;
+            padding: 30px;
+            border: 1px solid var(--agro-border);
+            border-radius: 22px;
+            color: #fff;
+            background: linear-gradient(125deg, rgba(20,56,44,.98), rgba(23,117,88,.92));
+            box-shadow: 0 12px 32px rgba(25,66,51,.15);
+        }
+
+        .hero-section::before {
+            position: absolute;
+            top: -100px;
+            right: -60px;
+            width: 290px;
+            height: 290px;
+            content: "";
+            border: 45px solid rgba(255,255,255,.055);
+            border-radius: 50%;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255,255,255,.22);
             border-radius: 20px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
+            background: rgba(255,255,255,.09);
+            font-size: .82rem;
+            font-weight: 650;
         }
 
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
-        }
-
-        #map {
-            width: 100%;
-            height: 300px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        #calendar {
-            width: 100%;
-            height: 300px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .fc-day-today {
-            background-color: #f00;
-            color: white;
-        }
-
-        #clima {
-            width: 100%;
-            height: 380px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        #clima .card-body {
-            padding: 20px;
-        }
-
-        #clima .card-title {
-            font-size: 24px;
+        .hero-title {
+            max-width: 720px;
             margin-bottom: 10px;
-            color: #343a40;
+            font-size: clamp(2rem, 5vw, 3.1rem);
+            font-weight: 790;
+            line-height: 1.07;
         }
 
-        #clima .card-text {
-            color: #6c757d;
+        .hero-description {
+            max-width: 760px;
+            margin: 0;
+            color: rgba(255,255,255,.78);
+            font-size: 1rem;
+            line-height: 1.7;
         }
 
-        #infoia .card-text {
-            color: #ac7000;
+        .connection-panel {
+            position: relative;
+            z-index: 2;
+            min-width: 270px;
+            padding: 17px;
+            border: 1px solid rgba(255,255,255,.18);
+            border-radius: 16px;
+            background: rgba(255,255,255,.1);
+            backdrop-filter: blur(8px);
         }
 
-        #infoia card-body {
-            max-height: 400px;
-            overflow-y: auto;
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-weight: 700;
         }
 
-        .lote-label {
-            background: transparent;
-            border: none;
-            box-shadow: none;
-            font-weight: bold;
-            font-size: 12px;
-            color: #333;
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #78d7a8;
+            box-shadow: 0 0 0 5px rgba(120,215,168,.13);
+        }
+
+        .connection-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 9px 0;
+            border-top: 1px solid rgba(255,255,255,.12);
+            color: rgba(255,255,255,.72);
+            font-size: .8rem;
+        }
+
+        .connection-item strong {
+            color: #fff;
+            font-weight: 650;
+        }
+
+        .section-card {
+            height: 100%;
+            border: 1px solid var(--agro-border);
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: var(--agro-shadow);
+        }
+
+        .section-card .card-body { padding: 22px; }
+
+        .section-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .section-icon {
+            display: inline-flex;
+            width: 42px;
+            min-width: 42px;
+            height: 42px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .section-title {
+            margin: 0 0 4px;
+            font-size: 1.05rem;
+            font-weight: 740;
+        }
+
+        .section-subtitle {
+            margin: 0;
+            color: var(--agro-muted);
+            font-size: .84rem;
+            line-height: 1.5;
+        }
+
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 9px;
+            border-radius: 20px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+            font-size: .72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0,1fr));
+            gap: 12px;
+        }
+
+        .metric-item {
+            padding: 15px;
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
+            background: #fbfdfc;
+        }
+
+        .metric-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 7px;
+            color: var(--agro-muted);
+            font-size: .76rem;
+        }
+
+        .metric-value {
+            font-size: 1.35rem;
+            font-weight: 760;
+            line-height: 1.1;
+        }
+
+        .metric-detail {
+            margin-top: 5px;
+            color: var(--agro-muted);
+            font-size: .72rem;
+        }
+
+        .forecast-list {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0,1fr));
+            gap: 10px;
+        }
+
+        .forecast-day {
+            padding: 14px 10px;
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
             text-align: center;
-            text-shadow: 1px 1px 2px white, -1px -1px 2px white;
+            background: #fbfdfc;
+        }
+
+        .forecast-day.active {
+            border-color: rgba(23,117,88,.35);
+            background: var(--agro-primary-light);
+        }
+
+        .forecast-day-name {
+            color: var(--agro-muted);
+            font-size: .74rem;
+            font-weight: 650;
+        }
+
+        .forecast-icon {
+            margin: 10px 0;
+            color: var(--agro-blue);
+            font-size: 1.35rem;
+        }
+
+        .forecast-temperature {
+            font-weight: 730;
+        }
+
+        .forecast-rain {
+            margin-top: 5px;
+            color: var(--agro-blue);
+            font-size: .72rem;
+        }
+
+        .alert-list {
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+        }
+
+        .agro-alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px;
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
+        }
+
+        .agro-alert.warning {
+            border-color: #f0dca5;
+            background: var(--agro-warning-soft);
+        }
+
+        .agro-alert.info {
+            border-color: #cfe1ee;
+            background: var(--agro-blue-soft);
+        }
+
+        .agro-alert.danger {
+            border-color: #efcccc;
+            background: var(--agro-danger-soft);
+        }
+
+        .alert-icon {
+            display: inline-flex;
+            width: 34px;
+            min-width: 34px;
+            height: 34px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: rgba(255,255,255,.7);
+        }
+
+        .alert-title {
+            margin-bottom: 3px;
+            font-size: .87rem;
+            font-weight: 720;
+        }
+
+        .alert-text {
+            margin: 0;
+            color: #52635c;
+            font-size: .78rem;
+            line-height: 1.5;
+        }
+
+        .recommendation-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .recommendation-item {
+            display: flex;
+            gap: 12px;
+            padding: 13px;
+            border: 1px solid var(--agro-border);
+            border-radius: 12px;
+            background: #fbfdfc;
+        }
+
+        .recommendation-number {
+            display: inline-flex;
+            width: 30px;
+            min-width: 30px;
+            height: 30px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            color: #fff;
+            background: var(--agro-primary);
+            font-size: .76rem;
+            font-weight: 750;
+        }
+
+        .recommendation-item strong {
+            display: block;
+            margin-bottom: 3px;
+            font-size: .85rem;
+        }
+
+        .recommendation-item p {
+            margin: 0;
+            color: var(--agro-muted);
+            font-size: .77rem;
+            line-height: 1.45;
+        }
+
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0,1fr));
+            gap: 14px;
+        }
+
+        .news-card {
+            overflow: hidden;
+            border: 1px solid var(--agro-border);
+            border-radius: 14px;
+            background: #fff;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .news-card:hover {
+            box-shadow: 0 10px 24px rgba(30,60,50,.1);
+            transform: translateY(-2px);
+        }
+
+        .news-cover {
+            display: flex;
+            min-height: 105px;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #e7f3ee, #f7fbf9);
+            color: var(--agro-primary);
+            font-size: 2rem;
+        }
+
+        .news-content { padding: 15px; }
+
+        .news-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 9px;
+            color: var(--agro-muted);
+            font-size: .68rem;
+        }
+
+        .news-title {
+            margin-bottom: 7px;
+            font-size: .9rem;
+            font-weight: 730;
+            line-height: 1.35;
+        }
+
+        .news-text {
+            margin: 0;
+            color: var(--agro-muted);
+            font-size: .76rem;
+            line-height: 1.5;
+        }
+
+        #farmMap {
+            width: 100%;
+            height: 355px;
+            border-radius: 14px;
+        }
+
+        .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-top: 13px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 6px 9px;
+            border: 1px solid var(--agro-border);
+            border-radius: 20px;
+            color: var(--agro-muted);
+            background: #fff;
+            font-size: .7rem;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--agro-primary);
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0,1fr));
+            gap: 12px;
+        }
+
+        .service-item {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 13px;
+            border: 1px solid var(--agro-border);
+            border-radius: 12px;
+            background: #fbfdfc;
+        }
+
+        .service-icon {
+            display: inline-flex;
+            width: 36px;
+            min-width: 36px;
+            height: 36px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .service-name {
+            font-size: .8rem;
+            font-weight: 700;
+        }
+
+        .service-status {
+            margin-top: 2px;
+            color: var(--agro-muted);
+            font-size: .68rem;
+        }
+
+        .demo-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            margin-top: 16px;
+            border: 1px solid #cfe1ee;
+            border-radius: 12px;
+            color: #365b70;
+            background: var(--agro-blue-soft);
+            font-size: .76rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 991px) {
+            .metric-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .news-grid { grid-template-columns: 1fr; }
+            .service-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .connection-panel { min-width: 100%; margin-top: 22px; }
+        }
+
+        @media (max-width: 767px) {
+            .forecast-list {
+                grid-template-columns: repeat(2, minmax(0,1fr));
+            }
+
+            .forecast-day:last-child { grid-column: 1 / -1; }
+
+            .top-navbar-section { display: none; }
+            .top-brand-text small { display: none; }
+        }
+
+        @media (max-width: 575px) {
+            .top-navbar,
+            .top-navbar-content { min-height: 64px; }
+
+            .top-brand-icon {
+                width: 39px;
+                height: 39px;
+            }
+
+            .top-home-button {
+                width: 40px;
+                height: 40px;
+                padding: 0;
+            }
+
+            .top-home-button span { display: none; }
+
+            .hero-section { padding: 23px; }
+            .metric-grid,
+            .service-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">agrotikos</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <form action="/inicio" method="post">
-                        {% csrf_token %}
-                        <button id="btn-monitoreo" type="submit" class="btn btn-primary">Inicio</button>
-                    </form>
-                </ul>
-            </div>
-        </div>
-    </nav>
+<nav class="top-navbar">
+    <div class="container top-navbar-content">
+        <a href="{% url 'inicio' %}" class="top-brand">
+            <span class="top-brand-icon">
+                <i class="fa-solid fa-seedling"></i>
+            </span>
+            <span class="top-brand-text">
+                <strong>Agrotikos</strong>
+                <small>Inteligencia para el campo</small>
+            </span>
+        </a>
 
-    <div class="container mt-5">
-        <div class="event-grid">
-            <div class="col-md-10">
-                <h2 class="text-center mb-4">Asistente Inteligente</h2>
-                <div id="infoia" class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Recomendaciones</h5>
-                        <ul class="list-unstyled">
-                            <li class="mb-2"><i class="fa-solid fa-spray-can text-primary me-2"></i>
-                                <strong>Fumigación:</strong> Aplicar en Lote B (Sin riesgo de lluvia).
-                            </li>
-                            <li class="mb-2"><i class="fa-solid fa-cloud-showers-heavy text-info me-2"></i>
-                                <strong>Riego:</strong> Suspender riego en Lote Sur por probabilidad de lluvia (76%).
-                            </li>
-                            <li class="mb-2"><i class="fa-solid fa-magnifying-glass text-warning me-2"></i>
-                                <strong>Monitoreo:</strong> Revisar Lote Norte por posibles signos de plagas debido a la
-                                humedad reciente.
-                            </li>
-                            <li class="mb-2"><i class="fa-solid fa-seedling text-success me-2"></i>
-                                <strong>Fertilización:</strong> Condiciones óptimas para fertilizar Lote C esta tarde.
-                            </li>
-                        </ul>
+        <div class="top-navbar-actions">
+            <span class="top-navbar-section">
+                <i class="fa-solid fa-satellite-dish"></i>
+                Monitorea tu finca
+            </span>
+
+            <a href="{% url 'inicio' %}" class="top-home-button">
+                <i class="fa-solid fa-house"></i>
+                <span>Volver al inicio</span>
+            </a>
+        </div>
+    </div>
+</nav>
+
+<main class="container page-shell">
+    <section class="hero-section mb-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8 hero-content">
+                <span class="hero-eyebrow">
+                    <i class="fa-solid fa-tower-broadcast"></i>
+                    Centro de vigilancia agroclimática
+                </span>
+
+                <h1 class="hero-title">
+                    Entiende qué ocurre alrededor de tu finca.
+                </h1>
+
+                <p class="hero-description">
+                    Consulta condiciones meteorológicas, alertas regionales, recomendaciones
+                    operativas y fuentes agroclimáticas desde un único panel preparado para
+                    conectarse con servicios oficiales y estaciones de campo.
+                </p>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="connection-panel">
+                    <div class="connection-status">
+                        <span class="status-dot"></span>
+                        Fuentes simuladas disponibles
+                    </div>
+
+                    <div class="connection-item">
+                        <span>Ubicación</span>
+                        <strong>Acacías, Meta</strong>
+                    </div>
+
+                    <div class="connection-item">
+                        <span>Última actualización</span>
+                        <strong>Hace 12 min</strong>
+                    </div>
+
+                    <div class="connection-item">
+                        <span>Cobertura</span>
+                        <strong>Regional</strong>
                     </div>
                 </div>
             </div>
-            <div class="col-md-10">
-                <h2 class="text-center mb-4">Predicción meteorológica</h2>
-                <div id="info" class="card">
-                    <div class="card-body">
-                        <h5 class="card-title"></h5>
-                        <div class="row">
-                            <div class="col-6 mb-3">
-                                <i class="fa-solid fa-cloud-rain text-primary"></i>
-                                <strong>Precipitación:</strong><br>15mm (76% prob.)
+        </div>
+    </section>
+
+    <div class="row g-4 mb-4">
+        <div class="col-xl-8">
+            <section class="section-card">
+                <div class="card-body">
+                    <div class="section-heading">
+                        <div class="d-flex gap-3">
+                            <span class="section-icon">
+                                <i class="fa-solid fa-cloud-sun-rain"></i>
+                            </span>
+                            <div>
+                                <h2 class="section-title">Condición agroclimática actual</h2>
+                                <p class="section-subtitle">
+                                    Resumen de variables relevantes para las labores del cultivo.
+                                </p>
                             </div>
-                            <div class="col-6 mb-3">
-                                <i class="fa-solid fa-temperature-high text-danger"></i>
-                                <strong>Temperatura:</strong><br>Máx 28°C / Mín 18°C
+                        </div>
+
+                        <span class="source-badge">
+                            <i class="fa-solid fa-circle-check"></i>
+                            Datos demostrativos
+                        </span>
+                    </div>
+
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div class="metric-label">
+                                <i class="fa-solid fa-temperature-half"></i>
+                                Temperatura
                             </div>
-                            <div class="col-6 mb-3">
-                                <i class="fa-solid fa-droplet text-info"></i> <strong>Humedad Rel.:</strong><br>78%
+                            <div class="metric-value">29.8 °C</div>
+                            <div class="metric-detail">Sensación cálida</div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-label">
+                                <i class="fa-solid fa-droplet"></i>
+                                Humedad relativa
                             </div>
-                            <div class="col-6 mb-3">
-                                <i class="fa-solid fa-wind text-secondary"></i> <strong>Viento:</strong><br>10 km/h NE
+                            <div class="metric-value">71 %</div>
+                            <div class="metric-detail">Riesgo medio de hongos</div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-label">
+                                <i class="fa-solid fa-cloud-rain"></i>
+                                Lluvia acumulada
                             </div>
-                            <div class="col-6 mb-3">
-                                <i class="fa-solid fa-sun text-warning"></i> <strong>Rad. Solar:</strong><br>5.5 kWh/m²
+                            <div class="metric-value">0.2 mm</div>
+                            <div class="metric-detail">Últimas 24 horas</div>
+                        </div>
+
+                        <div class="metric-item">
+                            <div class="metric-label">
+                                <i class="fa-solid fa-wind"></i>
+                                Viento
                             </div>
-                            <div class="col-6 mb-3">
-                                <i class="fa-solid fa-water text-success"></i> <strong>ETo:</strong><br>4.2 mm/día
+                            <div class="metric-value">3.4 m/s</div>
+                            <div class="metric-detail">Dirección sureste</div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="forecast-list">
+                        <div class="forecast-day active">
+                            <div class="forecast-day-name">Hoy</div>
+                            <div class="forecast-icon"><i class="fa-solid fa-cloud-sun"></i></div>
+                            <div class="forecast-temperature">30° / 22°</div>
+                            <div class="forecast-rain">35 % lluvia</div>
+                        </div>
+
+                        <div class="forecast-day">
+                            <div class="forecast-day-name">Viernes</div>
+                            <div class="forecast-icon"><i class="fa-solid fa-cloud-rain"></i></div>
+                            <div class="forecast-temperature">28° / 21°</div>
+                            <div class="forecast-rain">76 % lluvia</div>
+                        </div>
+
+                        <div class="forecast-day">
+                            <div class="forecast-day-name">Sábado</div>
+                            <div class="forecast-icon"><i class="fa-solid fa-cloud-showers-heavy"></i></div>
+                            <div class="forecast-temperature">27° / 21°</div>
+                            <div class="forecast-rain">82 % lluvia</div>
+                        </div>
+
+                        <div class="forecast-day">
+                            <div class="forecast-day-name">Domingo</div>
+                            <div class="forecast-icon"><i class="fa-solid fa-cloud-sun-rain"></i></div>
+                            <div class="forecast-temperature">29° / 22°</div>
+                            <div class="forecast-rain">55 % lluvia</div>
+                        </div>
+
+                        <div class="forecast-day">
+                            <div class="forecast-day-name">Lunes</div>
+                            <div class="forecast-icon"><i class="fa-solid fa-sun"></i></div>
+                            <div class="forecast-temperature">31° / 22°</div>
+                            <div class="forecast-rain">20 % lluvia</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="col-xl-4">
+            <section class="section-card">
+                <div class="card-body">
+                    <div class="section-heading">
+                        <div class="d-flex gap-3">
+                            <span class="section-icon">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </span>
+                            <div>
+                                <h2 class="section-title">Alertas de la región</h2>
+                                <p class="section-subtitle">Eventos que podrían afectar la operación.</p>
                             </div>
-                            <div class="col-6 mb-3">
-                                <i class="fa-solid fa-leaf text-success"></i> <strong>Humedad Hoja:</strong><br>4 horas
+                        </div>
+                    </div>
+
+                    <div class="alert-list">
+                        <div class="agro-alert warning">
+                            <span class="alert-icon">
+                                <i class="fa-solid fa-cloud-bolt"></i>
+                            </span>
+                            <div>
+                                <div class="alert-title">Probabilidad de tormenta</div>
+                                <p class="alert-text">
+                                    Se esperan lluvias fuertes durante la tarde. Evita aplicaciones
+                                    foliares antes del evento.
+                                </p>
                             </div>
-                            <div class="col-6 mb-3">
-                                <i class="fa-solid fa-layer-group" style="color: #8B4513;"></i> <strong>Humedad
-                                    Suelo:</strong><br>25%
+                        </div>
+
+                        <div class="agro-alert danger">
+                            <span class="alert-icon">
+                                <i class="fa-solid fa-bug"></i>
+                            </span>
+                            <div>
+                                <div class="alert-title">Condiciones para plagas</div>
+                                <p class="alert-text">
+                                    La humedad y temperatura favorecen actividad de gusano cogollero
+                                    en cultivos de maíz.
+                                </p>
                             </div>
-                            <div class="col-12">
-                                <small class="text-muted"><i class="fa-solid fa-circle-info"></i> Punto de Rocío:
-                                    16°C</small>
+                        </div>
+
+                        <div class="agro-alert info">
+                            <span class="alert-icon">
+                                <i class="fa-solid fa-water"></i>
+                            </span>
+                            <div>
+                                <div class="alert-title">Vigilancia de cauces</div>
+                                <p class="alert-text">
+                                    Mantén observación sobre drenajes y zonas bajas ante acumulaciones
+                                    de agua.
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-10">
-                <h2 class="text-center mb-4">Blog de Noticias Agrícolas</h2>
-                <div class="event-card">
-                    <div class="card-body">
-                        <h5 class="card-title"><i class="fa-solid fa-bug text-danger"></i> Alerta: Plaga en Cundinamarca
-                        </h5>
-                        <p class="card-text"><small class="text-muted">El Tiempo - Hace 2 horas</small></p>
-                        <p class="card-text">Autoridades agrícolas reportan brote de gusano cogollero en cultivos de
-                            maíz
-                            en municipios de Cundinamarca. Se recomienda monitoreo preventivo.</p>
+            </section>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <section class="section-card">
+                <div class="card-body">
+                    <div class="section-heading">
+                        <div class="d-flex gap-3">
+                            <span class="section-icon">
+                                <i class="fa-solid fa-list-check"></i>
+                            </span>
+                            <div>
+                                <h2 class="section-title">Recomendaciones para hoy</h2>
+                                <p class="section-subtitle">
+                                    Acciones sugeridas a partir del escenario climático.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recommendation-list">
+                        <div class="recommendation-item">
+                            <span class="recommendation-number">1</span>
+                            <div>
+                                <strong>Reprogramar aplicaciones foliares</strong>
+                                <p>Evita fumigar si la lluvia ocurre dentro de las siguientes 4–6 horas.</p>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-item">
+                            <span class="recommendation-number">2</span>
+                            <div>
+                                <strong>Revisar drenajes del lote</strong>
+                                <p>Inspecciona canales y puntos bajos antes del incremento de lluvias.</p>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-item">
+                            <span class="recommendation-number">3</span>
+                            <div>
+                                <strong>Monitorear gusano cogollero</strong>
+                                <p>Prioriza recorridos en bordes y áreas con mayor humedad.</p>
+                            </div>
+                        </div>
+
+                        <div class="recommendation-item">
+                            <span class="recommendation-number">4</span>
+                            <div>
+                                <strong>Suspender riego preventivamente</strong>
+                                <p>No riegues hasta confirmar la precipitación efectiva del evento.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="event-card">
-                    <div class="card-body">
-                        <h5 class="card-title"><i class="fa-solid fa-cloud-sun-rain text-primary"></i> Pronóstico
-                            Semanal</h5>
-                        <p class="card-text"><small class="text-muted">IDEAM - Hoy</small></p>
-                        <p class="card-text">Se esperan lluvias moderadas en la región Andina durante los próximos 5
-                            días.
-                            Planifique sus actividades de campo con anticipación.</p>
-                    </div>
-                </div>
-                <div class="event-card">
-                    <div class="card-body">
-                        <h5 class="card-title"><i class="fa-solid fa-chart-line text-success"></i> Precios del Café
-                            Suben</h5>
-                        <p class="card-text"><small class="text-muted">Portafolio - Ayer</small></p>
-                        <p class="card-text">El precio del café arábica aumentó 8% esta semana debido a la alta demanda
-                            internacional. Buen momento para comercializar.</p>
-                    </div>
-                </div>
-                <div class="event-card">
-                    <div class="card-body">
-                        <h5 class="card-title"><i class="fa-solid fa-seedling text-warning"></i> Nueva Tecnología
-                            Agrícola</h5>
-                        <p class="card-text"><small class="text-muted">Agronegocios - Hace 1 día</small></p>
-                        <p class="card-text">Ministerio de Agricultura lanza programa de drones para monitoreo de
-                            cultivos.
-                            Inscripciones abiertas para pequeños productores.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-10">
-                <h2 class="text-center mb-4">Ubicación de tu finca</h2>
-                <div id="map" class="card"></div>
-            </div>
-            <form action="/inicio" method="post" class="d-flex justify-content-center mt-4">
-                {% csrf_token %}
-                <button id="btn-datos-cultivo" type="submit" class="btn btn-primary">Regresar</button>
-            </form>
+            </section>
         </div>
 
-        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-        <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.10.0/core/main.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.10.0/daygrid/main.min.js"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {
-                var calendarEl = document.getElementById('calendar');
-                var calendar = new FullCalendar.Calendar(calendarEl, {
-                    initialView: 'dayGridMonth',
-                    locale: 'es',
-                    events: [{
-                        title: 'Ejemplo de evento 1',
-                        start: '2024-04-20'
-                    },
-                    {
-                        title: 'Ejemplo de evento 2',
-                        start: '2024-04-25'
-                    }
-                    ],
-                    eventColor: '#ff0000'
-                });
-                calendar.render();
-            });
-        </script>
+        <div class="col-lg-7">
+            <section class="section-card">
+                <div class="card-body">
+                    <div class="section-heading">
+                        <div class="d-flex gap-3">
+                            <span class="section-icon">
+                                <i class="fa-solid fa-map-location-dot"></i>
+                            </span>
+                            <div>
+                                <h2 class="section-title">Ubicación y contexto territorial</h2>
+                                <p class="section-subtitle">
+                                    Vista de referencia de la finca en Acacías, Meta.
+                                </p>
+                            </div>
+                        </div>
 
-        <script>
-            $(function () {
-                $("#datepicker").datepicker({
-                    dateFormat: 'yy-mm-dd',
-                    onSelect: function (date) {
-                        alert('Selected date: ' + date);
-                    }
-                });
-            });
-        </script>
+                        <span class="source-badge">
+                            <i class="fa-solid fa-location-dot"></i>
+                            Acacías
+                        </span>
+                    </div>
 
-        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-        <script>
-            var map = L.map('map').setView([2.710989, -74.072090], 14);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(map);
+                    <div id="farmMap"></div>
 
-            L.marker([2.710989, -74.072090]).addTo(map)
-                .bindPopup('<b>🏡 Tu Finca</b><br>Acá se ubica tu finca<br><small>Área total: 50 hectáreas</small>')
-                .openPopup();
+                    <div class="map-legend">
+                        <span class="legend-item">
+                            <span class="legend-dot"></span>
+                            Ubicación de la finca
+                        </span>
+                        <span class="legend-item">
+                            <i class="fa-solid fa-cloud-rain"></i>
+                            Zona de seguimiento climático
+                        </span>
+                        <span class="legend-item">
+                            <i class="fa-solid fa-seedling"></i>
+                            Cultivo de maíz
+                        </span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
 
-            var loteNorte = L.polygon([
-                [2.712800, -74.071800],
-                [2.712800, -74.071200],
-                [2.712200, -74.071200],
-                [2.712200, -74.071800]
-            ], { color: 'orange', fillColor: '#FFA500', fillOpacity: 0.4 }).addTo(map);
-            loteNorte.bindPopup('<b>🌾 Lote Norte</b><br>' +
-                '<b>Recomendación:</b> Revisar por posibles signos de plagas<br>' +
-                '<b>Cultivo:</b> Maíz<br>' +
-                '<b>Humedad Suelo:</b> 28%<br>' +
-                '<b>Temp. Actual:</b> 24°C<br>' +
-                '<b>Precipitación hoy:</b> 0mm<br>' +
-                '<small>⚠️ Alta humedad reciente favorece plagas</small>');
-            loteNorte.bindTooltip("Lote Norte<br>Maíz", { permanent: true, direction: 'center', className: 'lote-label' });
+    <section class="section-card mb-4">
+        <div class="card-body">
+            <div class="section-heading">
+                <div class="d-flex gap-3">
+                    <span class="section-icon">
+                        <i class="fa-solid fa-newspaper"></i>
+                    </span>
+                    <div>
+                        <h2 class="section-title">Actualidad agrícola y regional</h2>
+                        <p class="section-subtitle">
+                            Contenido demostrativo para mostrar cómo se verán noticias, boletines y comunicados.
+                        </p>
+                    </div>
+                </div>
 
-            var loteB = L.polygon([
-                [2.712100, -74.073300],
-                [2.712100, -74.072700],
-                [2.711500, -74.072700],
-                [2.711500, -74.073300]
-            ], { color: 'blue', fillColor: '#0066FF', fillOpacity: 0.4 }).addTo(map);
-            loteB.bindPopup('<b>🌱 Lote B</b><br>' +
-                '<b>Recomendación:</b> Aplicar fumigación<br>' +
-                '<b>Cultivo:</b> Café<br>' +
-                '<b>Humedad Suelo:</b> 22%<br>' +
-                '<b>Temp. Actual:</b> 26°C<br>' +
-                '<b>Precipitación próx. 24h:</b> 0mm (0%)<br>' +
-                '<b>Viento:</b> 8 km/h<br>' +
-                '<small>✅ Condiciones ideales para fumigación</small>');
-            loteB.bindTooltip("Lote B<br>Café", { permanent: true, direction: 'center', className: 'lote-label' });
+                <span class="source-badge">
+                    <i class="fa-solid fa-rss"></i>
+                    Fuentes por integrar
+                </span>
+            </div>
 
-            var loteSur = L.polygon([
-                [2.709800, -74.072800],
-                [2.709800, -74.072200],
-                [2.709200, -74.072200],
-                [2.709200, -74.072800]
-            ], { color: 'cyan', fillColor: '#00CED1', fillOpacity: 0.4 }).addTo(map);
-            loteSur.bindPopup('<b>💧 Lote Sur</b><br>' +
-                '<b>Recomendación:</b> Suspender riego<br>' +
-                '<b>Cultivo:</b> Plátano<br>' +
-                '<b>Humedad Suelo:</b> 30%<br>' +
-                '<b>Temp. Actual:</b> 25°C<br>' +
-                '<b>Precipitación próx. 24h:</b> 15mm (76%)<br>' +
-                '<b>Humedad Rel.:</b> 82%<br>' +
-                '<small>☔ Lluvia probable - No regar</small>');
-            loteSur.bindTooltip("Lote Sur<br>Plátano", { permanent: true, direction: 'center', className: 'lote-label' });
+            <div class="news-grid">
+                <article class="news-card">
+                    <div class="news-cover">
+                        <i class="fa-solid fa-cloud-showers-heavy"></i>
+                    </div>
+                    <div class="news-content">
+                        <div class="news-meta">
+                            <span>Boletín climático</span>
+                            <span>Hoy</span>
+                        </div>
+                        <h3 class="news-title">Aumentan las lluvias previstas para la Orinoquía</h3>
+                        <p class="news-text">
+                            Productores deben fortalecer drenajes y ajustar labores que dependan de
+                            ventanas secas.
+                        </p>
+                    </div>
+                </article>
 
-            var loteC = L.polygon([
-                [2.710500, -74.071100],
-                [2.710500, -74.070500],
-                [2.709900, -74.070500],
-                [2.709900, -74.071100]
-            ], { color: 'green', fillColor: '#32CD32', fillOpacity: 0.4 }).addTo(map);
-            loteC.bindPopup('<b>🌿 Lote C</b><br>' +
-                '<b>Recomendación:</b> Fertilizar esta tarde<br>' +
-                '<b>Cultivo:</b> Aguacate<br>' +
-                '<b>Humedad Suelo:</b> 24%<br>' +
-                '<b>Temp. Actual:</b> 23°C<br>' +
-                '<b>Precipitación próx. 48h:</b> 12mm (60%)<br>' +
-                '<b>Radiación Solar:</b> 5.2 kWh/m²<br>' +
-                '<small>✅ Óptimo para fertilización</small>');
-            loteC.bindTooltip("Lote C<br>Aguacate", { permanent: true, direction: 'center', className: 'lote-label' });
-        </script>
+                <article class="news-card">
+                    <div class="news-cover">
+                        <i class="fa-solid fa-bug-slash"></i>
+                    </div>
+                    <div class="news-content">
+                        <div class="news-meta">
+                            <span>Sanidad vegetal</span>
+                            <span>Hace 4 h</span>
+                        </div>
+                        <h3 class="news-title">Recomendaciones preventivas para gusano cogollero</h3>
+                        <p class="news-text">
+                            El monitoreo temprano del lote reduce aplicaciones innecesarias y mejora
+                            la oportunidad de intervención.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="news-card">
+                    <div class="news-cover">
+                        <i class="fa-solid fa-tractor"></i>
+                    </div>
+                    <div class="news-content">
+                        <div class="news-meta">
+                            <span>Desarrollo rural</span>
+                            <span>Ayer</span>
+                        </div>
+                        <h3 class="news-title">Nuevas jornadas técnicas para productores del Meta</h3>
+                        <p class="news-text">
+                            Las jornadas incluyen manejo de suelos, agricultura de precisión y
+                            adaptación al clima.
+                        </p>
+                    </div>
+                </article>
+            </div>
+
+            <div class="demo-note">
+                <i class="fa-solid fa-circle-info mt-1"></i>
+                <div>
+                    Estos titulares y valores son demostrativos. No deben presentarse como información
+                    oficial o en tiempo real hasta conectar APIs, RSS o procesos de captura verificados.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-card">
+        <div class="card-body">
+            <div class="section-heading">
+                <div class="d-flex gap-3">
+                    <span class="section-icon">
+                        <i class="fa-solid fa-plug-circle-bolt"></i>
+                    </span>
+                    <div>
+                        <h2 class="section-title">Servicios preparados para integración</h2>
+                        <p class="section-subtitle">
+                            Fuentes que la plataforma podrá consumir en una siguiente etapa.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="service-grid">
+                <div class="service-item">
+                    <span class="service-icon"><i class="fa-solid fa-cloud-sun"></i></span>
+                    <div>
+                        <div class="service-name">IDEAM</div>
+                        <div class="service-status">Boletines y alertas</div>
+                    </div>
+                </div>
+
+                <div class="service-item">
+                    <span class="service-icon"><i class="fa-solid fa-satellite"></i></span>
+                    <div>
+                        <div class="service-name">Pronóstico meteorológico</div>
+                        <div class="service-status">API externa futura</div>
+                    </div>
+                </div>
+
+                <div class="service-item">
+                    <span class="service-icon"><i class="fa-solid fa-tower-broadcast"></i></span>
+                    <div>
+                        <div class="service-name">Estación local</div>
+                        <div class="service-status">Telemetría IoT futura</div>
+                    </div>
+                </div>
+
+                <div class="service-item">
+                    <span class="service-icon"><i class="fa-solid fa-rss"></i></span>
+                    <div>
+                        <div class="service-name">Noticias regionales</div>
+                        <div class="service-status">RSS o curaduría</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const farmLatitude = 3.9869;
+        const farmLongitude = -73.7579;
+
+        const map = L.map("farmMap", {
+            scrollWheelZoom: false
+        }).setView([farmLatitude, farmLongitude], 12);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap"
+        }).addTo(map);
+
+        const farmIcon = L.divIcon({
+            className: "",
+            html: `
+                <div style="
+                    width:44px;
+                    height:44px;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                    border:4px solid #ffffff;
+                    border-radius:50%;
+                    color:#ffffff;
+                    background:#177558;
+                    box-shadow:0 5px 15px rgba(20,56,44,.28);
+                    font-size:18px;
+                ">
+                    <i class="fa-solid fa-seedling"></i>
+                </div>
+            `,
+            iconSize: [44, 44],
+            iconAnchor: [22, 22]
+        });
+
+        L.marker([farmLatitude, farmLongitude], {
+            icon: farmIcon
+        })
+        .addTo(map)
+        .bindPopup(`
+            <strong>Finca demostrativa</strong><br>
+            Acacías, Meta<br>
+            Cultivo: maíz
+        `)
+        .openPopup();
+
+        L.circle([farmLatitude, farmLongitude], {
+            radius: 4500,
+            color: "#177558",
+            weight: 2,
+            fillColor: "#177558",
+            fillOpacity: 0.08
+        }).addTo(map);
+    });
+</script>
 </body>
-
 </html>

@@ -2,131 +2,3046 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>agrotikos</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <style>
-    /* Asegura que todas las imágenes tengan el mismo tamaño */
-    .ndvi-img {
-      width: 100%;
-      height: 240px;          /* altura fija para uniformidad */
-      object-fit: cover;      /* recorta manteniendo proporción */
-      border-radius: 12px;
-      box-shadow: var(--shadow);
-    }
-    .badge-tag { font-size: 0.8rem; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="description"
+        content="Centro de análisis NDVI y salud del cultivo de Agrotikos"
+    >
+    <title>Análisis NDVI | Agrotikos</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        rel="stylesheet"
+    >
+    <link
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        rel="stylesheet"
+    >
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+
+    <style>
+        :root {
+            --agro-dark: #14382c;
+            --agro-dark-soft: #1c4b3a;
+            --agro-primary: #177558;
+            --agro-primary-dark: #0f5942;
+            --agro-primary-light: #e8f5f0;
+            --agro-background: #f3f6f5;
+            --agro-border: #dae5e0;
+            --agro-text: #263630;
+            --agro-muted: #6b7b75;
+            --agro-white: #ffffff;
+            --agro-warning: #d99625;
+            --agro-warning-soft: #fff6dd;
+            --agro-danger: #c84b4b;
+            --agro-danger-dark: #9d3434;
+            --agro-danger-soft: #fdecec;
+            --agro-blue: #3387bd;
+            --agro-blue-soft: #ebf4fb;
+            --agro-purple: #7959a8;
+            --agro-purple-soft: #f2edfa;
+            --agro-orange: #e67e22;
+            --agro-orange-soft: #fff0e4;
+            --agro-shadow: 0 5px 18px rgba(30, 60, 50, 0.07);
+            --agro-shadow-lg: 0 12px 32px rgba(25, 66, 51, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--agro-text);
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(23, 117, 88, 0.08),
+                    transparent 34%
+                ),
+                var(--agro-background);
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        .top-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1050;
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(
+                100deg,
+                #14382c 0%,
+                #176247 55%,
+                #177558 100%
+            );
+            box-shadow: 0 5px 18px rgba(18, 57, 45, 0.18);
+        }
+
+        .top-navbar-content {
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .top-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+        }
+
+        .top-brand:hover {
+            color: #fff;
+        }
+
+        .top-brand-icon {
+            display: inline-flex;
+            width: 44px;
+            height: 44px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 13px;
+            color: var(--agro-dark);
+            background: #fff;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.14);
+            font-size: 1.2rem;
+        }
+
+        .top-brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
+        }
+
+        .top-brand-text strong {
+            font-size: 1.08rem;
+            font-weight: 750;
+        }
+
+        .top-brand-text small {
+            margin-top: 3px;
+            color: rgba(255, 255, 255, 0.67);
+            font-size: 0.7rem;
+        }
+
+        .top-navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-navbar-section {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 13px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 11px;
+            color: rgba(255, 255, 255, 0.82);
+            background: rgba(255, 255, 255, 0.07);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .top-home-button {
+            display: inline-flex;
+            min-height: 40px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 11px;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            font-size: 0.86rem;
+            font-weight: 650;
+            transition: 0.2s ease;
+        }
+
+        .top-home-button:hover {
+            color: var(--agro-dark);
+            border-color: #fff;
+            background: #fff;
+            transform: translateY(-1px);
+        }
+
+        .page-shell {
+            padding-top: 28px;
+            padding-bottom: 48px;
+        }
+
+        .hero-section {
+            position: relative;
+            overflow: hidden;
+            padding: 30px;
+            border: 1px solid var(--agro-border);
+            border-radius: 22px;
+            color: #fff;
+            background: linear-gradient(
+                125deg,
+                rgba(20, 56, 44, 0.98),
+                rgba(23, 117, 88, 0.92)
+            );
+            box-shadow: var(--agro-shadow-lg);
+        }
+
+        .hero-section::before {
+            position: absolute;
+            top: -100px;
+            right: -60px;
+            width: 290px;
+            height: 290px;
+            content: "";
+            border: 45px solid rgba(255, 255, 255, 0.055);
+            border-radius: 50%;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.09);
+            font-size: 0.82rem;
+            font-weight: 650;
+        }
+
+        .hero-title {
+            max-width: 820px;
+            margin-bottom: 10px;
+            font-size: clamp(2rem, 5vw, 3.1rem);
+            font-weight: 790;
+            line-height: 1.07;
+        }
+
+        .hero-description {
+            max-width: 820px;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .analysis-panel {
+            position: relative;
+            z-index: 2;
+            min-width: 295px;
+            padding: 17px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+        }
+
+        .analysis-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #78d7a8;
+            box-shadow: 0 0 0 5px rgba(120, 215, 168, 0.13);
+        }
+
+        .analysis-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 9px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.8rem;
+        }
+
+        .analysis-item strong {
+            color: #fff;
+            font-weight: 650;
+        }
+
+        .demo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 9px;
+            border-radius: 20px;
+            color: #6f4d0a;
+            background: #ffefba;
+            font-size: 0.69rem;
+            font-weight: 750;
+        }
+
+        .section-card {
+            height: 100%;
+            border: 1px solid var(--agro-border);
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: var(--agro-shadow);
+        }
+
+        .section-card .card-body {
+            padding: 22px;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .section-heading-main {
+            display: flex;
+            gap: 13px;
+        }
+
+        .section-icon {
+            display: inline-flex;
+            width: 42px;
+            min-width: 42px;
+            height: 42px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .section-title {
+            margin: 0 0 4px;
+            font-size: 1.05rem;
+            font-weight: 740;
+        }
+
+        .section-subtitle {
+            margin: 0;
+            color: var(--agro-muted);
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 9px;
+            border-radius: 20px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .filter-field label {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--agro-muted);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .filter-control {
+            width: 100%;
+            min-height: 42px;
+            padding: 9px 11px;
+            border: 1px solid var(--agro-border);
+            border-radius: 11px;
+            color: var(--agro-text);
+            background: #fbfdfc;
+            font-size: 0.79rem;
+            outline: none;
+            transition: 0.18s ease;
+        }
+
+        .filter-control:focus {
+            border-color: rgba(23, 117, 88, 0.55);
+            box-shadow: 0 0 0 3px rgba(23, 117, 88, 0.09);
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .metric-item {
+            padding: 15px;
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
+            background: #fbfdfc;
+        }
+
+        .metric-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 7px;
+            color: var(--agro-muted);
+            font-size: 0.74rem;
+        }
+
+        .metric-value {
+            font-size: 1.28rem;
+            font-weight: 760;
+            line-height: 1.1;
+        }
+
+        .metric-detail {
+            margin-top: 5px;
+            color: var(--agro-muted);
+            font-size: 0.68rem;
+            line-height: 1.35;
+        }
+
+        .trend-positive {
+            color: var(--agro-primary);
+        }
+
+        .trend-negative {
+            color: var(--agro-danger);
+        }
+
+        .map-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.7fr);
+            gap: 18px;
+        }
+
+        #ndviMap {
+            width: 100%;
+            min-height: 575px;
+            border-radius: 14px;
+        }
+
+        .leaflet-container {
+            font-family: inherit;
+        }
+
+        .zone-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 575px;
+            padding: 18px;
+            border: 1px solid var(--agro-border);
+            border-radius: 14px;
+            background: #fbfdfc;
+        }
+
+        .zone-panel-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--agro-border);
+        }
+
+        .zone-code {
+            margin-bottom: 4px;
+            color: var(--agro-muted);
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .zone-name {
+            margin: 0;
+            font-size: 1.18rem;
+            font-weight: 780;
+        }
+
+        .priority-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 9px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 750;
+        }
+
+        .priority-low {
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .priority-medium {
+            color: #7b5a13;
+            background: var(--agro-warning-soft);
+        }
+
+        .priority-high {
+            color: #9d4b13;
+            background: var(--agro-orange-soft);
+        }
+
+        .priority-critical {
+            color: var(--agro-danger-dark);
+            background: var(--agro-danger-soft);
+        }
+
+        .zone-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .zone-kpi {
+            padding: 12px;
+            border: 1px solid var(--agro-border);
+            border-radius: 11px;
+            background: #fff;
+        }
+
+        .zone-kpi-label {
+            color: var(--agro-muted);
+            font-size: 0.67rem;
+        }
+
+        .zone-kpi-value {
+            margin-top: 3px;
+            font-size: 1rem;
+            font-weight: 760;
+        }
+
+        .zone-panel-section {
+            padding-top: 14px;
+            margin-top: 2px;
+            border-top: 1px solid var(--agro-border);
+        }
+
+        .zone-panel-section h4 {
+            margin: 0 0 8px;
+            font-size: 0.82rem;
+            font-weight: 750;
+        }
+
+        .zone-panel-section p {
+            margin: 0;
+            color: var(--agro-muted);
+            font-size: 0.75rem;
+            line-height: 1.55;
+        }
+
+        .action-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .action-list li {
+            display: flex;
+            gap: 8px;
+            color: var(--agro-muted);
+            font-size: 0.74rem;
+            line-height: 1.45;
+        }
+
+        .action-list i {
+            margin-top: 3px;
+            color: var(--agro-primary);
+        }
+
+        .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 13px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 6px 9px;
+            border: 1px solid var(--agro-border);
+            border-radius: 20px;
+            color: var(--agro-muted);
+            background: #fff;
+            font-size: 0.68rem;
+        }
+
+        .legend-color {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .ndvi-scale {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            overflow: hidden;
+            margin-top: 12px;
+            border: 1px solid var(--agro-border);
+            border-radius: 10px;
+        }
+
+        .ndvi-scale-item {
+            padding: 8px 6px;
+            color: #fff;
+            text-align: center;
+            font-size: 0.64rem;
+            font-weight: 750;
+        }
+
+        .scale-critical {
+            background: #b63d3d;
+        }
+
+        .scale-low {
+            background: #e3772d;
+        }
+
+        .scale-medium {
+            background: #d4ad25;
+        }
+
+        .scale-high {
+            background: #77a93a;
+        }
+
+        .scale-very-high {
+            background: #257846;
+        }
+
+        .table-responsive {
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
+        }
+
+        .analysis-table {
+            margin: 0;
+            font-size: 0.75rem;
+        }
+
+        .analysis-table thead th {
+            padding: 12px 11px;
+            border-bottom: 1px solid var(--agro-border);
+            color: var(--agro-muted);
+            background: #f7faf8;
+            font-size: 0.68rem;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        .analysis-table tbody td {
+            padding: 12px 11px;
+            vertical-align: middle;
+            border-color: #edf2ef;
+        }
+
+        .analysis-table tbody tr {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .analysis-table tbody tr:hover,
+        .analysis-table tbody tr.selected-row {
+            background: var(--agro-primary-light);
+        }
+
+        .zone-pill {
+            display: inline-flex;
+            min-width: 38px;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 8px;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 750;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 8px;
+            border-radius: 20px;
+            font-size: 0.64rem;
+            font-weight: 730;
+            white-space: nowrap;
+        }
+
+        .status-healthy {
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .status-watch {
+            color: #7b5a13;
+            background: var(--agro-warning-soft);
+        }
+
+        .status-attention {
+            color: #93480e;
+            background: var(--agro-orange-soft);
+        }
+
+        .status-critical {
+            color: var(--agro-danger-dark);
+            background: var(--agro-danger-soft);
+        }
+
+        .chart-wrap {
+            position: relative;
+            min-height: 345px;
+        }
+
+        .chart-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chart-filter-button {
+            min-height: 34px;
+            padding: 7px 11px;
+            border: 1px solid var(--agro-border);
+            border-radius: 9px;
+            color: var(--agro-muted);
+            background: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .chart-filter-button.active {
+            color: #fff;
+            border-color: var(--agro-primary);
+            background: var(--agro-primary);
+        }
+
+        .finding-list {
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+        }
+
+        .finding-card {
+            display: flex;
+            gap: 12px;
+            padding: 14px;
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
+            background: #fbfdfc;
+        }
+
+        .finding-card.high {
+            border-color: #efc3a3;
+            background: #fff8f2;
+        }
+
+        .finding-card.critical {
+            border-color: #efcccc;
+            background: var(--agro-danger-soft);
+        }
+
+        .finding-icon {
+            display: inline-flex;
+            width: 36px;
+            min-width: 36px;
+            height: 36px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .finding-card.high .finding-icon {
+            color: #93480e;
+            background: var(--agro-orange-soft);
+        }
+
+        .finding-card.critical .finding-icon {
+            color: var(--agro-danger-dark);
+            background: #fff;
+        }
+
+        .finding-title {
+            margin-bottom: 3px;
+            font-size: 0.82rem;
+            font-weight: 740;
+        }
+
+        .finding-text {
+            margin: 0;
+            color: var(--agro-muted);
+            font-size: 0.73rem;
+            line-height: 1.5;
+        }
+
+        .inspection-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .inspection-item {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 11px;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid var(--agro-border);
+            border-radius: 12px;
+            background: #fbfdfc;
+        }
+
+        .inspection-number {
+            display: inline-flex;
+            width: 31px;
+            height: 31px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            color: #fff;
+            background: var(--agro-primary);
+            font-size: 0.72rem;
+            font-weight: 750;
+        }
+
+        .inspection-title {
+            margin-bottom: 3px;
+            font-size: 0.78rem;
+            font-weight: 730;
+        }
+
+        .inspection-meta {
+            color: var(--agro-muted);
+            font-size: 0.67rem;
+        }
+
+        .task-button {
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #abd0c1;
+            border-radius: 9px;
+            color: var(--agro-primary-dark);
+            background: #fff;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+
+        .task-button:hover {
+            background: var(--agro-primary-light);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 13px;
+        }
+
+        .comparison-card {
+            overflow: hidden;
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
+            background: #fbfdfc;
+        }
+
+        .comparison-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--agro-border);
+            background: #fff;
+        }
+
+        .comparison-title {
+            font-size: 0.79rem;
+            font-weight: 740;
+        }
+
+        .comparison-date {
+            color: var(--agro-muted);
+            font-size: 0.66rem;
+        }
+
+        .mini-map {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(4, 45px);
+            gap: 4px;
+            padding: 14px;
+        }
+
+        .mini-cell {
+            border-radius: 7px;
+        }
+
+        .capture-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .capture-item {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            gap: 11px;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid var(--agro-border);
+            border-radius: 12px;
+            background: #fbfdfc;
+        }
+
+        .capture-icon {
+            display: inline-flex;
+            width: 34px;
+            height: 34px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .capture-title {
+            margin-bottom: 3px;
+            font-size: 0.77rem;
+            font-weight: 730;
+        }
+
+        .capture-meta {
+            color: var(--agro-muted);
+            font-size: 0.66rem;
+        }
+
+        .quality-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .quality-item {
+            padding: 12px;
+            border: 1px solid var(--agro-border);
+            border-radius: 11px;
+            background: #fbfdfc;
+        }
+
+        .quality-label {
+            color: var(--agro-muted);
+            font-size: 0.65rem;
+        }
+
+        .quality-value {
+            margin-top: 4px;
+            font-size: 0.84rem;
+            font-weight: 740;
+        }
+
+        .quality-meter {
+            height: 7px;
+            margin-top: 9px;
+            overflow: hidden;
+            border-radius: 10px;
+            background: #e7eeea;
+        }
+
+        .quality-meter span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: var(--agro-primary);
+        }
+
+        .technical-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            margin-top: 16px;
+            border: 1px solid #cfe1ee;
+            border-radius: 12px;
+            color: #365b70;
+            background: var(--agro-blue-soft);
+            font-size: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .agro-button,
+        .agro-button-outline {
+            display: inline-flex;
+            min-height: 38px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 13px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: 0.18s ease;
+        }
+
+        .agro-button {
+            border: 1px solid var(--agro-primary);
+            color: #fff;
+            background: var(--agro-primary);
+        }
+
+        .agro-button:hover {
+            color: #fff;
+            border-color: var(--agro-primary-dark);
+            background: var(--agro-primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .agro-button-outline {
+            border: 1px solid #abd0c1;
+            color: var(--agro-primary-dark);
+            background: #fff;
+        }
+
+        .agro-button-outline:hover {
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .toast-container {
+            z-index: 2000;
+        }
+
+        .agro-toast {
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
+            box-shadow: var(--agro-shadow-lg);
+        }
+
+        @media (max-width: 1399px) {
+            .filters-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .metric-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 1199px) {
+            .map-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .zone-panel {
+                min-height: auto;
+            }
+
+            #ndviMap {
+                min-height: 500px;
+            }
+
+            .quality-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 991px) {
+            .analysis-panel {
+                min-width: 100%;
+                margin-top: 22px;
+            }
+
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .top-navbar-section {
+                display: none;
+            }
+
+            .top-brand-text small {
+                display: none;
+            }
+
+            .filters-grid,
+            .metric-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .inspection-item,
+            .capture-item {
+                grid-template-columns: auto minmax(0, 1fr);
+            }
+
+            .inspection-item .task-button,
+            .capture-item .status-pill {
+                grid-column: 2;
+                justify-self: start;
+            }
+
+            #ndviMap {
+                min-height: 430px;
+            }
+        }
+
+        @media (max-width: 575px) {
+            .top-navbar,
+            .top-navbar-content {
+                min-height: 64px;
+            }
+
+            .top-brand-icon {
+                width: 39px;
+                height: 39px;
+            }
+
+            .top-home-button {
+                width: 40px;
+                height: 40px;
+                padding: 0;
+            }
+
+            .top-home-button span {
+                display: none;
+            }
+
+            .hero-section {
+                padding: 23px;
+            }
+
+            .filters-grid,
+            .metric-grid,
+            .quality-grid,
+            .zone-kpi-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            #ndviMap {
+                min-height: 380px;
+            }
+
+            .mini-map {
+                grid-template-rows: repeat(4, 34px);
+            }
+        }
+    </style>
 </head>
+
 <body>
-  <nav class="navbar navbar-expand-lg navbar-dark">
-    <div class="container">
-      <a class="navbar-brand" href="#">agrotikos</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
-          <form action="/inicio" method="post">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-primary">Inicio</button>
-          </form>
-        </ul>
-      </div>
-    </div>
-  </nav>
+    <nav class="top-navbar">
+        <div class="container top-navbar-content">
+            <a href="{% url 'inicio' %}" class="top-brand">
+                <span class="top-brand-icon">
+                    <i class="fa-solid fa-seedling"></i>
+                </span>
+                <span class="top-brand-text">
+                    <strong>Agrotikos</strong>
+                    <small>Inteligencia para el campo</small>
+                </span>
+            </a>
 
-  <h2 class="text-center mb-4">Análisis NVID del terreno <i class="fa-solid fa-seedling"></i></h2>
+            <div class="top-navbar-actions">
+                <span class="top-navbar-section">
+                    <i class="fa-solid fa-satellite"></i>
+                    Análisis NDVI
+                </span>
 
-  <div class="container mt-3">
-    <div class="card frosted">
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <div class="event-card h-100">
-              <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                  <h5 class="card-title mb-0">Drone 1</h5>
-                  <span class="badge text-bg-success badge-tag"><i class="fa-solid fa-leaf me-1"></i>NDVI alto</span>
-                </div>
-                <div class="d-flex flex-wrap gap-2 small text-muted mb-2">
-                  <span><i class="fa-regular fa-calendar me-1"></i>2025-09-10</span>
-                  <span class="ms-3"><i class="fa-regular fa-clock me-1"></i>10:35</span>
-                  <span class="ms-3"><i class="fa-regular fa-bell me-1"></i>Sin alertas</span>
-                </div>
-                <img class="ndvi-img" src="https://scanforest.com/wp-content/uploads/2022/03/Scanforest-Inventaire-forestier-3d-1024x479.jpg" alt="Mapa NDVI 1">
-              </div>
+                <a href="{% url 'inicio' %}" class="top-home-button">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Volver al inicio</span>
+                </a>
             </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="event-card h-100">
-              <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                  <h5 class="card-title mb-0">Drone 2</h5>
-                  <span class="badge text-bg-warning badge-tag"><i class="fa-solid fa-leaf me-1"></i>NDVI medio</span>
-                </div>
-                <div class="d-flex flex-wrap gap-2 small text-muted mb-2">
-                  <span><i class="fa-regular fa-calendar me-1"></i>2025-09-10</span>
-                  <span class="ms-3"><i class="fa-regular fa-clock me-1"></i>11:10</span>
-                  <span class="ms-3"><i class="fa-regular fa-bell me-1"></i>Vigor heterogéneo</span>
-                </div>
-                <img class="ndvi-img" src="https://www.cursosteledeteccion.com/wp-content/uploads/2018/01/lidar_forest-e1515662751258.jpg" alt="Mapa NDVI 2">
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="event-card h-100">
-              <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                  <h5 class="card-title mb-0">Drone 3</h5>
-                  <span class="badge text-bg-danger badge-tag"><i class="fa-solid fa-triangle-exclamation me-1"></i>NDVI bajo</span>
-                </div>
-                <div class="d-flex flex-wrap gap-2 small text-muted mb-2">
-                  <span><i class="fa-regular fa-calendar me-1"></i>2025-09-10</span>
-                  <span class="ms-3"><i class="fa-regular fa-clock me-1"></i>12:05</span>
-                  <span class="ms-3 text-danger"><i class="fa-regular fa-bell me-1"></i>Alerta: estrés hídrico</span>
-                </div>
-                <img class="ndvi-img" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJ32LWPv-rzeSDYOc3Iqb42iJJSm8ktHBUO-1fSNYymmWPKUslW0ncgc-Kr2iSWgdeYV0&usqp=CAU" alt="Mapa NDVI 3">
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="event-card h-100">
-              <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                  <h5 class="card-title mb-0">Índice de vegetación</h5>
-                  <span class="badge text-bg-primary badge-tag"><i class="fa-solid fa-chart-line me-1"></i>Resumen</span>
-                </div>
-                <img class="ndvi-img" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRiusAQza40TNwfq-_6KHgi3wxOk2Re8sF8GA&s" alt="Mapa NDVI 4">
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
-    </div>
+    </nav>
 
-    <div class="card frosted mt-3">
-      <div class="card-body">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <h6 class="card-title mb-0"><i class="fa-regular fa-bell me-2"></i>Hallazgos</h6>
-          <small class="muted">Hoy</small>
+    <main class="container page-shell">
+        <section class="hero-section mb-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8 hero-content">
+                    <span class="hero-eyebrow">
+                        <i class="fa-solid fa-leaf"></i>
+                        Salud y vigor del cultivo
+                    </span>
+
+                    <h1 class="hero-title">
+                        Analiza el comportamiento del cultivo por lotes y zonas.
+                    </h1>
+
+                    <p class="hero-description">
+                        Identifica variaciones de vigor, zonas que requieren inspección,
+                        cambios frente a vuelos anteriores y prioridades de campo desde
+                        un único centro de análisis agronómico.
+                    </p>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="analysis-panel">
+                        <div class="analysis-status">
+                            <span class="status-dot"></span>
+                            Análisis completado
+
+                            <span class="demo-badge ms-auto">
+                                <i class="fa-solid fa-flask"></i>
+                                DEMO
+                            </span>
+                        </div>
+
+                        <div class="analysis-item">
+                            <span>Finca</span>
+                            <strong>Acacías, Meta</strong>
+                        </div>
+
+                        <div class="analysis-item">
+                            <span>Cultivo</span>
+                            <strong>Maíz</strong>
+                        </div>
+
+                        <div class="analysis-item">
+                            <span>Última captura</span>
+                            <strong>22 jul 2026</strong>
+                        </div>
+
+                        <div class="analysis-item">
+                            <span>Fuente</span>
+                            <strong>Dron multiespectral</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-card mb-4">
+            <div class="card-body">
+                <div class="section-heading">
+                    <div class="section-heading-main">
+                        <span class="section-icon">
+                            <i class="fa-solid fa-filter"></i>
+                        </span>
+                        <div>
+                            <h2 class="section-title">Contexto del análisis</h2>
+                            <p class="section-subtitle">
+                                Cambia la visualización por lote, fecha, campaña o capa.
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="source-badge">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Datos demostrativos
+                    </span>
+                </div>
+
+                <div class="filters-grid">
+                    <div class="filter-field">
+                        <label for="farmFilter">Finca</label>
+                        <select id="farmFilter" class="filter-control">
+                            <option>Finca demostrativa</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-field">
+                        <label for="campaignFilter">Campaña</label>
+                        <select id="campaignFilter" class="filter-control">
+                            <option>Maíz 2026-2</option>
+                            <option>Maíz 2026-1</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-field">
+                        <label for="lotFilter">Lote</label>
+                        <select id="lotFilter" class="filter-control">
+                            <option value="all">Todos los lotes</option>
+                            <option value="A">Lote A</option>
+                            <option value="B">Lote B</option>
+                            <option value="C">Lote C</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-field">
+                        <label for="captureFilter">Fecha de captura</label>
+                        <select id="captureFilter" class="filter-control">
+                            <option>22 de julio de 2026</option>
+                            <option>8 de julio de 2026</option>
+                            <option>24 de junio de 2026</option>
+                            <option>10 de junio de 2026</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-field">
+                        <label for="layerFilter">Capa visual</label>
+                        <select id="layerFilter" class="filter-control">
+                            <option value="ndvi">NDVI</option>
+                            <option value="rgb">RGB demostrativo</option>
+                            <option value="ndre">NDRE futuro</option>
+                            <option value="thermal">Térmica futura</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-field">
+                        <label for="comparisonFilter">Comparación</label>
+                        <select id="comparisonFilter" class="filter-control">
+                            <option>Frente al vuelo anterior</option>
+                            <option>Sin comparación</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-card mb-4">
+            <div class="card-body">
+                <div class="section-heading">
+                    <div class="section-heading-main">
+                        <span class="section-icon">
+                            <i class="fa-solid fa-gauge-high"></i>
+                        </span>
+                        <div>
+                            <h2 class="section-title">Resumen general</h2>
+                            <p class="section-subtitle">
+                                Indicadores principales de la captura seleccionada.
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="source-badge">
+                        <i class="fa-solid fa-check-double"></i>
+                        Calidad buena
+                    </span>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-leaf"></i>
+                            NDVI promedio
+                        </div>
+                        <div class="metric-value" id="metricNdvi">0.68</div>
+                        <div class="metric-detail">Vigor general medio-alto</div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-ruler-combined"></i>
+                            Área analizada
+                        </div>
+                        <div class="metric-value" id="metricArea">24.6 ha</div>
+                        <div class="metric-detail">Cobertura total de la captura</div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-circle-check"></i>
+                            Saludable
+                        </div>
+                        <div class="metric-value" id="metricHealthy">71 %</div>
+                        <div class="metric-detail">Vegetación con vigor favorable</div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-eye"></i>
+                            Atención
+                        </div>
+                        <div class="metric-value" id="metricAttention">21 %</div>
+                        <div class="metric-detail">Zonas para seguimiento</div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            Crítico
+                        </div>
+                        <div class="metric-value" id="metricCritical">8 %</div>
+                        <div class="metric-detail">Inspección prioritaria</div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-arrow-trend-up"></i>
+                            Cambio
+                        </div>
+                        <div class="metric-value trend-positive" id="metricChange">
+                            +4.2 %
+                        </div>
+                        <div class="metric-detail">Frente al vuelo anterior</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-card mb-4">
+            <div class="card-body">
+                <div class="section-heading">
+                    <div class="section-heading-main">
+                        <span class="section-icon">
+                            <i class="fa-solid fa-map"></i>
+                        </span>
+                        <div>
+                            <h2 class="section-title">Mapa NDVI por zonas</h2>
+                            <p class="section-subtitle">
+                                Selecciona una subzona para ver su diagnóstico y acciones sugeridas.
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="source-badge" id="selectedZoneBadge">
+                        <i class="fa-solid fa-location-crosshairs"></i>
+                        Zona A1
+                    </span>
+                </div>
+
+                <div class="map-layout">
+                    <div>
+                        <div id="ndviMap"></div>
+
+                        <div class="ndvi-scale">
+                            <div class="ndvi-scale-item scale-critical">
+                                0.00–0.30<br>Crítico
+                            </div>
+                            <div class="ndvi-scale-item scale-low">
+                                0.31–0.45<br>Bajo
+                            </div>
+                            <div class="ndvi-scale-item scale-medium">
+                                0.46–0.60<br>Medio
+                            </div>
+                            <div class="ndvi-scale-item scale-high">
+                                0.61–0.75<br>Alto
+                            </div>
+                            <div class="ndvi-scale-item scale-very-high">
+                                0.76–1.00<br>Muy alto
+                            </div>
+                        </div>
+
+                        <div class="map-legend">
+                            <span class="legend-item">
+                                <span
+                                    class="legend-color"
+                                    style="background:#257846"
+                                ></span>
+                                Vigor muy alto
+                            </span>
+                            <span class="legend-item">
+                                <span
+                                    class="legend-color"
+                                    style="background:#77a93a"
+                                ></span>
+                                Vigor alto
+                            </span>
+                            <span class="legend-item">
+                                <span
+                                    class="legend-color"
+                                    style="background:#d4ad25"
+                                ></span>
+                                Seguimiento
+                            </span>
+                            <span class="legend-item">
+                                <span
+                                    class="legend-color"
+                                    style="background:#e3772d"
+                                ></span>
+                                Atención
+                            </span>
+                            <span class="legend-item">
+                                <span
+                                    class="legend-color"
+                                    style="background:#b63d3d"
+                                ></span>
+                                Crítico
+                            </span>
+                        </div>
+                    </div>
+
+                    <aside class="zone-panel">
+                        <div class="zone-panel-header">
+                            <div>
+                                <div class="zone-code" id="panelZoneCode">Zona A1</div>
+                                <h3 class="zone-name" id="panelZoneName">
+                                    Norte del lote A
+                                </h3>
+                            </div>
+
+                            <span
+                                class="priority-badge priority-low"
+                                id="panelPriority"
+                            >
+                                Prioridad baja
+                            </span>
+                        </div>
+
+                        <div class="zone-kpi-grid">
+                            <div class="zone-kpi">
+                                <div class="zone-kpi-label">NDVI promedio</div>
+                                <div class="zone-kpi-value" id="panelNdvi">0.79</div>
+                            </div>
+
+                            <div class="zone-kpi">
+                                <div class="zone-kpi-label">Área</div>
+                                <div class="zone-kpi-value" id="panelArea">2.8 ha</div>
+                            </div>
+
+                            <div class="zone-kpi">
+                                <div class="zone-kpi-label">Cambio</div>
+                                <div class="zone-kpi-value trend-positive" id="panelChange">
+                                    +3.1 %
+                                </div>
+                            </div>
+
+                            <div class="zone-kpi">
+                                <div class="zone-kpi-label">Variabilidad</div>
+                                <div class="zone-kpi-value" id="panelVariability">
+                                    Baja
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="zone-panel-section">
+                            <h4>Interpretación</h4>
+                            <p id="panelInterpretation">
+                                La zona presenta vigor alto y una respuesta uniforme frente
+                                a la captura anterior.
+                            </p>
+                        </div>
+
+                        <div class="zone-panel-section">
+                            <h4>Posibles factores</h4>
+                            <p id="panelFactors">
+                                Manejo estable, disponibilidad adecuada de agua y buen
+                                establecimiento del cultivo.
+                            </p>
+                        </div>
+
+                        <div class="zone-panel-section">
+                            <h4>Acciones sugeridas</h4>
+                            <ul class="action-list" id="panelActions">
+                                <li>
+                                    <i class="fa-solid fa-check"></i>
+                                    Mantener el manejo actual.
+                                </li>
+                                <li>
+                                    <i class="fa-solid fa-check"></i>
+                                    Verificar nuevamente en el próximo vuelo.
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="zone-panel-section mt-auto">
+                            <button
+                                type="button"
+                                class="agro-button w-100"
+                                id="createInspectionButton"
+                            >
+                                <i class="fa-solid fa-clipboard-check"></i>
+                                Crear inspección demostrativa
+                            </button>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </section>
+
+        <section class="section-card mb-4">
+            <div class="card-body">
+                <div class="section-heading">
+                    <div class="section-heading-main">
+                        <span class="section-icon">
+                            <i class="fa-solid fa-table-list"></i>
+                        </span>
+                        <div>
+                            <h2 class="section-title">Comparativo de subzonas</h2>
+                            <p class="section-subtitle">
+                                Haz clic en una fila para ubicarla en el mapa.
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="source-badge">
+                        <i class="fa-solid fa-layer-group"></i>
+                        9 subzonas
+                    </span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table analysis-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Zona</th>
+                                <th>Lote</th>
+                                <th>Área</th>
+                                <th>NDVI</th>
+                                <th>Cambio</th>
+                                <th>Variabilidad</th>
+                                <th>Estado</th>
+                                <th>Prioridad</th>
+                            </tr>
+                        </thead>
+                        <tbody id="zoneTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <div class="row g-4 mb-4">
+            <div class="col-xl-8">
+                <section class="section-card">
+                    <div class="card-body">
+                        <div class="section-heading">
+                            <div class="section-heading-main">
+                                <span class="section-icon">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                </span>
+                                <div>
+                                    <h2 class="section-title">Evolución temporal</h2>
+                                    <p class="section-subtitle">
+                                        Tendencia del NDVI promedio durante la campaña.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="chart-filters" id="chartFilters">
+                                <button
+                                    type="button"
+                                    class="chart-filter-button active"
+                                    data-series="all"
+                                >
+                                    Finca
+                                </button>
+                                <button
+                                    type="button"
+                                    class="chart-filter-button"
+                                    data-series="A"
+                                >
+                                    Lote A
+                                </button>
+                                <button
+                                    type="button"
+                                    class="chart-filter-button"
+                                    data-series="B"
+                                >
+                                    Lote B
+                                </button>
+                                <button
+                                    type="button"
+                                    class="chart-filter-button"
+                                    data-series="C"
+                                >
+                                    Lote C
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="chart-wrap">
+                            <canvas id="ndviTrendChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-xl-4">
+                <section class="section-card">
+                    <div class="card-body">
+                        <div class="section-heading">
+                            <div class="section-heading-main">
+                                <span class="section-icon">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                </span>
+                                <div>
+                                    <h2 class="section-title">Hallazgos prioritarios</h2>
+                                    <p class="section-subtitle">
+                                        Situaciones que requieren validación en campo.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="finding-list">
+                            <article class="finding-card critical">
+                                <span class="finding-icon">
+                                    <i class="fa-solid fa-arrow-trend-down"></i>
+                                </span>
+                                <div>
+                                    <div class="finding-title">
+                                        Reducción de vigor en C2
+                                    </div>
+                                    <p class="finding-text">
+                                        La subzona muestra la mayor caída frente al vuelo
+                                        anterior. Requiere inspección prioritaria.
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="finding-card high">
+                                <span class="finding-icon">
+                                    <i class="fa-solid fa-border-all"></i>
+                                </span>
+                                <div>
+                                    <div class="finding-title">
+                                        Cobertura irregular en B2
+                                    </div>
+                                    <p class="finding-text">
+                                        La variabilidad espacial puede relacionarse con
+                                        establecimiento, suelo o disponibilidad de agua.
+                                    </p>
+                                </div>
+                            </article>
+
+                            <article class="finding-card">
+                                <span class="finding-icon">
+                                    <i class="fa-solid fa-arrow-trend-up"></i>
+                                </span>
+                                <div>
+                                    <div class="finding-title">
+                                        Recuperación sostenida en A1
+                                    </div>
+                                    <p class="finding-text">
+                                        La zona presenta una tendencia positiva y uniforme
+                                        en las últimas capturas.
+                                    </p>
+                                </div>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
-        <ul class="mb-0">
-          <li>Zona norte con estrés hídrico (NDVI < 0.3)</li>
-          <li>Parche central con vigor alto (NDVI > 0.7)</li>
-          <li>Borde oeste con cobertura irregular</li>
-        </ul>
-      </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <section class="section-card">
+                    <div class="card-body">
+                        <div class="section-heading">
+                            <div class="section-heading-main">
+                                <span class="section-icon">
+                                    <i class="fa-solid fa-list-check"></i>
+                                </span>
+                                <div>
+                                    <h2 class="section-title">Plan de inspección sugerido</h2>
+                                    <p class="section-subtitle">
+                                        Acciones priorizadas para la siguiente visita de campo.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="inspection-list">
+                            <div class="inspection-item">
+                                <span class="inspection-number">1</span>
+                                <div>
+                                    <div class="inspection-title">
+                                        Inspeccionar la zona C2
+                                    </div>
+                                    <div class="inspection-meta">
+                                        Prioridad crítica · Hoy · Responsable por asignar
+                                    </div>
+                                </div>
+                                <button class="task-button" type="button">
+                                    Crear tarea
+                                </button>
+                            </div>
+
+                            <div class="inspection-item">
+                                <span class="inspection-number">2</span>
+                                <div>
+                                    <div class="inspection-title">
+                                        Revisar humedad del suelo en C1 y C2
+                                    </div>
+                                    <div class="inspection-meta">
+                                        Prioridad alta · Próximas 24 horas
+                                    </div>
+                                </div>
+                                <button class="task-button" type="button">
+                                    Crear tarea
+                                </button>
+                            </div>
+
+                            <div class="inspection-item">
+                                <span class="inspection-number">3</span>
+                                <div>
+                                    <div class="inspection-title">
+                                        Verificar drenajes del borde sur
+                                    </div>
+                                    <div class="inspection-meta">
+                                        Prioridad alta · Antes de la próxima lluvia
+                                    </div>
+                                </div>
+                                <button class="task-button" type="button">
+                                    Crear tarea
+                                </button>
+                            </div>
+
+                            <div class="inspection-item">
+                                <span class="inspection-number">4</span>
+                                <div>
+                                    <div class="inspection-title">
+                                        Revisar densidad de plantas en B2
+                                    </div>
+                                    <div class="inspection-meta">
+                                        Prioridad media · Próxima visita
+                                    </div>
+                                </div>
+                                <button class="task-button" type="button">
+                                    Crear tarea
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-lg-6">
+                <section class="section-card">
+                    <div class="card-body">
+                        <div class="section-heading">
+                            <div class="section-heading-main">
+                                <span class="section-icon">
+                                    <i class="fa-solid fa-code-compare"></i>
+                                </span>
+                                <div>
+                                    <h2 class="section-title">Comparación de capturas</h2>
+                                    <p class="section-subtitle">
+                                        Representación visual del cambio entre vuelos.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="comparison-grid">
+                            <article class="comparison-card">
+                                <div class="comparison-header">
+                                    <div>
+                                        <div class="comparison-title">Captura anterior</div>
+                                        <div class="comparison-date">
+                                            8 de julio de 2026
+                                        </div>
+                                    </div>
+                                    <span class="status-pill status-watch">
+                                        NDVI 0.64
+                                    </span>
+                                </div>
+
+                                <div class="mini-map" id="previousMiniMap"></div>
+                            </article>
+
+                            <article class="comparison-card">
+                                <div class="comparison-header">
+                                    <div>
+                                        <div class="comparison-title">Captura actual</div>
+                                        <div class="comparison-date">
+                                            22 de julio de 2026
+                                        </div>
+                                    </div>
+                                    <span class="status-pill status-healthy">
+                                        NDVI 0.68
+                                    </span>
+                                </div>
+
+                                <div class="mini-map" id="currentMiniMap"></div>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-5">
+                <section class="section-card">
+                    <div class="card-body">
+                        <div class="section-heading">
+                            <div class="section-heading-main">
+                                <span class="section-icon">
+                                    <i class="fa-solid fa-clock-rotate-left"></i>
+                                </span>
+                                <div>
+                                    <h2 class="section-title">Historial de capturas</h2>
+                                    <p class="section-subtitle">
+                                        Vuelos y productos procesados recientemente.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="capture-list">
+                            <div class="capture-item">
+                                <span class="capture-icon">
+                                    <i class="fa-solid fa-satellite"></i>
+                                </span>
+                                <div>
+                                    <div class="capture-title">
+                                        22 de julio · Todos los lotes
+                                    </div>
+                                    <div class="capture-meta">
+                                        Mavic 3 Multiespectral · NDVI
+                                    </div>
+                                </div>
+                                <span class="status-pill status-healthy">
+                                    Procesado
+                                </span>
+                            </div>
+
+                            <div class="capture-item">
+                                <span class="capture-icon">
+                                    <i class="fa-solid fa-satellite"></i>
+                                </span>
+                                <div>
+                                    <div class="capture-title">
+                                        8 de julio · Lote B
+                                    </div>
+                                    <div class="capture-meta">
+                                        Mavic 3 Multiespectral · NDVI
+                                    </div>
+                                </div>
+                                <span class="status-pill status-healthy">
+                                    Procesado
+                                </span>
+                            </div>
+
+                            <div class="capture-item">
+                                <span class="capture-icon">
+                                    <i class="fa-solid fa-satellite"></i>
+                                </span>
+                                <div>
+                                    <div class="capture-title">
+                                        24 de junio · Todos los lotes
+                                    </div>
+                                    <div class="capture-meta">
+                                        Mavic 3 Multiespectral · NDVI
+                                    </div>
+                                </div>
+                                <span class="status-pill status-healthy">
+                                    Procesado
+                                </span>
+                            </div>
+
+                            <div class="capture-item">
+                                <span class="capture-icon">
+                                    <i class="fa-solid fa-camera"></i>
+                                </span>
+                                <div>
+                                    <div class="capture-title">
+                                        10 de junio · Lote A
+                                    </div>
+                                    <div class="capture-meta">
+                                        Phantom 4 Pro · RGB
+                                    </div>
+                                </div>
+                                <span class="status-pill status-watch">
+                                    Referencia
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-lg-7">
+                <section class="section-card">
+                    <div class="card-body">
+                        <div class="section-heading">
+                            <div class="section-heading-main">
+                                <span class="section-icon">
+                                    <i class="fa-solid fa-microscope"></i>
+                                </span>
+                                <div>
+                                    <h2 class="section-title">Calidad de la captura</h2>
+                                    <p class="section-subtitle">
+                                        Parámetros técnicos que afectan la interpretación.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <span class="source-badge">
+                                <i class="fa-solid fa-circle-check"></i>
+                                Calidad buena
+                            </span>
+                        </div>
+
+                        <div class="quality-grid">
+                            <div class="quality-item">
+                                <div class="quality-label">Altura de vuelo</div>
+                                <div class="quality-value">80 m</div>
+                                <div class="quality-meter">
+                                    <span style="width:82%"></span>
+                                </div>
+                            </div>
+
+                            <div class="quality-item">
+                                <div class="quality-label">Resolución espacial</div>
+                                <div class="quality-value">5.2 cm/píxel</div>
+                                <div class="quality-meter">
+                                    <span style="width:88%"></span>
+                                </div>
+                            </div>
+
+                            <div class="quality-item">
+                                <div class="quality-label">Cobertura</div>
+                                <div class="quality-value">98 %</div>
+                                <div class="quality-meter">
+                                    <span style="width:98%"></span>
+                                </div>
+                            </div>
+
+                            <div class="quality-item">
+                                <div class="quality-label">Nubosidad</div>
+                                <div class="quality-value">Baja</div>
+                                <div class="quality-meter">
+                                    <span style="width:90%"></span>
+                                </div>
+                            </div>
+
+                            <div class="quality-item">
+                                <div class="quality-label">Solapamiento frontal</div>
+                                <div class="quality-value">80 %</div>
+                                <div class="quality-meter">
+                                    <span style="width:80%"></span>
+                                </div>
+                            </div>
+
+                            <div class="quality-item">
+                                <div class="quality-label">Solapamiento lateral</div>
+                                <div class="quality-value">75 %</div>
+                                <div class="quality-meter">
+                                    <span style="width:75%"></span>
+                                </div>
+                            </div>
+
+                            <div class="quality-item">
+                                <div class="quality-label">Hora de captura</div>
+                                <div class="quality-value">10:42</div>
+                                <div class="quality-meter">
+                                    <span style="width:85%"></span>
+                                </div>
+                            </div>
+
+                            <div class="quality-item">
+                                <div class="quality-label">Sensor</div>
+                                <div class="quality-value">Multiespectral</div>
+                                <div class="quality-meter">
+                                    <span style="width:94%"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="technical-note">
+                            <i class="fa-solid fa-circle-info mt-1"></i>
+                            <div>
+                                El NDVI identifica diferencias relativas en el vigor de la
+                                vegetación. No confirma por sí solo estrés hídrico, deficiencias
+                                nutricionales, plagas o enfermedades. Los hallazgos deben
+                                contrastarse con inspección de campo, sensores, clima, suelo y etapa
+                                fenológica.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <section class="section-card">
+            <div class="card-body">
+                <div class="section-heading">
+                    <div class="section-heading-main">
+                        <span class="section-icon">
+                            <i class="fa-solid fa-shield-heart"></i>
+                        </span>
+                        <div>
+                            <h2 class="section-title">Siguiente evolución del módulo</h2>
+                            <p class="section-subtitle">
+                                Integraciones necesarias para convertir esta demostración en un flujo productivo.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-upload"></i>
+                            Carga de imágenes
+                        </div>
+                        <div class="metric-value">GeoTIFF</div>
+                        <div class="metric-detail">
+                            Ortofoto y capas multiespectrales
+                        </div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-calculator"></i>
+                            Procesamiento
+                        </div>
+                        <div class="metric-value">NDVI real</div>
+                        <div class="metric-detail">
+                            Cálculo por píxel y clasificación
+                        </div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-database"></i>
+                            Persistencia
+                        </div>
+                        <div class="metric-value">Histórico</div>
+                        <div class="metric-detail">
+                            Capturas, zonas, resultados y tareas
+                        </div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-satellite-dish"></i>
+                            Drones
+                        </div>
+                        <div class="metric-value">Misiones</div>
+                        <div class="metric-detail">
+                            Vinculación con vuelos y equipos
+                        </div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-temperature-half"></i>
+                            Sensores
+                        </div>
+                        <div class="metric-value">Validación</div>
+                        <div class="metric-detail">
+                            Humedad, temperatura y nutrientes
+                        </div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                            Tareas
+                        </div>
+                        <div class="metric-value">Seguimiento</div>
+                        <div class="metric-detail">
+                            Inspecciones, responsables y cierre
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div
+            id="statusToast"
+            class="toast agro-toast"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+        >
+            <div class="toast-header">
+                <i class="fa-solid fa-seedling me-2 text-success"></i>
+                <strong class="me-auto">Agrotikos</strong>
+                <small>Ahora</small>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="toast"
+                    aria-label="Cerrar"
+                ></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                Acción completada.
+            </div>
+        </div>
     </div>
-  </div>
 
-  <form action="/inicio" method="post" class="d-flex justify-content-center mt-3">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-primary">Regresar</button>
-  </form>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            "use strict";
+
+            const zones = [
+                {
+                    code: "A1",
+                    lot: "A",
+                    name: "Norte del lote A",
+                    area: 2.8,
+                    ndvi: 0.79,
+                    change: 3.1,
+                    variability: "Baja",
+                    status: "Saludable",
+                    priority: "Baja",
+                    color: "#257846",
+                    interpretation:
+                        "La zona presenta vigor alto y una respuesta uniforme frente a la captura anterior.",
+                    factors:
+                        "Manejo estable, disponibilidad adecuada de agua y buen establecimiento del cultivo.",
+                    actions: [
+                        "Mantener el manejo actual.",
+                        "Verificar nuevamente en el próximo vuelo."
+                    ],
+                    coordinates: [
+                        [3.9904, -73.7617],
+                        [3.9906, -73.7598],
+                        [3.9892, -73.7594],
+                        [3.9889, -73.7611]
+                    ]
+                },
+                {
+                    code: "A2",
+                    lot: "A",
+                    name: "Centro del lote A",
+                    area: 3.1,
+                    ndvi: 0.75,
+                    change: 1.8,
+                    variability: "Baja",
+                    status: "Saludable",
+                    priority: "Baja",
+                    color: "#77a93a",
+                    interpretation:
+                        "El vigor es favorable y la variabilidad interna permanece controlada.",
+                    factors:
+                        "Cobertura estable y distribución uniforme dentro de la subzona.",
+                    actions: [
+                        "Mantener monitoreo rutinario.",
+                        "Comparar con humedad del suelo."
+                    ],
+                    coordinates: [
+                        [3.9889, -73.7611],
+                        [3.9892, -73.7594],
+                        [3.9876, -73.7591],
+                        [3.9874, -73.7608]
+                    ]
+                },
+                {
+                    code: "A3",
+                    lot: "A",
+                    name: "Sur del lote A",
+                    area: 2.5,
+                    ndvi: 0.71,
+                    change: 0.9,
+                    variability: "Media",
+                    status: "Saludable",
+                    priority: "Baja",
+                    color: "#77a93a",
+                    interpretation:
+                        "La zona mantiene vigor alto, aunque presenta pequeñas diferencias de cobertura.",
+                    factors:
+                        "Variación normal del establecimiento y transición hacia el borde del lote.",
+                    actions: [
+                        "Revisar bordes durante la próxima visita.",
+                        "Mantener la programación actual."
+                    ],
+                    coordinates: [
+                        [3.9874, -73.7608],
+                        [3.9876, -73.7591],
+                        [3.9860, -73.7588],
+                        [3.9858, -73.7605]
+                    ]
+                },
+                {
+                    code: "B1",
+                    lot: "B",
+                    name: "Occidente del lote B",
+                    area: 3.2,
+                    ndvi: 0.64,
+                    change: -2.4,
+                    variability: "Media",
+                    status: "Seguimiento",
+                    priority: "Media",
+                    color: "#d4ad25",
+                    interpretation:
+                        "El vigor es intermedio y presenta una ligera reducción frente al vuelo anterior.",
+                    factors:
+                        "La respuesta puede estar asociada con humedad, compactación o diferencias de establecimiento.",
+                    actions: [
+                        "Revisar humedad y estructura del suelo.",
+                        "Validar densidad de plantas."
+                    ],
+                    coordinates: [
+                        [3.9901, -73.7588],
+                        [3.9903, -73.7569],
+                        [3.9888, -73.7567],
+                        [3.9886, -73.7584]
+                    ]
+                },
+                {
+                    code: "B2",
+                    lot: "B",
+                    name: "Centro del lote B",
+                    area: 2.9,
+                    ndvi: 0.57,
+                    change: -5.3,
+                    variability: "Alta",
+                    status: "Atención",
+                    priority: "Alta",
+                    color: "#e3772d",
+                    interpretation:
+                        "La zona presenta vigor medio-bajo y una variabilidad espacial marcada.",
+                    factors:
+                        "Puede existir establecimiento irregular, disponibilidad desigual de agua o diferencias del suelo.",
+                    actions: [
+                        "Realizar recorrido dirigido.",
+                        "Contar plantas en puntos representativos.",
+                        "Comparar con humedad del suelo."
+                    ],
+                    coordinates: [
+                        [3.9886, -73.7584],
+                        [3.9888, -73.7567],
+                        [3.9872, -73.7565],
+                        [3.9870, -73.7581]
+                    ]
+                },
+                {
+                    code: "B3",
+                    lot: "B",
+                    name: "Oriente del lote B",
+                    area: 3.0,
+                    ndvi: 0.62,
+                    change: -1.6,
+                    variability: "Media",
+                    status: "Seguimiento",
+                    priority: "Media",
+                    color: "#d4ad25",
+                    interpretation:
+                        "El vigor se mantiene en un nivel medio, con reducción moderada frente a la captura previa.",
+                    factors:
+                        "Cambios de humedad y transición hacia el límite del lote.",
+                    actions: [
+                        "Revisar bordes y drenajes.",
+                        "Repetir evaluación en siete días."
+                    ],
+                    coordinates: [
+                        [3.9870, -73.7581],
+                        [3.9872, -73.7565],
+                        [3.9857, -73.7563],
+                        [3.9855, -73.7578]
+                    ]
+                },
+                {
+                    code: "C1",
+                    lot: "C",
+                    name: "Entrada del lote C",
+                    area: 2.4,
+                    ndvi: 0.39,
+                    change: -8.1,
+                    variability: "Alta",
+                    status: "Crítico",
+                    priority: "Crítica",
+                    color: "#b63d3d",
+                    interpretation:
+                        "El vigor es bajo y la zona presenta un deterioro importante frente al vuelo anterior.",
+                    factors:
+                        "La causa debe validarse en campo. Puede relacionarse con agua, suelo, tránsito o establecimiento.",
+                    actions: [
+                        "Inspeccionar hoy.",
+                        "Tomar lectura de humedad del suelo.",
+                        "Revisar compactación y densidad."
+                    ],
+                    coordinates: [
+                        [3.9853, -73.7610],
+                        [3.9855, -73.7594],
+                        [3.9841, -73.7591],
+                        [3.9839, -73.7607]
+                    ]
+                },
+                {
+                    code: "C2",
+                    lot: "C",
+                    name: "Centro del lote C",
+                    area: 2.5,
+                    ndvi: 0.34,
+                    change: -10.4,
+                    variability: "Alta",
+                    status: "Crítico",
+                    priority: "Crítica",
+                    color: "#b63d3d",
+                    interpretation:
+                        "Es la zona con menor vigor y mayor reducción de toda la finca.",
+                    factors:
+                        "Se requiere validar humedad, drenaje, estado de raíces, plagas y uniformidad del cultivo.",
+                    actions: [
+                        "Priorizar visita de campo.",
+                        "Registrar fotografías georreferenciadas.",
+                        "Comparar con sensores y clima.",
+                        "Definir seguimiento en 48 horas."
+                    ],
+                    coordinates: [
+                        [3.9855, -73.7594],
+                        [3.9857, -73.7579],
+                        [3.9843, -73.7576],
+                        [3.9841, -73.7591]
+                    ]
+                },
+                {
+                    code: "C3",
+                    lot: "C",
+                    name: "Zona de drenaje",
+                    area: 2.2,
+                    ndvi: 0.49,
+                    change: -4.7,
+                    variability: "Alta",
+                    status: "Atención",
+                    priority: "Alta",
+                    color: "#e3772d",
+                    interpretation:
+                        "El vigor es medio-bajo y presenta un patrón asociado al borde de drenaje.",
+                    factors:
+                        "El patrón puede corresponder con exceso o déficit de humedad, escorrentía o compactación.",
+                    actions: [
+                        "Revisar funcionamiento del drenaje.",
+                        "Comparar humedad en varios puntos.",
+                        "Inspeccionar raíces y cobertura."
+                    ],
+                    coordinates: [
+                        [3.9857, -73.7579],
+                        [3.9859, -73.7564],
+                        [3.9845, -73.7561],
+                        [3.9843, -73.7576]
+                    ]
+                }
+            ];
+
+            // Traslada los polígonos demostrativos a la ubicación real indicada.
+            // Coordenadas: 3°57'26.08"N, 73°29'44.61"W
+            const originalMapCenter = [3.98720000, -73.75890000];
+            const farmMapCenter = [3.95724444, -73.49572500];
+            const latitudeOffset = farmMapCenter[0] - originalMapCenter[0];
+            const longitudeOffset = farmMapCenter[1] - originalMapCenter[1];
+
+            zones.forEach(function (zone) {
+                zone.coordinates = zone.coordinates.map(function (coordinate) {
+                    return [
+                        coordinate[0] + latitudeOffset,
+                        coordinate[1] + longitudeOffset
+                    ];
+                });
+            });
+
+            const summaryByLot = {
+                all: {
+                    ndvi: "0.68",
+                    area: "24.6 ha",
+                    healthy: "71 %",
+                    attention: "21 %",
+                    critical: "8 %",
+                    change: "+4.2 %"
+                },
+                A: {
+                    ndvi: "0.75",
+                    area: "8.4 ha",
+                    healthy: "89 %",
+                    attention: "11 %",
+                    critical: "0 %",
+                    change: "+1.9 %"
+                },
+                B: {
+                    ndvi: "0.61",
+                    area: "9.1 ha",
+                    healthy: "56 %",
+                    attention: "38 %",
+                    critical: "6 %",
+                    change: "-3.1 %"
+                },
+                C: {
+                    ndvi: "0.41",
+                    area: "7.1 ha",
+                    healthy: "18 %",
+                    attention: "41 %",
+                    critical: "41 %",
+                    change: "-7.8 %"
+                }
+            };
+
+            const trendSeries = {
+                all: [0.58, 0.61, 0.64, 0.68],
+                A: [0.68, 0.71, 0.73, 0.75],
+                B: [0.66, 0.65, 0.63, 0.61],
+                C: [0.53, 0.49, 0.45, 0.41]
+            };
+
+            const map = L.map("ndviMap", {
+                scrollWheelZoom: false,
+                zoomControl: true
+            }).setView([3.95724444, -73.49572500], 15);
+
+            const satelliteLayer = L.tileLayer(
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                {
+                    maxZoom: 19,
+                    attribution:
+                        "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+                }
+            ).addTo(map);
+
+            const streetLayer = L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    maxZoom: 19,
+                    attribution: "&copy; OpenStreetMap contributors"
+                }
+            );
+
+            L.control.layers(
+                {
+                    "Satélite": satelliteLayer,
+                    "Calles": streetLayer
+                },
+                null,
+                {
+                    position: "topright",
+                    collapsed: true
+                }
+            ).addTo(map);
+
+            const zoneLayers = {};
+            let selectedZoneCode = "A1";
+            let currentLotFilter = "all";
+
+            zones.forEach(function (zone) {
+                const polygon = L.polygon(zone.coordinates, {
+                    color: "#ffffff",
+                    weight: 2,
+                    fillColor: zone.color,
+                    fillOpacity: 0.78
+                });
+
+                polygon.bindTooltip(
+                    `<strong>Zona ${zone.code}</strong><br>` +
+                    `NDVI: ${zone.ndvi.toFixed(2)}<br>` +
+                    `${zone.status}`,
+                    {
+                        sticky: true,
+                        direction: "top"
+                    }
+                );
+
+                polygon.on("click", function () {
+                    selectZone(zone.code, true);
+                });
+
+                polygon.addTo(map);
+                zoneLayers[zone.code] = polygon;
+            });
+
+            const allLayers = Object.values(zoneLayers);
+
+            if (allLayers.length) {
+                map.fitBounds(
+                    L.featureGroup(allLayers).getBounds().pad(0.22),
+                    { maxZoom: 16 }
+                );
+            }
+
+            const lotFilter = document.getElementById("lotFilter");
+            const layerFilter = document.getElementById("layerFilter");
+            const captureFilter = document.getElementById("captureFilter");
+            const selectedZoneBadge = document.getElementById("selectedZoneBadge");
+            const zoneTableBody = document.getElementById("zoneTableBody");
+            const panelZoneCode = document.getElementById("panelZoneCode");
+            const panelZoneName = document.getElementById("panelZoneName");
+            const panelPriority = document.getElementById("panelPriority");
+            const panelNdvi = document.getElementById("panelNdvi");
+            const panelArea = document.getElementById("panelArea");
+            const panelChange = document.getElementById("panelChange");
+            const panelVariability = document.getElementById("panelVariability");
+            const panelInterpretation = document.getElementById("panelInterpretation");
+            const panelFactors = document.getElementById("panelFactors");
+            const panelActions = document.getElementById("panelActions");
+            const createInspectionButton = document.getElementById(
+                "createInspectionButton"
+            );
+            const toastElement = document.getElementById("statusToast");
+            const toastMessage = document.getElementById("toastMessage");
+            const statusToast = new bootstrap.Toast(toastElement, {
+                delay: 3000
+            });
+
+            function getStatusClass(status) {
+                if (status === "Saludable") {
+                    return "status-healthy";
+                }
+
+                if (status === "Seguimiento") {
+                    return "status-watch";
+                }
+
+                if (status === "Atención") {
+                    return "status-attention";
+                }
+
+                return "status-critical";
+            }
+
+            function getPriorityClass(priority) {
+                if (priority === "Baja") {
+                    return "priority-low";
+                }
+
+                if (priority === "Media") {
+                    return "priority-medium";
+                }
+
+                if (priority === "Alta") {
+                    return "priority-high";
+                }
+
+                return "priority-critical";
+            }
+
+            function formatChange(change) {
+                const prefix = change > 0 ? "+" : "";
+                return `${prefix}${change.toFixed(1)} %`;
+            }
+
+            function showToast(message) {
+                toastMessage.textContent = message;
+                statusToast.show();
+            }
+
+            function renderZoneTable() {
+                const visibleZones = zones.filter(function (zone) {
+                    return currentLotFilter === "all" ||
+                        zone.lot === currentLotFilter;
+                });
+
+                zoneTableBody.innerHTML = visibleZones
+                    .map(function (zone) {
+                        const changeClass = zone.change >= 0
+                            ? "trend-positive"
+                            : "trend-negative";
+
+                        return `
+                            <tr
+                                data-zone-code="${zone.code}"
+                                class="${zone.code === selectedZoneCode ? "selected-row" : ""}"
+                            >
+                                <td>
+                                    <span
+                                        class="zone-pill"
+                                        style="background:${zone.color}"
+                                    >
+                                        ${zone.code}
+                                    </span>
+                                </td>
+                                <td>Lote ${zone.lot}</td>
+                                <td>${zone.area.toFixed(1)} ha</td>
+                                <td><strong>${zone.ndvi.toFixed(2)}</strong></td>
+                                <td class="${changeClass}">
+                                    ${formatChange(zone.change)}
+                                </td>
+                                <td>${zone.variability}</td>
+                                <td>
+                                    <span class="status-pill ${getStatusClass(zone.status)}">
+                                        ${zone.status}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="priority-badge ${getPriorityClass(zone.priority)}">
+                                        ${zone.priority}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    })
+                    .join("");
+            }
+
+            function updateSummaryMetrics() {
+                const summary = summaryByLot[currentLotFilter];
+
+                document.getElementById("metricNdvi").textContent = summary.ndvi;
+                document.getElementById("metricArea").textContent = summary.area;
+                document.getElementById("metricHealthy").textContent = summary.healthy;
+                document.getElementById("metricAttention").textContent = summary.attention;
+                document.getElementById("metricCritical").textContent = summary.critical;
+
+                const changeElement = document.getElementById("metricChange");
+                changeElement.textContent = summary.change;
+                changeElement.classList.toggle(
+                    "trend-positive",
+                    !summary.change.startsWith("-")
+                );
+                changeElement.classList.toggle(
+                    "trend-negative",
+                    summary.change.startsWith("-")
+                );
+            }
+
+            function updateMapVisibility() {
+                zones.forEach(function (zone) {
+                    const layer = zoneLayers[zone.code];
+                    const shouldShow = currentLotFilter === "all" ||
+                        zone.lot === currentLotFilter;
+
+                    if (shouldShow && !map.hasLayer(layer)) {
+                        layer.addTo(map);
+                    }
+
+                    if (!shouldShow && map.hasLayer(layer)) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+                const visibleLayers = zones
+                    .filter(function (zone) {
+                        return currentLotFilter === "all" ||
+                            zone.lot === currentLotFilter;
+                    })
+                    .map(function (zone) {
+                        return zoneLayers[zone.code];
+                    });
+
+                if (visibleLayers.length) {
+                    map.fitBounds(
+                        L.featureGroup(visibleLayers).getBounds().pad(0.28),
+                        { maxZoom: 16 }
+                    );
+                }
+
+                setTimeout(function () {
+                    map.invalidateSize();
+                }, 120);
+            }
+
+            function selectZone(code, centerMap) {
+                const zone = zones.find(function (item) {
+                    return item.code === code;
+                });
+
+                if (!zone) {
+                    return;
+                }
+
+                selectedZoneCode = zone.code;
+
+                Object.entries(zoneLayers).forEach(function ([zoneCode, layer]) {
+                    const selected = zoneCode === zone.code;
+
+                    layer.setStyle({
+                        color: selected ? "#14382c" : "#ffffff",
+                        weight: selected ? 4 : 2,
+                        fillOpacity: selected ? 0.92 : 0.78
+                    });
+                });
+
+                selectedZoneBadge.innerHTML = `
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                    Zona ${zone.code}
+                `;
+
+                panelZoneCode.textContent = `Zona ${zone.code}`;
+                panelZoneName.textContent = zone.name;
+                panelPriority.className =
+                    `priority-badge ${getPriorityClass(zone.priority)}`;
+                panelPriority.textContent = `Prioridad ${zone.priority.toLowerCase()}`;
+                panelNdvi.textContent = zone.ndvi.toFixed(2);
+                panelArea.textContent = `${zone.area.toFixed(1)} ha`;
+                panelChange.textContent = formatChange(zone.change);
+                panelChange.classList.toggle(
+                    "trend-positive",
+                    zone.change >= 0
+                );
+                panelChange.classList.toggle(
+                    "trend-negative",
+                    zone.change < 0
+                );
+                panelVariability.textContent = zone.variability;
+                panelInterpretation.textContent = zone.interpretation;
+                panelFactors.textContent = zone.factors;
+                panelActions.innerHTML = zone.actions
+                    .map(function (action) {
+                        return `
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                ${action}
+                            </li>
+                        `;
+                    })
+                    .join("");
+
+                renderZoneTable();
+
+                if (centerMap) {
+                    map.fitBounds(
+                        zoneLayers[zone.code].getBounds().pad(0.65),
+                        { maxZoom: 17 }
+                    );
+                }
+            }
+
+            lotFilter.addEventListener("change", function () {
+                currentLotFilter = lotFilter.value;
+                updateSummaryMetrics();
+                updateMapVisibility();
+                renderZoneTable();
+
+                const firstVisibleZone = zones.find(function (zone) {
+                    return currentLotFilter === "all" ||
+                        zone.lot === currentLotFilter;
+                });
+
+                if (firstVisibleZone) {
+                    selectZone(firstVisibleZone.code, false);
+                }
+
+                showToast(
+                    currentLotFilter === "all"
+                        ? "Mostrando todos los lotes."
+                        : `Mostrando únicamente el lote ${currentLotFilter}.`
+                );
+            });
+
+            zoneTableBody.addEventListener("click", function (event) {
+                const row = event.target.closest("tr[data-zone-code]");
+
+                if (!row) {
+                    return;
+                }
+
+                selectZone(row.dataset.zoneCode, true);
+            });
+
+            layerFilter.addEventListener("change", function () {
+                if (layerFilter.value !== "ndvi") {
+                    showToast(
+                        "La capa seleccionada es demostrativa. El mapa mantiene la visualización NDVI."
+                    );
+                } else {
+                    showToast("Capa NDVI activa.");
+                }
+            });
+
+            captureFilter.addEventListener("change", function () {
+                showToast(
+                    "La fecha cambió visualmente. Los datos del prototipo permanecen estáticos."
+                );
+            });
+
+            createInspectionButton.addEventListener("click", function () {
+                showToast(
+                    `Inspección demostrativa creada para la zona ${selectedZoneCode}.`
+                );
+            });
+
+            document.querySelectorAll(".task-button").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    showToast(
+                        "Tarea demostrativa creada. No se guardó en la base de datos."
+                    );
+                });
+            });
+
+            const chartContext = document
+                .getElementById("ndviTrendChart")
+                .getContext("2d");
+
+            const trendChart = new Chart(chartContext, {
+                type: "line",
+                data: {
+                    labels: [
+                        "10 jun",
+                        "24 jun",
+                        "8 jul",
+                        "22 jul"
+                    ],
+                    datasets: [
+                        {
+                            label: "NDVI promedio",
+                            data: trendSeries.all,
+                            borderColor: "#177558",
+                            backgroundColor: "rgba(23,117,88,.12)",
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            borderWidth: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: "index",
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `NDVI: ${context.raw.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 1,
+                            ticks: {
+                                stepSize: 0.1
+                            },
+                            grid: {
+                                color: "rgba(218,229,224,.7)"
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            document
+                .getElementById("chartFilters")
+                .addEventListener("click", function (event) {
+                    const button = event.target.closest(
+                        ".chart-filter-button"
+                    );
+
+                    if (!button) {
+                        return;
+                    }
+
+                    document
+                        .querySelectorAll(".chart-filter-button")
+                        .forEach(function (item) {
+                            item.classList.toggle(
+                                "active",
+                                item === button
+                            );
+                        });
+
+                    const seriesKey = button.dataset.series;
+                    trendChart.data.datasets[0].data =
+                        trendSeries[seriesKey];
+                    trendChart.data.datasets[0].label =
+                        seriesKey === "all"
+                            ? "NDVI promedio de la finca"
+                            : `NDVI promedio del lote ${seriesKey}`;
+                    trendChart.update();
+                });
+
+            function getMiniMapColor(value) {
+                if (value < 0.31) {
+                    return "#b63d3d";
+                }
+
+                if (value < 0.46) {
+                    return "#e3772d";
+                }
+
+                if (value < 0.61) {
+                    return "#d4ad25";
+                }
+
+                if (value < 0.76) {
+                    return "#77a93a";
+                }
+
+                return "#257846";
+            }
+
+            function renderMiniMap(elementId, values) {
+                const container = document.getElementById(elementId);
+
+                container.innerHTML = values
+                    .map(function (value) {
+                        return `
+                            <span
+                                class="mini-cell"
+                                style="background:${getMiniMapColor(value)}"
+                                title="NDVI ${value.toFixed(2)}"
+                            ></span>
+                        `;
+                    })
+                    .join("");
+            }
+
+            renderMiniMap(
+                "previousMiniMap",
+                [
+                    0.66, 0.68, 0.63, 0.58, 0.52, 0.49,
+                    0.69, 0.70, 0.64, 0.57, 0.47, 0.42,
+                    0.72, 0.68, 0.60, 0.54, 0.40, 0.36,
+                    0.67, 0.62, 0.55, 0.49, 0.38, 0.34
+                ]
+            );
+
+            renderMiniMap(
+                "currentMiniMap",
+                [
+                    0.74, 0.77, 0.72, 0.64, 0.58, 0.54,
+                    0.78, 0.79, 0.73, 0.61, 0.52, 0.46,
+                    0.76, 0.72, 0.66, 0.57, 0.43, 0.38,
+                    0.70, 0.67, 0.60, 0.53, 0.41, 0.35
+                ]
+            );
+
+            updateSummaryMetrics();
+            renderZoneTable();
+            selectZone("A1", false);
+
+            setTimeout(function () {
+                map.invalidateSize();
+            }, 150);
+        });
+    </script>
 </body>
 </html>

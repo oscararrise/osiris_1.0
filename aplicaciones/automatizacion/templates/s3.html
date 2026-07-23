@@ -1,503 +1,2495 @@
 ﻿{% load static %}
 <!DOCTYPE html>
 <html lang="es">
-<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="messageModalLabel">Mensajes</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                {% if messages %}
-                {% for message in messages %}
-                <div{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}
-            </div>
-            {% endfor %}
-            {% endif %}
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        </div>
-    </div>
-</div>
-</div>
-<script>
-    $(document).ready(function () {
-        {% if messages %}
-        $('#messageModal').modal('show');
-        {% endif %}
-    });
-</script>
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>agrotikos</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" rel="stylesheet">
+    <meta name="description" content="Consola de control de actuadores agrícolas de Agrotikos">
+    <title>Control de actuadores | Agrotikos</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
     <style>
+        :root {
+            --agro-dark: #14382c;
+            --agro-dark-soft: #1c4b3a;
+            --agro-primary: #177558;
+            --agro-primary-dark: #0f5942;
+            --agro-primary-light: #e8f5f0;
+            --agro-background: #f3f6f5;
+            --agro-border: #dae5e0;
+            --agro-text: #263630;
+            --agro-muted: #6b7b75;
+            --agro-white: #ffffff;
+            --agro-warning: #d99625;
+            --agro-warning-soft: #fff6dd;
+            --agro-danger: #c84b4b;
+            --agro-danger-dark: #9d3434;
+            --agro-danger-soft: #fdecec;
+            --agro-blue: #3387bd;
+            --agro-blue-soft: #ebf4fb;
+            --agro-purple: #7959a8;
+            --agro-purple-soft: #f2edfa;
+            --agro-shadow: 0 5px 18px rgba(30, 60, 50, 0.07);
+            --agro-shadow-lg: 0 12px 32px rgba(25, 66, 51, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-      background-color: #f2f4f7;
-            /* Reemplaza 'ruta/a/tu/imagen.jpg' con la ruta a tu imagen de fondo */
-            background-size: cover;
-            /* La imagen de fondo cubrirÃ¡ todo el cuerpo */
-            background-position: center;
-            /* Centra la imagen de fondo */
-            background-repeat: no-repeat;
-            /* Evita que la imagen de fondo se repita */
-            /*transform: scale(1.15); /* Escala toda la pÃ¡gina en un 25% */
+            min-height: 100vh;
+            margin: 0;
+            color: var(--agro-text);
+            background:
+                radial-gradient(circle at top right, rgba(23, 117, 88, 0.08), transparent 34%),
+                var(--agro-background);
         }
 
-
-
-        .navbar {
-            background-color: #343a40;
+        body.modal-open {
+            padding-right: 0 !important;
         }
 
-        .navbar-brand {
-            color: #fff !important;
+        a {
+            text-decoration: none;
         }
 
-        .navbar-nav .nav-link {
-            color: #ffffff !important;
+        button,
+        input,
+        select {
+            font: inherit;
         }
 
-        .container {
-            max-width: 960px;
+        .top-navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1050;
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(100deg, #14382c 0%, #176247 55%, #177558 100%);
+            box-shadow: 0 5px 18px rgba(18, 57, 45, 0.18);
         }
 
-        .table th,
-        .table td {
-            padding: .75rem;
-            vertical-align: top;
-            border-top: 1px solid #dee2e6;
+        .top-navbar-content {
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
         }
 
-        .table thead th {
-            vertical-align: bottom;
-            border-bottom: 2px solid #dee2e6;
+        .top-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
         }
 
-        .table-striped tbody tr:nth-of-type(odd) {
-            background-color: rgba(0, 0, 0, 0.05);
+        .top-brand:hover {
+            color: #fff;
         }
 
-        .row {
-            --bs-gutter-x: 0;
+        .top-brand-icon {
+            display: inline-flex;
+            width: 44px;
+            height: 44px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 13px;
+            color: var(--agro-dark);
+            background: #fff;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.14);
+            font-size: 1.2rem;
         }
 
-        .col-md-6 {
-            flex: 0 0 auto;
+        .top-brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
+        }
+
+        .top-brand-text strong {
+            font-size: 1.08rem;
+            font-weight: 750;
+        }
+
+        .top-brand-text small {
+            margin-top: 3px;
+            color: rgba(255, 255, 255, 0.67);
+            font-size: 0.7rem;
+        }
+
+        .top-navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-navbar-section {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 13px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 11px;
+            color: rgba(255, 255, 255, 0.82);
+            background: rgba(255, 255, 255, 0.07);
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .top-home-button {
+            display: inline-flex;
+            min-height: 40px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 11px;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+            font-size: 0.86rem;
+            font-weight: 650;
+            transition: 0.2s ease;
+        }
+
+        .top-home-button:hover {
+            color: var(--agro-dark);
+            border-color: #fff;
+            background: #fff;
+            transform: translateY(-1px);
+        }
+
+        .page-shell {
+            padding-top: 28px;
+            padding-bottom: 48px;
+        }
+
+        .hero-section {
+            position: relative;
+            overflow: hidden;
+            padding: 30px;
+            border: 1px solid var(--agro-border);
+            border-radius: 22px;
+            color: #fff;
+            background: linear-gradient(125deg, rgba(20, 56, 44, 0.98), rgba(23, 117, 88, 0.92));
+            box-shadow: var(--agro-shadow-lg);
+        }
+
+        .hero-section::before {
+            position: absolute;
+            top: -100px;
+            right: -60px;
+            width: 290px;
+            height: 290px;
+            content: "";
+            border: 45px solid rgba(255, 255, 255, 0.055);
+            border-radius: 50%;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.09);
+            font-size: 0.82rem;
+            font-weight: 650;
+        }
+
+        .hero-title {
+            max-width: 780px;
+            margin-bottom: 10px;
+            font-size: clamp(2rem, 5vw, 3.1rem);
+            font-weight: 790;
+            line-height: 1.07;
+        }
+
+        .hero-description {
+            max-width: 790px;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .system-panel {
+            position: relative;
+            z-index: 2;
+            min-width: 285px;
+            padding: 17px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #78d7a8;
+            box-shadow: 0 0 0 5px rgba(120, 215, 168, 0.13);
+        }
+
+        .system-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 9px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.8rem;
+        }
+
+        .system-item strong {
+            color: #fff;
+            font-weight: 650;
+        }
+
+        .demo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 9px;
+            border-radius: 20px;
+            color: #6f4d0a;
+            background: #ffefba;
+            font-size: 0.69rem;
+            font-weight: 750;
+        }
+
+        .section-card {
+            height: 100%;
+            border: 1px solid var(--agro-border);
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: var(--agro-shadow);
+        }
+
+        .section-card .card-body {
+            padding: 22px;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .section-heading-main {
+            display: flex;
+            gap: 13px;
+        }
+
+        .section-icon {
+            display: inline-flex;
+            width: 42px;
+            min-width: 42px;
+            height: 42px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .section-icon.danger {
+            color: var(--agro-danger-dark);
+            background: var(--agro-danger-soft);
+        }
+
+        .section-title {
+            margin: 0 0 4px;
+            font-size: 1.05rem;
+            font-weight: 740;
+        }
+
+        .section-subtitle {
+            margin: 0;
+            color: var(--agro-muted);
+            font-size: 0.84rem;
+            line-height: 1.5;
+        }
+
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 9px;
+            border-radius: 20px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .metric-item {
+            padding: 15px;
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
+            background: #fbfdfc;
+        }
+
+        .metric-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 7px;
+            color: var(--agro-muted);
+            font-size: 0.76rem;
+        }
+
+        .metric-value {
+            font-size: 1.35rem;
+            font-weight: 760;
+            line-height: 1.1;
+        }
+
+        .metric-detail {
+            margin-top: 5px;
+            color: var(--agro-muted);
+            font-size: 0.72rem;
+        }
+
+        .safety-panel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 17px 19px;
+            border: 1px solid #eed7a2;
+            border-radius: 16px;
+            background: linear-gradient(100deg, #fff9e9, #fffdf7);
+            box-shadow: var(--agro-shadow);
+        }
+
+        .safety-copy {
+            display: flex;
+            align-items: flex-start;
+            gap: 13px;
+        }
+
+        .safety-icon {
+            display: inline-flex;
+            width: 42px;
+            min-width: 42px;
+            height: 42px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            color: #8a6419;
+            background: #ffedbd;
+        }
+
+        .safety-title {
+            margin-bottom: 3px;
+            font-size: 0.94rem;
+            font-weight: 760;
+        }
+
+        .safety-text {
+            margin: 0;
+            color: #76694b;
+            font-size: 0.78rem;
+            line-height: 1.5;
+        }
+
+        .safety-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .lock-button,
+        .emergency-button,
+        .agro-button,
+        .agro-button-outline,
+        .danger-outline-button {
+            display: inline-flex;
+            min-height: 40px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 9px 14px;
+            border-radius: 11px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            transition: 0.18s ease;
+        }
+
+        .lock-button {
+            border: 1px solid #dac385;
+            color: #775711;
+            background: #fff;
+        }
+
+        .lock-button.unlocked {
+            border-color: #9fcebb;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .emergency-button {
+            border: 1px solid var(--agro-danger);
+            color: #fff;
+            background: var(--agro-danger);
+        }
+
+        .emergency-button:hover {
+            border-color: var(--agro-danger-dark);
+            background: var(--agro-danger-dark);
+            transform: translateY(-1px);
+        }
+
+        .agro-button {
+            border: 1px solid var(--agro-primary);
+            color: #fff;
+            background: var(--agro-primary);
+        }
+
+        .agro-button:hover {
+            border-color: var(--agro-primary-dark);
+            color: #fff;
+            background: var(--agro-primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .agro-button-outline {
+            border: 1px solid #abd0c1;
+            color: var(--agro-primary-dark);
+            background: #fff;
+        }
+
+        .agro-button-outline:hover {
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .danger-outline-button {
+            border: 1px solid #e4b6b6;
+            color: var(--agro-danger-dark);
+            background: #fff;
+        }
+
+        .danger-outline-button:hover {
+            color: var(--agro-danger-dark);
+            background: var(--agro-danger-soft);
+        }
+
+        button:disabled {
+            cursor: not-allowed !important;
+            opacity: 0.48;
+            transform: none !important;
+        }
+
+        .zone-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            padding: 5px;
+            margin: 0;
+            border: 1px solid var(--agro-border);
+            border-radius: 14px;
+            list-style: none;
+            background: #f7faf8;
+        }
+
+        .zone-tab {
+            display: inline-flex;
+            min-height: 39px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border: 0;
+            border-radius: 10px;
+            color: var(--agro-muted);
+            background: transparent;
+            font-size: 0.79rem;
+            font-weight: 700;
+        }
+
+        .zone-tab.active {
+            color: #fff;
+            background: var(--agro-primary);
+            box-shadow: 0 5px 12px rgba(23, 117, 88, 0.18);
+        }
+
+        .control-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 17px;
+        }
+
+        .toolbar-copy {
+            color: var(--agro-muted);
+            font-size: 0.78rem;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .actuator-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 13px;
+        }
+
+        .actuator-card {
+            position: relative;
+            overflow: hidden;
+            padding: 16px;
+            border: 1px solid var(--agro-border);
+            border-radius: 14px;
+            background: #fbfdfc;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+        .actuator-card:hover {
+            box-shadow: 0 9px 22px rgba(30, 60, 50, 0.09);
+            transform: translateY(-2px);
+        }
+
+        .actuator-card.on {
+            border-color: #a8d5c3;
+            background: linear-gradient(145deg, #ffffff, #eef9f4);
+        }
+
+        .actuator-card.warning-device {
+            border-color: #ecd59d;
+        }
+
+        .actuator-card::after {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 4px;
+            height: 100%;
+            content: "";
+            background: #cfdad5;
+        }
+
+        .actuator-card.on::after {
+            background: var(--agro-primary);
+        }
+
+        .actuator-card.warning-device::after {
+            background: var(--agro-warning);
+        }
+
+        .actuator-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .actuator-identity {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .actuator-icon {
+            display: inline-flex;
+            width: 42px;
+            min-width: 42px;
+            height: 42px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+        }
+
+        .actuator-icon.pump {
+            color: #175f8b;
+            background: #e7f3fb;
+        }
+
+        .actuator-icon.valve {
+            color: #674393;
+            background: #f0eafb;
+        }
+
+        .actuator-icon.water {
+            color: #246e91;
+            background: #e7f6fb;
+        }
+
+        .actuator-icon.air {
+            color: #8b6314;
+            background: #fff4d8;
+        }
+
+        .actuator-icon.access {
+            color: #9a3f3f;
+            background: #fbeaea;
+        }
+
+        .actuator-icon.light {
+            color: #a06012;
+            background: #fff2dc;
+        }
+
+        .actuator-icon.spray {
+            color: #8e3e70;
+            background: #fae9f4;
+        }
+
+        .actuator-name {
+            margin: 0 0 3px;
+            font-size: 0.88rem;
+            font-weight: 740;
+        }
+
+        .actuator-type {
+            color: var(--agro-muted);
+            font-size: 0.69rem;
+        }
+
+        .device-online {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--agro-primary-dark);
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+
+        .device-online::before {
+            width: 6px;
+            height: 6px;
+            content: "";
+            border-radius: 50%;
+            background: #44aa7c;
+        }
+
+        .actuator-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .actuator-state {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .actuator-state-label {
+            color: var(--agro-muted);
+            font-size: 0.66rem;
+        }
+
+        .actuator-state-value {
+            margin-top: 2px;
+            color: #7a8882;
+            font-size: 0.83rem;
+            font-weight: 750;
+        }
+
+        .actuator-card.on .actuator-state-value {
+            color: var(--agro-primary-dark);
+        }
+
+        .actuator-toggle {
+            position: relative;
+            width: 49px;
+            min-width: 49px;
+            height: 27px;
+            padding: 0;
+            border: 0;
+            border-radius: 20px;
+            background: #cad5d0;
+            transition: 0.2s ease;
+        }
+
+        .actuator-toggle::after {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 19px;
+            height: 19px;
+            content: "";
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+            transition: 0.2s ease;
+        }
+
+        .actuator-toggle.on {
+            background: var(--agro-primary);
+        }
+
+        .actuator-toggle.on::after {
+            left: 26px;
+        }
+
+        .actuator-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding-top: 11px;
+            margin-top: 13px;
+            border-top: 1px solid var(--agro-border);
+            color: var(--agro-muted);
+            font-size: 0.66rem;
+        }
+
+        .locked-overlay {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            margin-bottom: 14px;
+            border: 1px solid #d9e2de;
+            border-radius: 11px;
+            color: var(--agro-muted);
+            background: #f6f8f7;
+            font-size: 0.74rem;
+        }
+
+        .locked-overlay.visible {
+            display: flex;
+        }
+
+        #actuatorsMap {
             width: 100%;
-            max-width: 100%;
-            margin-bottom: 20px;
+            height: 470px;
+            border-radius: 14px;
         }
 
-        @media (min-width: 768px) {
-            .col-md-6 {
-                width: 50%;
-                max-width: 50%;
+        .leaflet-container {
+            font-family: inherit;
+        }
+
+        .leaflet-div-icon {
+            border: 0;
+            background: transparent;
+        }
+
+        .map-marker {
+            display: flex;
+            width: 42px;
+            height: 42px;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid #fff;
+            border-radius: 50%;
+            color: #fff;
+            background: #9daaa4;
+            box-shadow: 0 5px 14px rgba(20, 56, 44, 0.24);
+            font-size: 16px;
+        }
+
+        .map-marker.on {
+            background: var(--agro-primary);
+        }
+
+        .map-marker.warning {
+            background: var(--agro-warning);
+        }
+
+        .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-top: 13px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 6px 9px;
+            border: 1px solid var(--agro-border);
+            border-radius: 20px;
+            color: var(--agro-muted);
+            background: #fff;
+            font-size: 0.7rem;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.active {
+            background: var(--agro-primary);
+        }
+
+        .legend-dot.inactive {
+            background: #9daaa4;
+        }
+
+        .legend-dot.warning {
+            background: var(--agro-warning);
+        }
+
+        .activity-list {
+            display: flex;
+            max-height: 404px;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        .activity-empty {
+            padding: 25px 15px;
+            border: 1px dashed var(--agro-border);
+            border-radius: 12px;
+            color: var(--agro-muted);
+            text-align: center;
+            font-size: 0.78rem;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 11px;
+            padding: 12px;
+            border: 1px solid var(--agro-border);
+            border-radius: 12px;
+            background: #fbfdfc;
+        }
+
+        .activity-marker {
+            display: inline-flex;
+            width: 30px;
+            min-width: 30px;
+            height: 30px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+            font-size: 0.72rem;
+        }
+
+        .activity-marker.off {
+            color: var(--agro-danger-dark);
+            background: var(--agro-danger-soft);
+        }
+
+        .activity-marker.system {
+            color: #7c5b14;
+            background: var(--agro-warning-soft);
+        }
+
+        .activity-title {
+            margin-bottom: 2px;
+            font-size: 0.78rem;
+            font-weight: 730;
+        }
+
+        .activity-time {
+            color: var(--agro-muted);
+            font-size: 0.66rem;
+        }
+
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .schedule-item {
+            padding: 14px;
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
+            background: #fbfdfc;
+        }
+
+        .schedule-time {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 8px;
+            color: var(--agro-primary-dark);
+            font-size: 0.74rem;
+            font-weight: 750;
+        }
+
+        .schedule-name {
+            margin-bottom: 4px;
+            font-size: 0.84rem;
+            font-weight: 720;
+        }
+
+        .schedule-detail {
+            color: var(--agro-muted);
+            font-size: 0.7rem;
+            line-height: 1.45;
+        }
+
+        .schedule-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 8px;
+            margin-top: 11px;
+            border-radius: 20px;
+            color: #705c27;
+            background: #fff3d1;
+            font-size: 0.64rem;
+            font-weight: 700;
+        }
+
+        .integration-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            margin-top: 16px;
+            border: 1px solid #cfe1ee;
+            border-radius: 12px;
+            color: #365b70;
+            background: var(--agro-blue-soft);
+            font-size: 0.76rem;
+            line-height: 1.5;
+        }
+
+        .toast-container {
+            z-index: 2000;
+        }
+
+        .agro-toast {
+            border: 1px solid var(--agro-border);
+            border-radius: 13px;
+            box-shadow: var(--agro-shadow-lg);
+        }
+
+        .modal-content {
+            overflow: hidden;
+            border: 1px solid var(--agro-border);
+            border-radius: 17px;
+            box-shadow: var(--agro-shadow-lg);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--agro-border);
+            background: #f8fbf9;
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--agro-border);
+        }
+
+        .confirmation-icon {
+            display: inline-flex;
+            width: 52px;
+            height: 52px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+            border-radius: 15px;
+            color: var(--agro-primary-dark);
+            background: var(--agro-primary-light);
+            font-size: 1.2rem;
+        }
+
+        .confirmation-icon.danger {
+            color: var(--agro-danger-dark);
+            background: var(--agro-danger-soft);
+        }
+
+        .modal-description {
+            color: var(--agro-muted);
+            font-size: 0.85rem;
+            line-height: 1.55;
+        }
+
+        @media (max-width: 1199px) {
+            .actuator-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
 
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-            border-radius: 20px;
-            margin: 9px;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
+        @media (max-width: 991px) {
+            .metric-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .system-panel {
+                min-width: 100%;
+                margin-top: 22px;
+            }
+
+            .safety-panel {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .safety-actions {
+                width: 100%;
+            }
+
+            .safety-actions button {
+                flex: 1;
+            }
+
+            .schedule-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
-        .input-group {
-            width: 360px;
+        @media (max-width: 767px) {
+            .top-navbar-section {
+                display: none;
+            }
 
-            margin: 9px;
+            .top-brand-text small {
+                display: none;
+            }
+
+            .control-toolbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .toolbar-actions {
+                width: 100%;
+            }
+
+            .toolbar-actions button {
+                flex: 1;
+            }
+
+            .actuator-grid {
+                grid-template-columns: 1fr;
+            }
+
+            #actuatorsMap {
+                height: 380px;
+            }
         }
 
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
+        @media (max-width: 575px) {
+            .top-navbar,
+            .top-navbar-content {
+                min-height: 64px;
+            }
+
+            .top-brand-icon {
+                width: 39px;
+                height: 39px;
+            }
+
+            .top-home-button {
+                width: 40px;
+                height: 40px;
+                padding: 0;
+            }
+
+            .top-home-button span {
+                display: none;
+            }
+
+            .hero-section {
+                padding: 23px;
+            }
+
+            .metric-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .safety-actions {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .zone-tabs {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+
+            .zone-tab {
+                width: 100%;
+            }
         }
-        /* Actuator cards */
-        .act-card { border-radius: 14px; padding: 14px; box-shadow: var(--shadow); transition: transform .15s ease, box-shadow .15s ease; cursor: pointer; border: 1px solid rgba(0,0,0,.06); }
-        .act-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(2,6,23,.15); }
-        .act-card .title { display: flex; align-items: center; gap: 10px; font-weight: 600; }
-        .act-card .status { font-weight: 700; }
-        .act-card.on { background: linear-gradient(180deg, rgba(16,185,129,0.15), rgba(16,185,129,0.08)); border-left: 4px solid #10b981; }
-        .act-card.on .status { color: #047857; }
-        .act-card.off { background: linear-gradient(180deg, rgba(239,68,68,0.12), rgba(239,68,68,0.07)); border-left: 4px solid #ef4444; }
-        .act-card.off .status { color: #991b1b; }
-        .zone-toolbar { margin-bottom: 12px; }
-        #actuatorsMap { height: 420px; border-radius: 12px; }
-        /* Cards grid and colored icons for redesigned UI */
-        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-        .act-card { border-radius: 14px; padding: 14px; box-shadow: 0 6px 14px rgba(2,6,23,.08); transition: transform .15s ease, box-shadow .15s ease; border: 1px solid rgba(0,0,0,.06); background: #fff; }
-        .act-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(2,6,23,.14); }
-        .icon-wrap { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
-        .icon-pump { background: #e0f2fe; color: #0369a1; }
-        .icon-valve { background: #ede9fe; color: #6d28d9; }
-        .icon-sprinkler { background: #ecfccb; color: #3f6212; }
-        .icon-fan { background: #fef3c7; color: #a16207; }
-        .icon-door { background: #fee2e2; color: #b91c1c; }
-        .icon-light { background: #fff7ed; color: #b45309; }
-        .icon-extractor { background: #e0e7ff; color: #3730a3; }
-        .icon-neb { background: #cffafe; color: #0e7490; }
-        .icon-spray { background: #fce7f3; color: #9d174d; }
-        .icon-vent { background: #dcfce7; color: #166534; }
-        /* Map markers using Font Awesome */
-        .leaflet-div-icon { background: transparent; border: none; }
-        .marker-ico { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; border: 2px solid rgba(0,0,0,.25); box-shadow: 0 2px 6px rgba(0,0,0,.15); }
-        .marker-ico i { font-size: 18px; }
-        .marker-ico.on { background: #16a34a; }
-        .marker-ico.off { background: #ef4444; }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="#">agrotikos</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <form action="/inicio" method="post">
-                        {% csrf_token %}
-                        <button id="btn-monitoreo" type="submit" class="btn btn-primary">Inicio</button>
-                    </form>
-                </ul>
+    <nav class="top-navbar">
+        <div class="container top-navbar-content">
+            <a href="{% url 'inicio' %}" class="top-brand">
+                <span class="top-brand-icon">
+                    <i class="fa-solid fa-seedling"></i>
+                </span>
+                <span class="top-brand-text">
+                    <strong>Agrotikos</strong>
+                    <small>Inteligencia para el campo</small>
+                </span>
+            </a>
+
+            <div class="top-navbar-actions">
+                <span class="top-navbar-section">
+                    <i class="fa-solid fa-sliders"></i>
+                    Control de actuadores
+                </span>
+
+                <a href="{% url 'inicio' %}" class="top-home-button">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Volver al inicio</span>
+                </a>
             </div>
         </div>
     </nav>
-    <div class="container mt-4">
-      <div class="d-flex align-items-center gap-3 mb-3">
-        <i class="fa-solid fa-house-signal fa-2x"></i>
-        <h2 class="mb-0">Control de Riego y Actuadores</h2>
-      </div>
-<!--ZONE_TABS_START-->
-      <ul class="nav nav-pills mb-3" id="zonesTabs">
-        <li class="nav-item"><button class="nav-link zone-tab active" data-target="#panel-zonaA">Zona A</button></li>
-        <li class="nav-item"><button class="nav-link zone-tab" data-target="#panel-zonaB">Zona B</button></li>
-        <li class="nav-item"><button class="nav-link zone-tab" data-target="#panel-otras">Otras acciones</button></li>
-      </ul>
-      <div id="panel-zonaA">
-        <div class="card frosted">
-          <div class="card-body">
-              <h5 class="card-title mb-3">Zona A</h5>
-              <div class="row gy-2">
-                <div class="col-7">Bomba A1</div>
-                <div class="col-5 text-end"><button data-key="bombaA1" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">Bomba A2</div>
-                <div class="col-5 text-end"><button data-key="bombaA2" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">VÃ¡lvula A1</div>
-                <div class="col-5 text-end"><button data-key="valvulaA1" class="btn btn-outline-secondary act-toggle">Cerrada</button></div>
-                <div class="col-7">VÃ¡lvula A2</div>
-                <div class="col-5 text-end"><button data-key="valvulaA2" class="btn btn-outline-secondary act-toggle">Cerrada</button></div>
-                <div class="col-7">Aspersor A1</div>
-                <div class="col-5 text-end"><button data-key="aspersorA1" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">Aspersor A2</div>
-                <div class="col-5 text-end"><button data-key="aspersorA2" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">Ventilador A1</div>
-                <div class="col-5 text-end"><button data-key="ventA1" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">Puerta A</div>
-                <div class="col-5 text-end"><button data-key="puertaA" class="btn btn-outline-secondary act-toggle">Cerrada</button></div>
-                <div class="col-7">Luces A</div>
-                <div class="col-5 text-end"><button data-key="luzA" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-              </div>
+
+    <main class="container page-shell">
+        <section class="hero-section mb-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8 hero-content">
+                    <span class="hero-eyebrow">
+                        <i class="fa-solid fa-house-signal"></i>
+                        Consola operativa
+                    </span>
+
+                    <h1 class="hero-title">
+                        Controla los equipos de tu finca desde un solo lugar.
+                    </h1>
+
+                    <p class="hero-description">
+                        Supervisa bombas, válvulas, riego, ventilación y otros actuadores por zona.
+                        Esta versión funciona como una simulación visual y todavía no envía órdenes
+                        a dispositivos físicos ni guarda información en la base de datos.
+                    </p>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="system-panel">
+                        <div class="system-status">
+                            <span class="status-dot"></span>
+                            Consola disponible
+                            <span class="demo-badge ms-auto">
+                                <i class="fa-solid fa-flask"></i>
+                                DEMO
+                            </span>
+                        </div>
+
+                        <div class="system-item">
+                            <span>Finca</span>
+                            <strong>Acacías, Meta</strong>
+                        </div>
+
+                        <div class="system-item">
+                            <span>Modo</span>
+                            <strong id="heroModeValue">Bloqueado</strong>
+                        </div>
+
+                        <div class="system-item">
+                            <span>Última acción</span>
+                            <strong id="heroLastAction">Sin acciones</strong>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
+        </section>
+
+        <section class="section-card mb-4">
+            <div class="card-body">
+                <div class="section-heading">
+                    <div class="section-heading-main">
+                        <span class="section-icon">
+                            <i class="fa-solid fa-gauge-high"></i>
+                        </span>
+                        <div>
+                            <h2 class="section-title">Estado general de la operación</h2>
+                            <p class="section-subtitle">
+                                Resumen dinámico de los actuadores simulados en la consola.
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="source-badge">
+                        <i class="fa-solid fa-laptop-code"></i>
+                        Estado local
+                    </span>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-toggle-on"></i>
+                            Actuadores activos
+                        </div>
+                        <div class="metric-value" id="activeCount">0</div>
+                        <div class="metric-detail">
+                            De <span id="totalCount">23</span> equipos disponibles
+                        </div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-layer-group"></i>
+                            Zona seleccionada
+                        </div>
+                        <div class="metric-value" id="selectedZoneLabel">Zona A</div>
+                        <div class="metric-detail" id="selectedZoneCount">9 actuadores</div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            Seguridad
+                        </div>
+                        <div class="metric-value" id="securityMetric">Bloqueado</div>
+                        <div class="metric-detail">Se requiere habilitación manual</div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-signal"></i>
+                            Conectividad
+                        </div>
+                        <div class="metric-value">100 %</div>
+                        <div class="metric-detail">Valor demostrativo del prototipo</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="safety-panel mb-4">
+            <div class="safety-copy">
+                <span class="safety-icon">
+                    <i class="fa-solid fa-lock"></i>
+                </span>
+                <div>
+                    <div class="safety-title" id="safetyTitle">Controles bloqueados</div>
+                    <p class="safety-text" id="safetyText">
+                        Desbloquea la consola para cambiar el estado de los actuadores.
+                        Toda acción importante solicitará confirmación.
+                    </p>
+                </div>
+            </div>
+
+            <div class="safety-actions">
+                <button type="button" id="lockButton" class="lock-button">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>Desbloquear controles</span>
+                </button>
+
+                <button type="button" id="emergencyButton" class="emergency-button">
+                    <i class="fa-solid fa-power-off"></i>
+                    Apagado general
+                </button>
+            </div>
+        </section>
+
+        <div class="row g-4 mb-4">
+            <div class="col-xl-8">
+                <section class="section-card">
+                    <div class="card-body">
+                        <div class="section-heading">
+                            <div class="section-heading-main">
+                                <span class="section-icon">
+                                    <i class="fa-solid fa-microchip"></i>
+                                </span>
+                                <div>
+                                    <h2 class="section-title">Actuadores por zona</h2>
+                                    <p class="section-subtitle">
+                                        Selecciona una zona y administra sus equipos disponibles.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <span class="source-badge" id="zoneStatusBadge">
+                                <i class="fa-solid fa-circle-check"></i>
+                                0 activos
+                            </span>
+                        </div>
+
+                        <ul class="zone-tabs mb-4" id="zoneTabs">
+                            <li>
+                                <button type="button" class="zone-tab active" data-zone="zonaA">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    Zona A
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="zone-tab" data-zone="zonaB">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    Zona B
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="zone-tab" data-zone="otras">
+                                    <i class="fa-solid fa-border-all"></i>
+                                    Otras acciones
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="control-toolbar">
+                            <div>
+                                <strong id="toolbarZoneTitle">Zona A</strong>
+                                <div class="toolbar-copy">
+                                    Control agrupado de los equipos visibles.
+                                </div>
+                            </div>
+
+                            <div class="toolbar-actions">
+                                <button type="button" id="zoneOnButton" class="agro-button control-action" disabled>
+                                    <i class="fa-solid fa-play"></i>
+                                    Encender zona
+                                </button>
+
+                                <button type="button" id="zoneOffButton" class="danger-outline-button control-action" disabled>
+                                    <i class="fa-solid fa-stop"></i>
+                                    Apagar zona
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="locked-overlay visible" id="lockedMessage">
+                            <i class="fa-solid fa-lock"></i>
+                            Los interruptores están deshabilitados mientras la consola permanezca bloqueada.
+                        </div>
+
+                        <div class="actuator-grid" id="actuatorGrid"></div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-xl-4">
+                <section class="section-card">
+                    <div class="card-body">
+                        <div class="section-heading">
+                            <div class="section-heading-main">
+                                <span class="section-icon">
+                                    <i class="fa-solid fa-clock-rotate-left"></i>
+                                </span>
+                                <div>
+                                    <h2 class="section-title">Registro de acciones</h2>
+                                    <p class="section-subtitle">
+                                        Historial temporal de esta sesión.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button type="button" id="clearLogButton" class="agro-button-outline">
+                                <i class="fa-solid fa-eraser"></i>
+                                Limpiar
+                            </button>
+                        </div>
+
+                        <div class="activity-list" id="activityList">
+                            <div class="activity-empty" id="activityEmpty">
+                                <i class="fa-regular fa-clock d-block mb-2 fa-lg"></i>
+                                Todavía no se han realizado acciones.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
-      </div>
-      <div id="panel-zonaB" class="d-none">
-        <div class="card frosted">
-          <div class="card-body">
-            <h5 class="card-title mb-3">Zona B</h5>
-              <div class="row gy-2">
-                <div class="col-7">Bomba B1</div>
-                <div class="col-5 text-end"><button data-key="bombaB1" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">Bomba B2</div>
-                <div class="col-5 text-end"><button data-key="bombaB2" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">VÃ¡lvula B1</div>
-                <div class="col-5 text-end"><button data-key="valvulaB1" class="btn btn-outline-secondary act-toggle">Cerrada</button></div>
-                <div class="col-7">VÃ¡lvula B2</div>
-                <div class="col-5 text-end"><button data-key="valvulaB2" class="btn btn-outline-secondary act-toggle">Cerrada</button></div>
-                <div class="col-7">Ventilador B1</div>
-                <div class="col-5 text-end"><button data-key="ventB1" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">Puerta B</div>
-                <div class="col-5 text-end"><button data-key="puertaB" class="btn btn-outline-secondary act-toggle">Cerrada</button></div>
-                <div class="col-7">Extractor</div>
-                <div class="col-5 text-end"><button data-key="extractor" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">Nebulizador</div>
-                <div class="col-5 text-end"><button data-key="nebulizador" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-              </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-8">
+                <section class="section-card">
+                    <div class="card-body">
+                        <div class="section-heading">
+                            <div class="section-heading-main">
+                                <span class="section-icon">
+                                    <i class="fa-solid fa-map-location-dot"></i>
+                                </span>
+                                <div>
+                                    <h2 class="section-title">Mapa operativo</h2>
+                                    <p class="section-subtitle">
+                                        Distribución demostrativa de los equipos en Acacías, Meta.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <span class="source-badge" id="mapZoneBadge">
+                                <i class="fa-solid fa-location-crosshairs"></i>
+                                Zona A
+                            </span>
+                        </div>
+
+                        <div id="actuatorsMap"></div>
+
+                        <div class="map-legend">
+                            <span class="legend-item">
+                                <span class="legend-dot active"></span>
+                                Activo
+                            </span>
+                            <span class="legend-item">
+                                <span class="legend-dot inactive"></span>
+                                Inactivo
+                            </span>
+                            <span class="legend-item">
+                                <span class="legend-dot warning"></span>
+                                Acción sensible
+                            </span>
+                        </div>
+                    </div>
+                </section>
             </div>
-          </div>
+
+            <div class="col-lg-4">
+                <section class="section-card">
+                    <div class="card-body">
+                        <div class="section-heading">
+                            <div class="section-heading-main">
+                                <span class="section-icon">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                </span>
+                                <div>
+                                    <h2 class="section-title">Programaciones</h2>
+                                    <p class="section-subtitle">
+                                        Ejemplos de automatizaciones futuras.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="schedule-grid">
+                            <div class="schedule-item">
+                                <div class="schedule-time">
+                                    <i class="fa-regular fa-clock"></i>
+                                    05:30
+                                </div>
+                                <div class="schedule-name">Riego temprano</div>
+                                <div class="schedule-detail">
+                                    Lotes A y B durante 25 minutos.
+                                </div>
+                                <span class="schedule-status">
+                                    <i class="fa-solid fa-flask"></i>
+                                    Solo demostración
+                                </span>
+                            </div>
+
+                            <div class="schedule-item">
+                                <div class="schedule-time">
+                                    <i class="fa-regular fa-clock"></i>
+                                    12:00
+                                </div>
+                                <div class="schedule-name">Ventilación</div>
+                                <div class="schedule-detail">
+                                    Invernadero según temperatura objetivo.
+                                </div>
+                                <span class="schedule-status">
+                                    <i class="fa-solid fa-flask"></i>
+                                    Solo demostración
+                                </span>
+                            </div>
+
+                            <div class="schedule-item">
+                                <div class="schedule-time">
+                                    <i class="fa-regular fa-clock"></i>
+                                    17:45
+                                </div>
+                                <div class="schedule-name">Riego de cierre</div>
+                                <div class="schedule-detail">
+                                    Lote C sujeto a humedad de suelo.
+                                </div>
+                                <span class="schedule-status">
+                                    <i class="fa-solid fa-flask"></i>
+                                    Solo demostración
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="integration-note">
+                            <i class="fa-solid fa-circle-info mt-1"></i>
+                            <div>
+                                Las programaciones no ejecutan tareas. Para activarlas se necesitará
+                                un backend, autenticación, reglas de seguridad, comunicación con el
+                                dispositivo y confirmación del estado real.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
-      </div>
-      <div id="panel-otras" class="d-none">
-        <div class="card frosted">
-          <div class="card-body">
-            <h5 class="card-title mb-3">Otras acciones</h5>
-            <div class="row gy-2">
-                <div class="col-7">Riego lote A</div>
-                <div class="col-5 text-end"><button data-key="riegoA" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">Riego lote B</div>
-                <div class="col-5 text-end"><button data-key="riegoB" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">Riego lote C</div>
-                <div class="col-5 text-end"><button data-key="riegoC" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">VentilaciÃ³n Invernadero</div>
-                <div class="col-5 text-end"><button data-key="ventInvernadero" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">VentilaciÃ³n Sala Curado</div>
-                <div class="col-5 text-end"><button data-key="ventCurado" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-                <div class="col-7">FumigaciÃ³n</div>
-                <div class="col-5 text-end"><button data-key="fumigacion" class="btn btn-outline-secondary act-toggle">Apagado</button></div>
-              </div>
+
+        <section class="section-card">
+            <div class="card-body">
+                <div class="section-heading">
+                    <div class="section-heading-main">
+                        <span class="section-icon">
+                            <i class="fa-solid fa-shield-heart"></i>
+                        </span>
+                        <div>
+                            <h2 class="section-title">Protecciones previstas para producción</h2>
+                            <p class="section-subtitle">
+                                Elementos que deben acompañar una conexión real con equipos de campo.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metric-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-user-lock"></i>
+                            Autorización
+                        </div>
+                        <div class="metric-value">Roles</div>
+                        <div class="metric-detail">Permisos por usuario y finca</div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-code-compare"></i>
+                            Confirmación
+                        </div>
+                        <div class="metric-value">Doble estado</div>
+                        <div class="metric-detail">Orden enviada y respuesta del equipo</div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-bell"></i>
+                            Alertas
+                        </div>
+                        <div class="metric-value">Eventos</div>
+                        <div class="metric-detail">Fallas, desconexiones y límites</div>
+                    </div>
+
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                            Auditoría
+                        </div>
+                        <div class="metric-value">Trazabilidad</div>
+                        <div class="metric-detail">Quién actuó, cuándo y sobre qué equipo</div>
+                    </div>
+                </div>
             </div>
-          </div>
-      </div>
-      <div class="d-flex justify-content-center gap-3 mt-3">
-        <button id="stopAllNew" type="button" class="btn btn-danger">APAGAR TODO</button>
-      </div>
+        </section>
+    </main>
+
+    <div class="modal fade" id="confirmationModal" tabindex="-1" aria-labelledby="confirmationTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="confirmationTitle">Confirmar acción</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body text-center p-4">
+                    <span class="confirmation-icon" id="confirmationIcon">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </span>
+
+                    <h3 class="fs-5 mb-2" id="confirmationHeading">¿Deseas continuar?</h3>
+
+                    <p class="modal-description mb-0" id="confirmationDescription">
+                        Esta acción cambiará el estado simulado del actuador.
+                    </p>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="agro-button-outline" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="button" id="confirmActionButton" class="agro-button">
+                        Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="statusToast" class="toast agro-toast" role="status" aria-live="polite" aria-atomic="true">
+            <div class="toast-header">
+                <i class="fa-solid fa-seedling me-2 text-success"></i>
+                <strong class="me-auto">Agrotikos</strong>
+                <small>Ahora</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                Acción completada.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
-      // Tablero de actuadores unificado: Zona A / Zona B / Otras acciones
-      $(function(){
-        const states = {
-          bombaA1:false,bombaA2:false,bombaB1:false,bombaB2:false,
-          valvulaA1:false,valvulaA2:false,valvulaB1:false,valvulaB2:false,
-          aspersorA1:false,aspersorA2:false,
-          ventA1:false,ventB1:false,
-          puertaA:false,puertaB:false,
-          luzA:false,extractor:false,nebulizador:false,
-          riegoA:false,riegoB:false,riegoC:false,
-          ventInvernadero:false,ventCurado:false,fumigacion:false
-        };
+        document.addEventListener("DOMContentLoaded", function () {
+            "use strict";
 
-        function updateBtn($b){
-          const k=$b.data('key'); const on=!!states[k];
-          const isDoor=(k==='puertaA'||k==='puertaB');
-          $b.toggleClass('btn-success', on).toggleClass('btn-outline-secondary', !on)
-            .text(isDoor? (on?'Abierta':'Cerrada') : (on?'Encendido':'Apagado'));
-        }
+            const zoneLabels = {
+                zonaA: "Zona A",
+                zonaB: "Zona B",
+                otras: "Otras acciones"
+            };
 
-        $('.act-toggle').each(function(){ updateBtn($(this)); });
-        $(document).on('click','.act-toggle',function(){
-          const k=$(this).data('key'); states[k]=!states[k]; updateBtn($(this));
-        });
-        $('#stopAllNew').on('click',function(){
-          Object.keys(states).forEach(k=>states[k]=false);
-          $('.act-toggle').each(function(){ updateBtn($(this)); });
-        });
+            const typeDefinitions = {
+                pump: {
+                    label: "Bomba hidráulica",
+                    icon: "fa-faucet-drip",
+                    iconClass: "pump"
+                },
+                valve: {
+                    label: "Válvula",
+                    icon: "fa-sliders",
+                    iconClass: "valve"
+                },
+                sprinkler: {
+                    label: "Sistema de riego",
+                    icon: "fa-shower",
+                    iconClass: "water"
+                },
+                fan: {
+                    label: "Ventilación",
+                    icon: "fa-fan",
+                    iconClass: "air"
+                },
+                door: {
+                    label: "Acceso",
+                    icon: "fa-door-closed",
+                    iconClass: "access"
+                },
+                light: {
+                    label: "Iluminación",
+                    icon: "fa-lightbulb",
+                    iconClass: "light"
+                },
+                extractor: {
+                    label: "Extracción de aire",
+                    icon: "fa-wind",
+                    iconClass: "air"
+                },
+                nebulizer: {
+                    label: "Nebulización",
+                    icon: "fa-cloud",
+                    iconClass: "water"
+                },
+                spray: {
+                    label: "Aplicación agrícola",
+                    icon: "fa-spray-can-sparkles",
+                    iconClass: "spray"
+                }
+            };
 
-        // Tabs de zonas: muestra/oculta paneles
-        function showPanel(sel){
-          ['#panel-zonaA','#panel-zonaB','#panel-otras'].forEach(id=>{
-            if(id===sel) $(id).removeClass('d-none'); else $(id).addClass('d-none');
-          });
-        }
-        $(document).on('click','.zone-tab',function(){
-          $('.zone-tab').removeClass('active');
-          $(this).addClass('active');
-          showPanel($(this).data('target'));
+            const actuatorsByZone = {
+                zonaA: [
+                    {
+                        key: "bombaA1",
+                        name: "Bomba A1",
+                        type: "pump",
+                        sector: "Cabezal norte",
+                        power: "1.5 kW",
+                        lat: 3.9882,
+                        lng: -73.7591
+                    },
+                    {
+                        key: "bombaA2",
+                        name: "Bomba A2",
+                        type: "pump",
+                        sector: "Cabezal sur",
+                        power: "1.5 kW",
+                        lat: 3.9876,
+                        lng: -73.7583
+                    },
+                    {
+                        key: "valvulaA1",
+                        name: "Válvula A1",
+                        type: "valve",
+                        sector: "Línea principal",
+                        power: "24 V",
+                        lat: 3.9886,
+                        lng: -73.7576
+                    },
+                    {
+                        key: "valvulaA2",
+                        name: "Válvula A2",
+                        type: "valve",
+                        sector: "Línea secundaria",
+                        power: "24 V",
+                        lat: 3.9878,
+                        lng: -73.7569
+                    },
+                    {
+                        key: "aspersorA1",
+                        name: "Aspersor A1",
+                        type: "sprinkler",
+                        sector: "Cuadrante 1",
+                        power: "Sector A",
+                        lat: 3.9891,
+                        lng: -73.7563
+                    },
+                    {
+                        key: "aspersorA2",
+                        name: "Aspersor A2",
+                        type: "sprinkler",
+                        sector: "Cuadrante 2",
+                        power: "Sector A",
+                        lat: 3.9869,
+                        lng: -73.7560
+                    },
+                    {
+                        key: "ventA1",
+                        name: "Ventilador A1",
+                        type: "fan",
+                        sector: "Bodega A",
+                        power: "0.8 kW",
+                        lat: 3.9864,
+                        lng: -73.7580
+                    },
+                    {
+                        key: "puertaA",
+                        name: "Puerta A",
+                        type: "door",
+                        sector: "Acceso principal",
+                        power: "Control local",
+                        lat: 3.9894,
+                        lng: -73.7585
+                    },
+                    {
+                        key: "luzA",
+                        name: "Luces A",
+                        type: "light",
+                        sector: "Bodega A",
+                        power: "Iluminación",
+                        lat: 3.9862,
+                        lng: -73.7570
+                    }
+                ],
+                zonaB: [
+                    {
+                        key: "bombaB1",
+                        name: "Bomba B1",
+                        type: "pump",
+                        sector: "Cabezal oriental",
+                        power: "1.5 kW",
+                        lat: 3.9856,
+                        lng: -73.7610
+                    },
+                    {
+                        key: "bombaB2",
+                        name: "Bomba B2",
+                        type: "pump",
+                        sector: "Cabezal occidental",
+                        power: "1.5 kW",
+                        lat: 3.9848,
+                        lng: -73.7602
+                    },
+                    {
+                        key: "valvulaB1",
+                        name: "Válvula B1",
+                        type: "valve",
+                        sector: "Línea principal",
+                        power: "24 V",
+                        lat: 3.9852,
+                        lng: -73.7593
+                    },
+                    {
+                        key: "valvulaB2",
+                        name: "Válvula B2",
+                        type: "valve",
+                        sector: "Línea secundaria",
+                        power: "24 V",
+                        lat: 3.9843,
+                        lng: -73.7587
+                    },
+                    {
+                        key: "ventB1",
+                        name: "Ventilador B1",
+                        type: "fan",
+                        sector: "Bodega B",
+                        power: "0.8 kW",
+                        lat: 3.9838,
+                        lng: -73.7601
+                    },
+                    {
+                        key: "puertaB",
+                        name: "Puerta B",
+                        type: "door",
+                        sector: "Acceso secundario",
+                        power: "Control local",
+                        lat: 3.9860,
+                        lng: -73.7583
+                    },
+                    {
+                        key: "extractor",
+                        name: "Extractor",
+                        type: "extractor",
+                        sector: "Bodega B",
+                        power: "1.0 kW",
+                        lat: 3.9837,
+                        lng: -73.7591
+                    },
+                    {
+                        key: "nebulizador",
+                        name: "Nebulizador",
+                        type: "nebulizer",
+                        sector: "Invernadero",
+                        power: "Presión media",
+                        lat: 3.9847,
+                        lng: -73.7579
+                    }
+                ],
+                otras: [
+                    {
+                        key: "riegoA",
+                        name: "Riego lote A",
+                        type: "sprinkler",
+                        sector: "Lote A",
+                        power: "Circuito completo",
+                        lat: 3.9910,
+                        lng: -73.7613
+                    },
+                    {
+                        key: "riegoB",
+                        name: "Riego lote B",
+                        type: "sprinkler",
+                        sector: "Lote B",
+                        power: "Circuito completo",
+                        lat: 3.9917,
+                        lng: -73.7596
+                    },
+                    {
+                        key: "riegoC",
+                        name: "Riego lote C",
+                        type: "sprinkler",
+                        sector: "Lote C",
+                        power: "Circuito completo",
+                        lat: 3.9912,
+                        lng: -73.7578
+                    },
+                    {
+                        key: "ventInvernadero",
+                        name: "Ventilación invernadero",
+                        type: "fan",
+                        sector: "Invernadero",
+                        power: "Control ambiental",
+                        lat: 3.9825,
+                        lng: -73.7576
+                    },
+                    {
+                        key: "ventCurado",
+                        name: "Ventilación sala de curado",
+                        type: "extractor",
+                        sector: "Sala de curado",
+                        power: "Control ambiental",
+                        lat: 3.9827,
+                        lng: -73.7592
+                    },
+                    {
+                        key: "fumigacion",
+                        name: "Fumigación",
+                        type: "spray",
+                        sector: "Aplicación general",
+                        power: "Acción sensible",
+                        lat: 3.9822,
+                        lng: -73.7607,
+                        sensitive: true
+                    }
+                ]
+            };
+
+            const allActuators = Object.values(actuatorsByZone).flat();
+            const state = {};
+            const markerByKey = {};
+            const actuatorByKey = {};
+            let currentZone = "zonaA";
+            let controlsUnlocked = false;
+            let pendingAction = null;
+            let lastActionLabel = "Sin acciones";
+
+            allActuators.forEach(function (actuator) {
+                state[actuator.key] = false;
+                actuatorByKey[actuator.key] = actuator;
+            });
+
+            const actuatorGrid = document.getElementById("actuatorGrid");
+            const zoneTabs = document.getElementById("zoneTabs");
+            const activeCount = document.getElementById("activeCount");
+            const totalCount = document.getElementById("totalCount");
+            const selectedZoneLabel = document.getElementById("selectedZoneLabel");
+            const selectedZoneCount = document.getElementById("selectedZoneCount");
+            const securityMetric = document.getElementById("securityMetric");
+            const zoneStatusBadge = document.getElementById("zoneStatusBadge");
+            const toolbarZoneTitle = document.getElementById("toolbarZoneTitle");
+            const mapZoneBadge = document.getElementById("mapZoneBadge");
+            const lockButton = document.getElementById("lockButton");
+            const emergencyButton = document.getElementById("emergencyButton");
+            const lockedMessage = document.getElementById("lockedMessage");
+            const zoneOnButton = document.getElementById("zoneOnButton");
+            const zoneOffButton = document.getElementById("zoneOffButton");
+            const clearLogButton = document.getElementById("clearLogButton");
+            const activityList = document.getElementById("activityList");
+            const heroModeValue = document.getElementById("heroModeValue");
+            const heroLastAction = document.getElementById("heroLastAction");
+            const safetyTitle = document.getElementById("safetyTitle");
+            const safetyText = document.getElementById("safetyText");
+            const confirmationTitle = document.getElementById("confirmationTitle");
+            const confirmationIcon = document.getElementById("confirmationIcon");
+            const confirmationHeading = document.getElementById("confirmationHeading");
+            const confirmationDescription = document.getElementById("confirmationDescription");
+            const confirmActionButton = document.getElementById("confirmActionButton");
+            const confirmationModalElement = document.getElementById("confirmationModal");
+            const confirmationModal = new bootstrap.Modal(confirmationModalElement);
+            const toastElement = document.getElementById("statusToast");
+            const toastMessage = document.getElementById("toastMessage");
+            const statusToast = new bootstrap.Toast(toastElement, {
+                delay: 2800
+            });
+
+            totalCount.textContent = String(allActuators.length);
+
+            const map = L.map("actuatorsMap", {
+                scrollWheelZoom: false,
+                zoomControl: true
+            }).setView([3.9869, -73.7579], 15);
+
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: "&copy; OpenStreetMap"
+            }).addTo(map);
+
+            function getTypeDefinition(type) {
+                return typeDefinitions[type] || {
+                    label: "Actuador",
+                    icon: "fa-microchip",
+                    iconClass: ""
+                };
+            }
+
+            function getStateLabel(actuator, isOn) {
+                if (actuator.type === "door") {
+                    return isOn ? "Abierta" : "Cerrada";
+                }
+
+                if (actuator.type === "valve") {
+                    return isOn ? "Abierta" : "Cerrada";
+                }
+
+                return isOn ? "Encendido" : "Apagado";
+            }
+
+            function getActionVerb(actuator, targetState) {
+                if (actuator.type === "door" || actuator.type === "valve") {
+                    return targetState ? "Abrir" : "Cerrar";
+                }
+
+                return targetState ? "Encender" : "Apagar";
+            }
+
+            function buildMarkerIcon(actuator) {
+                const definition = getTypeDefinition(actuator.type);
+                const isOn = state[actuator.key];
+                const warningClass = actuator.sensitive ? "warning" : "";
+                const stateClass = isOn ? "on" : "";
+
+                return L.divIcon({
+                    className: "",
+                    html: `
+                        <div class="map-marker ${stateClass} ${warningClass}">
+                            <i class="fa-solid ${definition.icon}"></i>
+                        </div>
+                    `,
+                    iconSize: [42, 42],
+                    iconAnchor: [21, 21],
+                    popupAnchor: [0, -20]
+                });
+            }
+
+            function updateMarker(actuator) {
+                const marker = markerByKey[actuator.key];
+
+                if (!marker) {
+                    return;
+                }
+
+                marker.setIcon(buildMarkerIcon(actuator));
+                marker.setPopupContent(`
+                    <strong>${actuator.name}</strong><br>
+                    ${actuator.sector}<br>
+                    Estado: ${getStateLabel(actuator, state[actuator.key])}
+                `);
+            }
+
+            function renderMapZone() {
+                Object.values(markerByKey).forEach(function (marker) {
+                    map.removeLayer(marker);
+                });
+
+                Object.keys(markerByKey).forEach(function (key) {
+                    delete markerByKey[key];
+                });
+
+                const zoneActuators = actuatorsByZone[currentZone];
+                const markers = [];
+
+                zoneActuators.forEach(function (actuator) {
+                    const marker = L.marker([actuator.lat, actuator.lng], {
+                        icon: buildMarkerIcon(actuator)
+                    });
+
+                    marker.bindPopup(`
+                        <strong>${actuator.name}</strong><br>
+                        ${actuator.sector}<br>
+                        Estado: ${getStateLabel(actuator, state[actuator.key])}
+                    `);
+
+                    marker.addTo(map);
+                    markerByKey[actuator.key] = marker;
+                    markers.push(marker);
+                });
+
+                if (markers.length) {
+                    const group = L.featureGroup(markers);
+                    map.fitBounds(group.getBounds().pad(0.42), {
+                        maxZoom: 16
+                    });
+                }
+
+                setTimeout(function () {
+                    map.invalidateSize();
+                }, 120);
+            }
+
+            function buildActuatorCard(actuator) {
+                const definition = getTypeDefinition(actuator.type);
+                const isOn = state[actuator.key];
+                const sensitiveClass = actuator.sensitive ? "warning-device" : "";
+                const lockedAttribute = controlsUnlocked ? "" : "disabled";
+                const actionLabel = getActionVerb(actuator, !isOn);
+
+                return `
+                    <article class="actuator-card ${isOn ? "on" : ""} ${sensitiveClass}" data-card-key="${actuator.key}">
+                        <div class="actuator-top">
+                            <div class="actuator-identity">
+                                <span class="actuator-icon ${definition.iconClass}">
+                                    <i class="fa-solid ${definition.icon}"></i>
+                                </span>
+                                <div>
+                                    <h3 class="actuator-name">${actuator.name}</h3>
+                                    <div class="actuator-type">${definition.label}</div>
+                                </div>
+                            </div>
+
+                            <span class="device-online">Disponible</span>
+                        </div>
+
+                        <div class="actuator-status-row">
+                            <div class="actuator-state">
+                                <span class="actuator-state-label">Estado actual</span>
+                                <span class="actuator-state-value">${getStateLabel(actuator, isOn)}</span>
+                            </div>
+
+                            <button
+                                type="button"
+                                class="actuator-toggle ${isOn ? "on" : ""}"
+                                data-actuator-key="${actuator.key}"
+                                aria-label="${actionLabel} ${actuator.name}"
+                                aria-pressed="${isOn ? "true" : "false"}"
+                                ${lockedAttribute}
+                            ></button>
+                        </div>
+
+                        <div class="actuator-meta">
+                            <span>
+                                <i class="fa-solid fa-location-dot me-1"></i>
+                                ${actuator.sector}
+                            </span>
+                            <span>
+                                <i class="fa-solid fa-bolt me-1"></i>
+                                ${actuator.power}
+                            </span>
+                        </div>
+                    </article>
+                `;
+            }
+
+            function renderActuators() {
+                const zoneActuators = actuatorsByZone[currentZone];
+
+                actuatorGrid.innerHTML = zoneActuators
+                    .map(buildActuatorCard)
+                    .join("");
+
+                renderMapZone();
+                updateSummary();
+            }
+
+            function updateSingleCard(actuator) {
+                const card = document.querySelector(`[data-card-key="${actuator.key}"]`);
+
+                if (!card) {
+                    return;
+                }
+
+                const toggle = card.querySelector(".actuator-toggle");
+                const stateValue = card.querySelector(".actuator-state-value");
+                const isOn = state[actuator.key];
+
+                card.classList.toggle("on", isOn);
+                toggle.classList.toggle("on", isOn);
+                toggle.setAttribute("aria-pressed", isOn ? "true" : "false");
+                toggle.setAttribute(
+                    "aria-label",
+                    `${getActionVerb(actuator, !isOn)} ${actuator.name}`
+                );
+                stateValue.textContent = getStateLabel(actuator, isOn);
+
+                updateMarker(actuator);
+            }
+
+            function updateSummary() {
+                const activeTotal = allActuators.filter(function (actuator) {
+                    return state[actuator.key];
+                }).length;
+
+                const zoneActuators = actuatorsByZone[currentZone];
+                const activeInZone = zoneActuators.filter(function (actuator) {
+                    return state[actuator.key];
+                }).length;
+
+                activeCount.textContent = String(activeTotal);
+                selectedZoneLabel.textContent = zoneLabels[currentZone];
+                selectedZoneCount.textContent = `${zoneActuators.length} actuadores`;
+                zoneStatusBadge.innerHTML = `
+                    <i class="fa-solid fa-circle-check"></i>
+                    ${activeInZone} activos
+                `;
+                toolbarZoneTitle.textContent = zoneLabels[currentZone];
+                mapZoneBadge.innerHTML = `
+                    <i class="fa-solid fa-location-crosshairs"></i>
+                    ${zoneLabels[currentZone]}
+                `;
+                heroLastAction.textContent = lastActionLabel;
+            }
+
+            function updateLockInterface() {
+                const controlButtons = document.querySelectorAll(".control-action");
+                const toggles = document.querySelectorAll(".actuator-toggle");
+
+                securityMetric.textContent = controlsUnlocked ? "Habilitado" : "Bloqueado";
+                heroModeValue.textContent = controlsUnlocked ? "Control manual" : "Bloqueado";
+
+                lockButton.classList.toggle("unlocked", controlsUnlocked);
+                lockButton.innerHTML = controlsUnlocked
+                    ? '<i class="fa-solid fa-lock-open"></i><span>Bloquear controles</span>'
+                    : '<i class="fa-solid fa-lock"></i><span>Desbloquear controles</span>';
+
+                safetyTitle.textContent = controlsUnlocked
+                    ? "Controles habilitados"
+                    : "Controles bloqueados";
+
+                safetyText.textContent = controlsUnlocked
+                    ? "Puedes cambiar estados. Las acciones sensibles y grupales pedirán confirmación."
+                    : "Desbloquea la consola para cambiar el estado de los actuadores. Toda acción importante solicitará confirmación.";
+
+                lockedMessage.classList.toggle("visible", !controlsUnlocked);
+
+                controlButtons.forEach(function (button) {
+                    button.disabled = !controlsUnlocked;
+                });
+
+                toggles.forEach(function (toggle) {
+                    toggle.disabled = !controlsUnlocked;
+                });
+            }
+
+            function showToast(message) {
+                toastMessage.textContent = message;
+                statusToast.show();
+            }
+
+            function getCurrentTime() {
+                return new Intl.DateTimeFormat("es-CO", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                }).format(new Date());
+            }
+
+            function addActivity(title, type) {
+                const emptyState = document.getElementById("activityEmpty");
+
+                if (emptyState) {
+                    emptyState.remove();
+                }
+
+                const iconByType = {
+                    on: "fa-play",
+                    off: "fa-stop",
+                    system: "fa-shield-halved"
+                };
+
+                const item = document.createElement("div");
+                item.className = "activity-item";
+                item.innerHTML = `
+                    <span class="activity-marker ${type}">
+                        <i class="fa-solid ${iconByType[type] || "fa-circle"}"></i>
+                    </span>
+                    <div>
+                        <div class="activity-title">${title}</div>
+                        <div class="activity-time">${getCurrentTime()} · Sesión local</div>
+                    </div>
+                `;
+
+                activityList.prepend(item);
+
+                while (activityList.children.length > 12) {
+                    activityList.removeChild(activityList.lastElementChild);
+                }
+            }
+
+            function configureConfirmation(options) {
+                pendingAction = options.onConfirm;
+                confirmationTitle.textContent = options.title || "Confirmar acción";
+                confirmationHeading.textContent = options.heading;
+                confirmationDescription.textContent = options.description;
+                confirmationIcon.classList.toggle("danger", Boolean(options.danger));
+                confirmationIcon.innerHTML = options.danger
+                    ? '<i class="fa-solid fa-triangle-exclamation"></i>'
+                    : '<i class="fa-solid fa-circle-question"></i>';
+
+                confirmActionButton.className = options.danger
+                    ? "emergency-button"
+                    : "agro-button";
+                confirmActionButton.textContent = options.confirmText || "Confirmar";
+
+                confirmationModal.show();
+            }
+
+            function setActuatorState(actuator, targetState) {
+                state[actuator.key] = targetState;
+                updateSingleCard(actuator);
+
+                const stateLabel = getStateLabel(actuator, targetState);
+                const actionText = `${actuator.name}: ${stateLabel}`;
+
+                lastActionLabel = actionText;
+                addActivity(actionText, targetState ? "on" : "off");
+                updateSummary();
+                showToast(`${actionText}. Cambio aplicado únicamente en esta demostración.`);
+            }
+
+            function requestActuatorChange(actuator) {
+                const targetState = !state[actuator.key];
+                const actionVerb = getActionVerb(actuator, targetState);
+                const isSensitive = Boolean(actuator.sensitive);
+
+                if (isSensitive) {
+                    configureConfirmation({
+                        title: "Acción sensible",
+                        heading: `${actionVerb} ${actuator.name}`,
+                        description:
+                            "La fumigación requiere validaciones ambientales, de seguridad y de personal antes de una operación real. En esta versión solo cambiará el estado visual.",
+                        danger: true,
+                        confirmText: "Confirmar simulación",
+                        onConfirm: function () {
+                            setActuatorState(actuator, targetState);
+                        }
+                    });
+                    return;
+                }
+
+                configureConfirmation({
+                    heading: `${actionVerb} ${actuator.name}`,
+                    description:
+                        `El estado pasará a “${getStateLabel(actuator, targetState)}”. ` +
+                        "Este cambio solo existirá en el navegador.",
+                    danger: false,
+                    confirmText: actionVerb,
+                    onConfirm: function () {
+                        setActuatorState(actuator, targetState);
+                    }
+                });
+            }
+
+            function setZoneState(targetState) {
+                const zoneActuators = actuatorsByZone[currentZone];
+
+                zoneActuators.forEach(function (actuator) {
+                    state[actuator.key] = targetState;
+                    updateSingleCard(actuator);
+                });
+
+                const actionText = targetState
+                    ? `${zoneLabels[currentZone]} encendida`
+                    : `${zoneLabels[currentZone]} apagada`;
+
+                lastActionLabel = actionText;
+                addActivity(actionText, targetState ? "on" : "off");
+                updateSummary();
+                showToast(`${actionText}. Cambio aplicado únicamente en esta demostración.`);
+            }
+
+            function requestZoneState(targetState) {
+                const actionLabel = targetState ? "Encender" : "Apagar";
+
+                configureConfirmation({
+                    heading: `${actionLabel} ${zoneLabels[currentZone]}`,
+                    description:
+                        `La acción cambiará simultáneamente ${actuatorsByZone[currentZone].length} ` +
+                        "actuadores visibles. No se enviarán comandos físicos.",
+                    danger: !targetState,
+                    confirmText: actionLabel,
+                    onConfirm: function () {
+                        setZoneState(targetState);
+                    }
+                });
+            }
+
+            function emergencyStop() {
+                allActuators.forEach(function (actuator) {
+                    state[actuator.key] = false;
+                });
+
+                lastActionLabel = "Apagado general";
+                addActivity("Apagado general ejecutado", "system");
+                renderActuators();
+                showToast("Todos los actuadores simulados quedaron apagados.");
+            }
+
+            function requestEmergencyStop() {
+                configureConfirmation({
+                    title: "Apagado general",
+                    heading: "¿Apagar todos los actuadores?",
+                    description:
+                        `Se cambiarán a estado apagado los ${allActuators.length} equipos del prototipo, ` +
+                        "sin importar la zona seleccionada.",
+                    danger: true,
+                    confirmText: "Apagar todo",
+                    onConfirm: emergencyStop
+                });
+            }
+
+            zoneTabs.addEventListener("click", function (event) {
+                const tab = event.target.closest(".zone-tab");
+
+                if (!tab) {
+                    return;
+                }
+
+                currentZone = tab.dataset.zone;
+
+                zoneTabs.querySelectorAll(".zone-tab").forEach(function (button) {
+                    button.classList.toggle("active", button === tab);
+                });
+
+                renderActuators();
+            });
+
+            actuatorGrid.addEventListener("click", function (event) {
+                const toggle = event.target.closest(".actuator-toggle");
+
+                if (!toggle || toggle.disabled || !controlsUnlocked) {
+                    return;
+                }
+
+                const actuator = actuatorByKey[toggle.dataset.actuatorKey];
+
+                if (actuator) {
+                    requestActuatorChange(actuator);
+                }
+            });
+
+            lockButton.addEventListener("click", function () {
+                controlsUnlocked = !controlsUnlocked;
+                updateLockInterface();
+
+                const actionText = controlsUnlocked
+                    ? "Controles manuales habilitados"
+                    : "Controles manuales bloqueados";
+
+                lastActionLabel = controlsUnlocked ? "Consola habilitada" : "Consola bloqueada";
+                addActivity(actionText, "system");
+                updateSummary();
+                showToast(actionText);
+            });
+
+            emergencyButton.addEventListener("click", requestEmergencyStop);
+
+            zoneOnButton.addEventListener("click", function () {
+                if (controlsUnlocked) {
+                    requestZoneState(true);
+                }
+            });
+
+            zoneOffButton.addEventListener("click", function () {
+                if (controlsUnlocked) {
+                    requestZoneState(false);
+                }
+            });
+
+            clearLogButton.addEventListener("click", function () {
+                activityList.innerHTML = `
+                    <div class="activity-empty" id="activityEmpty">
+                        <i class="fa-regular fa-clock d-block mb-2 fa-lg"></i>
+                        Todavía no se han realizado acciones.
+                    </div>
+                `;
+                showToast("El registro visual de esta sesión fue limpiado.");
+            });
+
+            confirmActionButton.addEventListener("click", function () {
+                if (typeof pendingAction === "function") {
+                    const action = pendingAction;
+                    pendingAction = null;
+                    confirmationModal.hide();
+                    action();
+                }
+            });
+
+            confirmationModalElement.addEventListener("hidden.bs.modal", function () {
+                pendingAction = null;
+            });
+
+            renderActuators();
+            updateLockInterface();
         });
-        showPanel('#panel-zonaA');
-      });
     </script>
-
-    <!-- New unified cards + map script (injects UI and hides old panels) -->
-    <script>
-      $(function(){
-        const $tabs = $('#zonesTabs');
-        if(!$tabs.length) return;
-
-        // Map tab buttons to zone keys
-        $tabs.find('.zone-tab').each(function(){
-          const t = $(this).text().trim().toLowerCase();
-          let z = 'zonaA';
-          if(t.includes('zona b')) z = 'zonaB';
-          if(t.includes('otras')) z = 'otras';
-          $(this).attr('data-zone', z).removeAttr('data-target');
-        });
-
-        // Insert redesigned containers after tabs
-        const $toolbar = $(`
-          <div class="zone-toolbar">
-            <button id="zoneOn" class="btn btn-success btn-sm">Encender zona</button>
-            <button id="zoneOff" class="btn btn-outline-danger btn-sm">Apagar zona</button>
-          </div>
-        `);
-        const $cards = $(`<div class="card frosted mb-3"><div class="card-body"><div id="cardsGrid" class="cards-grid"></div></div></div>`);
-        const $map = $(`<div class="card frosted"><div class="card-body"><h6 class="mb-2">Mapa de actuadores</h6><div id="actuatorsMap"></div></div></div>`);
-        $tabs.after($toolbar).after($cards).after($map);
-
-        // Hide legacy per-zone panels
-        $('#panel-zonaA,#panel-zonaB,#panel-otras').addClass('d-none');
-
-        // Layout and behavior
-        const actuatorsByZone = {
-          // Zona A alrededor de 6.252, -75.563
-          zonaA: [
-            { key:'bombaA1', name:'Bomba A1', type:'pump', lat: 6.2524, lng: -75.5629 },
-            { key:'bombaA2', name:'Bomba A2', type:'pump', lat: 6.2528, lng: -75.5632 },
-            { key:'valvulaA1', name:'Válvula A1', type:'valve', lat: 6.2519, lng: -75.5630 },
-            { key:'valvulaA2', name:'Válvula A2', type:'valve', lat: 6.2521, lng: -75.5635 },
-            { key:'aspersorA1', name:'Aspersor A1', type:'sprinkler', lat: 6.2520, lng: -75.5626 },
-            { key:'aspersorA2', name:'Aspersor A2', type:'sprinkler', lat: 6.2516, lng: -75.5632 },
-            { key:'ventA1', name:'Ventilador A1', type:'fan', lat: 6.2517, lng: -75.5628 },
-            { key:'puertaA', name:'Puerta A', type:'door', lat: 6.2523, lng: -75.5625 },
-            { key:'luzA', name:'Luz A', type:'light', lat: 6.2518, lng: -75.5624 }
-          ],
-          // Zona B alrededor de 6.253, -75.564
-          zonaB: [
-            { key:'bombaB1', name:'Bomba B1', type:'pump', lat: 6.2532, lng: -75.5641 },
-            { key:'bombaB2', name:'Bomba B2', type:'pump', lat: 6.2536, lng: -75.5646 },
-            { key:'valvulaB1', name:'Válvula B1', type:'valve', lat: 6.2531, lng: -75.5644 },
-            { key:'valvulaB2', name:'Válvula B2', type:'valve', lat: 6.2529, lng: -75.5642 },
-            { key:'ventB1', name:'Ventilador B1', type:'fan', lat: 6.2530, lng: -75.5638 },
-            { key:'puertaB', name:'Puerta B', type:'door', lat: 6.2534, lng: -75.5639 },
-            { key:'extractor', name:'Extractor', type:'extractor', lat: 6.2535, lng: -75.5643 },
-            { key:'nebulizador', name:'Nebulizador', type:'neb', lat: 6.2537, lng: -75.5637 }
-          ],
-          // Otras acciones alrededor de 6.251, -75.562
-          otras: [
-            { key:'riegoA', name:'Riego lote A', type:'sprinkler', lat: 6.2512, lng: -75.5627 },
-            { key:'riegoB', name:'Riego lote B', type:'sprinkler', lat: 6.2510, lng: -75.5629 },
-            { key:'riegoC', name:'Riego lote C', type:'sprinkler', lat: 6.2513, lng: -75.5632 },
-            { key:'ventInvernadero', name:'Ventilación Invernadero', type:'vent', lat: 6.2509, lng: -75.5625 },
-            { key:'ventCurado', name:'Ventilación Sala Curado', type:'vent', lat: 6.2508, lng: -75.5628 },
-            { key:'fumigacion', name:'Fumigación', type:'spray', lat: 6.2511, lng: -75.5623 }
-          ]
-        };
-
-        const typeIcon = {
-          pump: { cls:'icon-pump', fa:'fa-faucet' },
-          valve: { cls:'icon-valve', fa:'fa-screwdriver-wrench' },
-          sprinkler: { cls:'icon-sprinkler', fa:'fa-shower' },
-          fan: { cls:'icon-fan', fa:'fa-fan' },
-          door: { cls:'icon-door', fa:'fa-door-closed' },
-          light: { cls:'icon-light', fa:'fa-lightbulb' },
-          extractor: { cls:'icon-extractor', fa:'fa-wind' },
-          neb: { cls:'icon-neb', fa:'fa-cloud' },
-          spray: { cls:'icon-spray', fa:'fa-spray-can' },
-          vent: { cls:'icon-vent', fa:'fa-arrows-rotate' }
-        };
-
-        // State
-        const states = {};
-        Object.values(actuatorsByZone).flat().forEach(a => states[a.key] = false);
-
-        // Build map
-        const map = L.map('actuatorsMap', { zoomControl: true });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
-        const markers = {}; // key -> marker
-        const color = on => on ? '#16a34a' : '#ef4444';
-        const byKey = {};
-        Object.entries(actuatorsByZone).forEach(([z, arr])=> arr.forEach(a=> byKey[a.key]=a));
-
-        // Corrimiento hacia el este por zona (km → grados por latitud)
-        const SHIFT_EAST_KM = { zonaA: 50, zonaB: 30, otras: 50 };
-        const SPREAD_FACTOR = 1.6; // aleja los actuadores respecto al centro
-        function kmToDegLng(latDeg, km){
-          const rad = Math.PI/180;
-          const kmPerDeg = 111.32 * Math.cos(latDeg * rad);
-          return km / kmPerDeg;
-        }
-
-        function buildMarkerIcon(a, on){
-          const ic = typeIcon[a.type] || {fa:'fa-robot'};
-          return L.divIcon({
-            className: 'custom-marker',
-            html: `<div class="marker-ico ${on?'on':'off'}"><i class="fa-solid ${ic.fa}"></i></div>`,
-            iconSize: [40,40],
-            iconAnchor: [20,20]
-          });
-        }
-
-        function setMarkers(zone){
-          Object.values(markers).forEach(m=> map.removeLayer(m));
-          for(const k in markers) delete markers[k];
-          const list = actuatorsByZone[zone] || [];
-          const group = [];
-          // Centro de la zona
-          let cLat = 0, cLng = 0;
-          list.forEach(a=>{ cLat += a.lat; cLng += a.lng; });
-          if(list.length){ cLat /= list.length; cLng /= list.length; }
-          list.forEach(a => {
-            const on = !!states[a.key];
-            // expandir respecto al centro
-            const eLat = cLat + (a.lat - cLat) * SPREAD_FACTOR;
-            const eLng = cLng + (a.lng - cLng) * SPREAD_FACTOR;
-            const shiftKm = SHIFT_EAST_KM[zone] || 0;
-            const shiftedLng = eLng + kmToDegLng(eLat, shiftKm);
-            const m = L.marker([eLat, shiftedLng], { icon: buildMarkerIcon(a, on) }).addTo(map);
-            m.bindPopup(`<strong>${a.name}</strong><br/>Estado: ${on? 'Encendido':'Apagado'}`);
-            markers[a.key] = m; group.push(m);
-          });
-          if(group.length){ const grp = L.featureGroup(group); map.fitBounds(grp.getBounds().pad(0.5)); } else { const shiftKm = SHIFT_EAST_KM[zone] || 0; map.setView([6.252, -75.563 + kmToDegLng(6.252, shiftKm)], 16); }
-        }
-
-        function render(zone){
-          const $grid = $('#cardsGrid').empty();
-          (actuatorsByZone[zone]||[]).forEach(a => {
-            const on = !!states[a.key];
-            const ic = typeIcon[a.type] || {cls:'', fa:'fa-robot'};
-            $grid.append(`
-              <div class="act-card ${on? 'on':'off'}" data-key="${a.key}">
-                <div class="title mb-2">
-                  <span class="icon-wrap ${ic.cls}"><i class="fa-solid ${ic.fa}"></i></span>
-                  <span>${a.name}</span>
-                </div>
-                <div class="d-flex align-items-center justify-content-between">
-                  <span class="status">${on? (a.type==='door'?'Abierta':'Encendido') : (a.type==='door'?'Cerrada':'Apagado')}</span>
-                  <button class="btn btn-sm ${on? 'btn-success':'btn-outline-secondary'} act-toggle2" data-key="${a.key}">${on? (a.type==='door'?'Cerrar':'Apagar') : (a.type==='door'?'Abrir':'Encender')}</button>
-                </div>
-              </div>
-            `);
-          });
-          setMarkers(zone);
-        }
-
-        function refreshCard(key){
-          const on = !!states[key];
-          const $card = $(`.act-card[data-key="${key}"]`);
-          const isDoor = /puerta/i.test(key);
-          $card.toggleClass('on', on).toggleClass('off', !on);
-          $card.find('.status').text(on? (isDoor? 'Abierta':'Encendido') : (isDoor? 'Cerrada':'Apagado'));
-          const $btn = $card.find('.act-toggle2');
-          $btn.toggleClass('btn-success', on).toggleClass('btn-outline-secondary', !on)
-              .text(on? (isDoor? 'Cerrar':'Apagar') : (isDoor? 'Abrir':'Encender'));
-          if(markers[key]){
-            const a = byKey[key];
-            markers[key].setIcon(buildMarkerIcon(a, on));
-            if(markers[key].getPopup()) markers[key].setPopupContent(`<strong>${a.name}</strong><br/>Estado: ${on? 'Encendido':'Apagado'}`);
-          }
-        }
-
-        // Events
-        let currentZone = 'zonaA';
-        $tabs.on('click', '.zone-tab', function(e){ e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-          $tabs.find('.zone-tab').removeClass('active'); $(this).addClass('active');
-          currentZone = $(this).data('zone');
-          render(currentZone);
-        });
-        $(document).on('click', '.act-toggle2', function(){ const k=$(this).data('key'); states[k]=!states[k]; refreshCard(k); });
-        $('#zoneOn').on('click', ()=>{ (actuatorsByZone[currentZone]||[]).forEach(a=>{ states[a.key]=true; refreshCard(a.key); }); });
-        $('#zoneOff').on('click', ()=>{ (actuatorsByZone[currentZone]||[]).forEach(a=>{ states[a.key]=false; refreshCard(a.key); }); });
-        $('#stopAllNew').on('click', ()=>{ Object.keys(states).forEach(k=>{ states[k]=false; }); render(currentZone); });
-
-        // Init
-        render(currentZone);
-      });
-    </script>
-
-  </body>
-  </html>
+</body>
+</html>
