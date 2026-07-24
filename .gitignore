@@ -27,4 +27,7 @@ Thumbs.db
 
 # Archivos temporales
 *.log
-*.tmpgit add .
+*.tmp
+
+# Caché de Django (dashboard telemetría)
+django_cache/

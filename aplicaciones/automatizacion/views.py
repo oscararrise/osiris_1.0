@@ -20,17 +20,76 @@ from statistics import mean, median
 from datetime import timedelta
 
 from django.db import DatabaseError
+from django.conf import settings
+from django.core.cache import cache
 from django.utils import timezone
+from django.utils.dateparse import parse_date
+
+from .telemetry_cache import (
+    build_dashboard_cache_key,
+    downsample_readings,
+    get_latest_device_id,
+    get_telemetry_devices,
+    telemetry_queryset,
+)
+
 logger = logging.getLogger(__name__)
 import csv
 
 from datetime import datetime, time, timedelta
 
-from django.utils import timezone
-from django.utils.dateparse import parse_date
-
 
 SENSOR_DEFINITIONS = [
+
+    # Suelo 1
+    {
+        "key": "sensor_1_soil_temperature_c",
+        "label": "Temperatura del suelo",
+        "unit": "°C",
+        "group": "Sensor de suelo 1",
+    },
+    {
+        "key": "sensor_1_soil_moisture_percent",
+        "label": "Humedad del suelo",
+        "unit": "%",
+        "group": "Sensor de suelo 1",
+    },
+    {
+        "key": "sensor_1_ec",
+        "label": "Conductividad eléctrica",
+        "unit": "µS/cm",
+        "group": "Sensor de suelo 1",
+    },
+    {
+        "key": "sensor_1_ph",
+        "label": "pH",
+        "unit": "pH",
+        "group": "Sensor de suelo 1",
+    },
+    {
+        "key": "sensor_1_nitrogen",
+        "label": "Nitrógeno",
+        "unit": "mg/kg",
+        "group": "Sensor de suelo 1",
+    },
+    {
+        "key": "sensor_1_phosphorus",
+        "label": "Fósforo",
+        "unit": "mg/kg",
+        "group": "Sensor de suelo 1",
+    },
+    {
+        "key": "sensor_1_potassium",
+        "label": "Potasio",
+        "unit": "mg/kg",
+        "group": "Sensor de suelo 1",
+    },
+    {
+        "key": "sensor_1_salinity",
+        "label": "Salinidad",
+        "unit": "mg/L",
+        "group": "Sensor de suelo 1",
+    },
 
     # Suelo 2
     {
@@ -48,37 +107,37 @@ SENSOR_DEFINITIONS = [
     {
         "key": "sensor_2_ec",
         "label": "Conductividad eléctrica",
-        "unit": "",
+        "unit": "µS/cm",
         "group": "Sensor de suelo 2",
     },
     {
         "key": "sensor_2_ph",
         "label": "pH",
-        "unit": "",
+        "unit": "pH",
         "group": "Sensor de suelo 2",
     },
     {
         "key": "sensor_2_nitrogen",
         "label": "Nitrógeno",
-        "unit": "",
+        "unit": "mg/kg",
         "group": "Sensor de suelo 2",
     },
     {
         "key": "sensor_2_phosphorus",
         "label": "Fósforo",
-        "unit": "",
+        "unit": "mg/kg",
         "group": "Sensor de suelo 2",
     },
     {
         "key": "sensor_2_potassium",
         "label": "Potasio",
-        "unit": "",
+        "unit": "mg/kg",
         "group": "Sensor de suelo 2",
     },
     {
         "key": "sensor_2_salinity",
         "label": "Salinidad",
-        "unit": "",
+        "unit": "mg/L",
         "group": "Sensor de suelo 2",
     },
 
@@ -279,6 +338,30 @@ def validate_sensor_value(field, value):
     """
 
     validators = {
+        "sensor_1_soil_temperature_c": (
+            lambda number: -30 <= number <= 80
+        ),
+        "sensor_1_soil_moisture_percent": (
+            lambda number: 0 <= number <= 100
+        ),
+        "sensor_1_ec": (
+            lambda number: number >= 0
+        ),
+        "sensor_1_ph": (
+            lambda number: 0 <= number <= 14
+        ),
+        "sensor_1_nitrogen": (
+            lambda number: number >= 0
+        ),
+        "sensor_1_phosphorus": (
+            lambda number: number >= 0
+        ),
+        "sensor_1_potassium": (
+            lambda number: number >= 0
+        ),
+        "sensor_1_salinity": (
+            lambda number: number >= 0
+        ),
         "sensor_2_soil_temperature_c": (
             lambda number: -30 <= number <= 80
         ),
@@ -378,11 +461,12 @@ def build_agro_analytics(readings):
     timestamps = []
 
     missing_values = 0
-    invalid_values = 0
+    field_present_counts = {
+        field: 0
+        for field in SENSOR_FIELDS
+    }
 
-    total_expected_values = (
-        len(readings) * len(SENSOR_FIELDS)
-    )
+    total_readings = len(readings)
 
     for original_reading in readings:
         reading = dict(original_reading)
@@ -514,14 +598,9 @@ def build_agro_analytics(readings):
             )
 
             if value is None:
-                missing_values += 1
                 continue
 
-            if not validate_sensor_value(
-                field,
-                value,
-            ):
-                invalid_values += 1
+            field_present_counts[field] += 1
 
         enriched_readings.append(reading)
 
@@ -732,16 +811,32 @@ def build_agro_analytics(readings):
                     "Sin actualización reciente"
                 )
 
-    valid_values = (
-        total_expected_values
-        - missing_values
-        - invalid_values
+    # Solo se evalúan variables que tuvieron al menos
+    # un valor en el período (evita penalizar sensores
+    # inactivos como S1 si aún no reportan).
+    active_fields = [
+        field
+        for field, count in field_present_counts.items()
+        if count > 0
+    ]
+
+    total_expected_values = (
+        total_readings * len(active_fields)
+    )
+
+    present_values = sum(
+        field_present_counts[field]
+        for field in active_fields
+    )
+
+    missing_values = (
+        total_expected_values - present_values
     )
 
     data_integrity_percent = (
         round(
             (
-                valid_values
+                present_values
                 / total_expected_values
             ) * 100,
             1,
@@ -793,7 +888,7 @@ def build_agro_analytics(readings):
             data_integrity_percent
         ),
         "missing_values": missing_values,
-        "invalid_values": invalid_values,
+        "total_records": total_readings,
         "soil_moisture_change": (
             soil_moisture_change
         ),
@@ -1031,30 +1126,78 @@ def s2(request):
     ).strip()
 
     history_range = get_history_range(request)
+    force_refresh = request.GET.get("refresh") == "1"
+
+    dashboard_ttl = getattr(
+        settings,
+        "TELEMETRY_DASHBOARD_CACHE_TTL",
+        120,
+    )
+    max_chart_points = getattr(
+        settings,
+        "TELEMETRY_MAX_CHART_POINTS",
+        720,
+    )
+    max_table_rows = getattr(
+        settings,
+        "TELEMETRY_MAX_TABLE_ROWS",
+        200,
+    )
 
     try:
-        all_readings = SensorReading.objects.using(
-            "telemetry"
-        )
-
-        devices = list(
-            all_readings
-            .order_by("device_id")
-            .values_list("device_id", flat=True)
-            .distinct()
+        devices = get_telemetry_devices(
+            force_refresh=force_refresh
         )
 
         if not selected_device:
-            latest_global = (
-                all_readings
-                .order_by("-received_at")
-                .first()
+            selected_device = (
+                get_latest_device_id(
+                    force_refresh=force_refresh
+                )
+                or ""
             )
 
-            if latest_global:
-                selected_device = latest_global.device_id
+        cache_key = build_dashboard_cache_key(
+            selected_device or "none",
+            history_range["date_from"].isoformat(),
+            history_range["date_to"].isoformat(),
+            history_range["range_key"],
+        )
 
-        readings = all_readings
+        cached_payload = None
+
+        if not force_refresh:
+            cached_payload = cache.get(cache_key)
+
+        if cached_payload is not None:
+            context = {
+                **cached_payload,
+                "devices": devices,
+                "selected_device": selected_device,
+                "selected_range": history_range[
+                    "range_key"
+                ],
+                "date_from": history_range[
+                    "date_from"
+                ].isoformat(),
+                "date_to": history_range[
+                    "date_to"
+                ].isoformat(),
+                "sensor_fields": SENSOR_FIELDS,
+                "sensor_definitions": (
+                    SENSOR_DEFINITIONS
+                ),
+                "database_error": False,
+                "from_cache": True,
+            }
+
+            return render(
+                request,
+                "s2.html",
+                context,
+            )
+
+        readings = telemetry_queryset()
 
         if selected_device:
             readings = readings.filter(
@@ -1063,6 +1206,12 @@ def s2(request):
 
         latest_reading = (
             readings
+            .only(
+                "device_id",
+                "event_timestamp",
+                "received_at",
+                *SENSOR_FIELDS,
+            )
             .order_by("-received_at")
             .first()
         )
@@ -1070,8 +1219,12 @@ def s2(request):
         history_queryset = (
             readings
             .filter(
-                received_at__gte=history_range["start_datetime"],
-                received_at__lt=history_range["end_datetime"],
+                received_at__gte=history_range[
+                    "start_datetime"
+                ],
+                received_at__lt=history_range[
+                    "end_datetime"
+                ],
             )
             .order_by("received_at")
         )
@@ -1091,73 +1244,136 @@ def s2(request):
                 *SENSOR_FIELDS,
             )
         )
-        dashboard_analytics = build_agro_analytics(
-    history_readings
-)
 
-        history_readings = dashboard_analytics[
-            "readings"
-        ]
+        dashboard_analytics = build_agro_analytics(
+            history_readings
+        )
+
+        # Analytics completo en backend; al navegador
+        # solo resumen + serie reducida (sin duplicar readings).
+        chart_readings = downsample_readings(
+            dashboard_analytics["readings"],
+            max_chart_points,
+        )
+
+        # La tabla solo necesita las lecturas más recientes.
+        table_readings = list(
+            reversed(chart_readings)
+        )[:max_table_rows]
+
+        public_analytics = {
+            "summary": dashboard_analytics[
+                "summary"
+            ],
+            "daily": dashboard_analytics["daily"],
+            "wind_rose": dashboard_analytics[
+                "wind_rose"
+            ],
+        }
 
         latest_sensor_data = {}
         latest_metadata = None
 
         if latest_reading:
             latest_sensor_data = {
-                field: getattr(latest_reading, field)
+                field: getattr(
+                    latest_reading,
+                    field,
+                )
                 for field in SENSOR_FIELDS
             }
 
             latest_metadata = {
                 "device_id": latest_reading.device_id,
-                "event_timestamp": latest_reading.event_timestamp,
-                "received_at": latest_reading.received_at,
+                "event_timestamp": (
+                    latest_reading.event_timestamp
+                ),
+                "received_at": (
+                    latest_reading.received_at
+                ),
             }
 
+        cache_payload = {
+            "latest_metadata": latest_metadata,
+            "latest_sensor_data": latest_sensor_data,
+            "history_readings": chart_readings,
+            "table_readings": table_readings,
+            "dashboard_analytics": public_analytics,
+            "total_records": (
+                dashboard_analytics["summary"].get(
+                    "total_records",
+                    len(history_readings),
+                )
+            ),
+        }
+
+        cache.set(
+            cache_key,
+            cache_payload,
+            dashboard_ttl,
+        )
+
         context = {
-    "devices": devices,
-    "selected_device": selected_device,
-    "selected_range": history_range["range_key"],
-    "date_from": history_range["date_from"].isoformat(),
-    "date_to": history_range["date_to"].isoformat(),
-    "latest_reading": latest_reading,
-    "latest_metadata": latest_metadata,
-    "latest_sensor_data": latest_sensor_data,
-    "history_readings": history_readings,
-    "sensor_fields": SENSOR_FIELDS,
-    "sensor_definitions": SENSOR_DEFINITIONS,
-    "dashboard_analytics": dashboard_analytics,
-    "database_error": False,
-}
+            "devices": devices,
+            "selected_device": selected_device,
+            "selected_range": history_range[
+                "range_key"
+            ],
+            "date_from": history_range[
+                "date_from"
+            ].isoformat(),
+            "date_to": history_range[
+                "date_to"
+            ].isoformat(),
+            "latest_reading": latest_reading,
+            "latest_metadata": latest_metadata,
+            "latest_sensor_data": latest_sensor_data,
+            "history_readings": chart_readings,
+            "table_readings": table_readings,
+            "total_records": cache_payload[
+                "total_records"
+            ],
+            "sensor_fields": SENSOR_FIELDS,
+            "sensor_definitions": SENSOR_DEFINITIONS,
+            "dashboard_analytics": public_analytics,
+            "database_error": False,
+            "from_cache": False,
+        }
 
     except DatabaseError:
         logger.exception(
-            "No fue posible consultar la base de telemetría"
+            "No fue posible consultar la base de datos de telemetría"
         )
 
         context = {
             "devices": [],
             "selected_device": selected_device,
-            "selected_range": history_range["range_key"],
-            "date_from": history_range["date_from"].isoformat(),
-            "date_to": history_range["date_to"].isoformat(),
+            "selected_range": history_range[
+                "range_key"
+            ],
+            "date_from": history_range[
+                "date_from"
+            ].isoformat(),
+            "date_to": history_range[
+                "date_to"
+            ].isoformat(),
             "latest_reading": None,
             "latest_metadata": None,
             "latest_sensor_data": {},
             "history_readings": [],
+            "table_readings": [],
+            "total_records": 0,
             "sensor_fields": SENSOR_FIELDS,
             "sensor_definitions": SENSOR_DEFINITIONS,
             "database_error": True,
             "dashboard_analytics": {
-    "summary": {},
-    "daily": [],
-    "wind_rose": [],
-    "readings": [],
-},
+                "summary": {},
+                "daily": [],
+                "wind_rose": [],
+            },
+            "from_cache": False,
         }
-    print(
-    dashboard_analytics["summary"]
-)
+
     return render(
         request,
         "s2.html",

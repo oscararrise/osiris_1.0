@@ -94,8 +94,32 @@ DATABASES = {
         "PASSWORD": "1234",
         "HOST": "127.0.0.1",
         "PORT": "5432",
+        # Reutiliza conexiones para evitar handshake en cada request.
+        "CONN_MAX_AGE": 60,
+        "OPTIONS": {
+            "connect_timeout": 5,
+        },
     },
 }
+
+# Caché del dashboard de telemetría.
+# FileBasedCache funciona sin Redis y sobrevive entre requests del mismo proceso.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": BASE_DIR / "django_cache",
+        "TIMEOUT": 120,
+        "OPTIONS": {
+            "MAX_ENTRIES": 800,
+        },
+    }
+}
+
+# TTL específicos del dashboard s2 (segundos).
+TELEMETRY_DASHBOARD_CACHE_TTL = 120
+TELEMETRY_DEVICES_CACHE_TTL = 300
+TELEMETRY_MAX_CHART_POINTS = 720
+TELEMETRY_MAX_TABLE_ROWS = 200
 
 
 # Password validation

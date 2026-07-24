@@ -421,6 +421,14 @@
             color: #43534c;
         }
 
+        .sensor-unit {
+            display: block;
+            margin-top: 2px;
+            color: var(--agro-muted);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
         .sensor-value {
             min-width: 95px;
             text-align: right;
@@ -435,6 +443,49 @@
 
         .chart-container.large {
             min-height: 410px;
+        }
+
+        .chart-container.wind-rose {
+            max-width: 420px;
+            margin: 0 auto;
+            min-height: 380px;
+        }
+
+        .loading-banner {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(243, 246, 245, 0.88);
+            backdrop-filter: blur(2px);
+            transition: opacity 0.25s ease;
+        }
+
+        .loading-banner.is-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-banner-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 28px;
+            border: 1px solid var(--agro-border);
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 10px 30px rgba(22, 56, 45, 0.12);
+            color: var(--agro-primary-dark);
+            font-weight: 600;
+        }
+
+        .loading-banner-card .spinner-border {
+            width: 1.4rem;
+            height: 1.4rem;
+            border-width: 0.18em;
+            color: var(--agro-primary);
         }
 
         .stat-box {
@@ -616,7 +667,8 @@
 
     .no-print,
     .navbar,
-    #tableSearch {
+    #tableSearch,
+    #loadingBanner {
         display: none !important;
     }
 
@@ -667,6 +719,21 @@
 </head>
 
 <body>
+
+<div
+    id="loadingBanner"
+    class="loading-banner"
+    role="status"
+    aria-live="polite"
+>
+    <div class="loading-banner-card">
+        <div
+            class="spinner-border"
+            role="presentation"
+        ></div>
+        <span>Cargando datos del cultivo…</span>
+    </div>
+</div>
 
 <nav class="top-navbar">
 
@@ -808,6 +875,7 @@
             </div>
 
             <form
+                id="analyticsFilterForm"
                 method="get"
                 action="{% url 's2' %}"
             >
@@ -1194,7 +1262,7 @@
                     </div>
 
                     <div
-                        id="kpiInvalidValues"
+                        id="kpiIntegrityDetail"
                         class="kpi-footnote"
                     >
                         —
@@ -1374,21 +1442,6 @@
                         <div class="col-6">
                             <div class="stat-box">
                                 <div class="stat-label">
-                                    Valores inválidos
-                                </div>
-
-                                <div
-                                    id="qualityInvalid"
-                                    class="stat-value"
-                                >
-                                    —
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-6">
-                            <div class="stat-box">
-                                <div class="stat-label">
                                     Registros
                                 </div>
 
@@ -1401,7 +1454,7 @@
                             </div>
                         </div>
 
-                        <div class="col-6">
+                        <div class="col-12">
                             <div class="stat-box">
                                 <div class="stat-label">
                                     Intervalo mediano
@@ -1509,15 +1562,15 @@
 
                     <div class="mb-3">
                         <h4 class="section-title">
-                            Viento por dirección
+                            Rosa de viento
                         </h4>
 
                         <div class="section-subtitle">
-                            Frecuencia y velocidad promedio por sector.
+                            Distribución circular de lecturas por dirección.
                         </div>
                     </div>
 
-                    <div class="chart-container">
+                    <div class="chart-container wind-rose">
                         <canvas id="windChart"></canvas>
                     </div>
 
@@ -1581,7 +1634,7 @@
                         <i class="fa-solid fa-database"></i>
 
                         <span>
-                            {{ history_readings|length }}
+                            {{ total_records }}
                             registros encontrados
                         </span>
                     </div>
@@ -1639,7 +1692,7 @@
             </h4>
 
             <div class="section-subtitle">
-                Valores más recientes de suelo y estación meteorológica.
+                Valores más recientes de Sensor de suelo 1, Sensor de suelo 2 y estación meteorológica, con sus unidades.
             </div>
         </div>
 
@@ -1733,7 +1786,9 @@
 {{ latest_sensor_data|json_script:"latest-sensor-data" }}
 {{ latest_metadata|json_script:"latest-metadata-data" }}
 {{ history_readings|json_script:"history-readings-data" }}
+{{ table_readings|json_script:"table-readings-data" }}
 {{ dashboard_analytics|json_script:"dashboard-analytics-data" }}
+{{ total_records|json_script:"total-records-data" }}
 
 <script>
     const sensorDefinitions = JSON.parse(
@@ -1759,6 +1814,20 @@
             "history-readings-data"
         ).textContent
     );
+
+    const tableReadings = JSON.parse(
+        document.getElementById(
+            "table-readings-data"
+        ).textContent
+    );
+
+    const totalRecords = Number(
+        JSON.parse(
+            document.getElementById(
+                "total-records-data"
+            ).textContent
+        )
+    ) || historyReadings.length;
 
     const dashboardAnalytics = JSON.parse(
         document.getElementById(
@@ -2006,8 +2075,8 @@
         );
 
         setText(
-            "kpiInvalidValues",
-            `${summary.invalid_values || 0} valores inválidos`
+            "kpiIntegrityDetail",
+            `${summary.missing_values || 0} valores faltantes`
         );
 
         setText(
@@ -2155,10 +2224,10 @@
         addObservation(
             "fa-solid fa-shield-halved",
             "Calidad del conjunto",
-            `La integridad física estimada de los datos es ${formatValue(
+            `La integridad estimada de los datos es ${formatValue(
                 summary.data_integrity_percent,
                 "%"
-            )}, con ${summary.missing_values || 0} valores faltantes y ${summary.invalid_values || 0} valores inválidos.`
+            )}, con ${summary.missing_values || 0} valores faltantes en el período.`
         );
     }
 
@@ -2186,13 +2255,8 @@
         );
 
         setText(
-            "qualityInvalid",
-            summary.invalid_values || 0
-        );
-
-        setText(
             "qualityRecords",
-            historyReadings.length
+            totalRecords
         );
 
         setText(
@@ -2483,12 +2547,20 @@
     }
 
     function createWindChart() {
+        const counts = windRose.map(
+            item => numeric(item.count) || 0
+        );
+
+        const speeds = windRose.map(
+            item => numeric(item.average_speed)
+        );
+
         new Chart(
             document.getElementById(
                 "windChart"
             ),
             {
-                type: "bar",
+                type: "radar",
 
                 data: {
                     labels: windRose.map(
@@ -2497,30 +2569,16 @@
 
                     datasets: [
                         {
-                            label: "Cantidad de lecturas",
-                            data: windRose.map(
-                                item =>
-                                    numeric(
-                                        item.count
-                                    ) || 0
-                            ),
-                            yAxisID: "count",
+                            label: "Lecturas por dirección",
+                            data: counts,
+                            borderColor: "#177558",
                             backgroundColor:
-                                "rgba(23,117,88,0.58)"
-                        },
-                        {
-                            type: "line",
-                            label: "Velocidad promedio (m/s)",
-                            data: windRose.map(
-                                item =>
-                                    numeric(
-                                        item.average_speed
-                                    )
-                            ),
-                            yAxisID: "speed",
-                            borderColor: "#d89025",
+                                "rgba(23,117,88,0.28)",
+                            borderWidth: 2,
+                            pointBackgroundColor:
+                                "#0e5941",
                             pointRadius: 4,
-                            borderWidth: 2
+                            pointHoverRadius: 6
                         }
                     ]
                 },
@@ -2529,23 +2587,56 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        count: {
-                            position: "left",
+                        r: {
                             beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: "Lecturas"
-                            }
-                        },
-                        speed: {
-                            position: "right",
-                            beginAtZero: true,
-                            grid: {
-                                drawOnChartArea: false
+                            ticks: {
+                                backdropColor:
+                                    "transparent",
+                                showLabelBackdrop: false,
+                                precision: 0
                             },
-                            title: {
-                                display: true,
-                                text: "m/s"
+                            grid: {
+                                color: "rgba(22, 56, 45, 0.12)"
+                            },
+                            angleLines: {
+                                color: "rgba(22, 56, 45, 0.16)"
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 13,
+                                    weight: "600"
+                                },
+                                color: "#16382d"
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label(context) {
+                                    const index =
+                                        context.dataIndex;
+
+                                    const count =
+                                        counts[index] || 0;
+
+                                    const speed =
+                                        speeds[index];
+
+                                    const speedText =
+                                        speed === null ||
+                                        speed === undefined
+                                            ? "—"
+                                            : `${speed} m/s`;
+
+                                    return [
+                                        `Lecturas: ${count}`,
+                                        `Velocidad promedio: ${speedText}`
+                                    ];
+                                }
                             }
                         }
                     }
@@ -2703,6 +2794,11 @@
                         row.innerHTML = `
                             <span class="sensor-label">
                                 ${sensor.label}
+                                ${
+                                    sensor.unit
+                                        ? `<span class="sensor-unit">${sensor.unit}</span>`
+                                        : ""
+                                }
                             </span>
 
                             <span class="sensor-value">
@@ -2737,7 +2833,9 @@
 
             option.value = sensor.key;
             option.textContent =
-                `${sensor.group} — ${sensor.label}`;
+                sensor.unit
+                    ? `${sensor.group} — ${sensor.label} (${sensor.unit})`
+                    : `${sensor.group} — ${sensor.label}`;
 
             sensorSelector.appendChild(option);
         }
@@ -2932,8 +3030,7 @@
                 .toLowerCase();
 
         const filteredReadings =
-            [...historyReadings]
-                .reverse()
+            tableReadings
                 .filter(
                     reading => {
                         if (!normalizedFilter) {
@@ -3050,6 +3147,57 @@
     if (sensorDefinitions.length) {
         updateExplorer();
     }
+
+    function hideLoadingBanner() {
+        const banner =
+            document.getElementById(
+                "loadingBanner"
+            );
+
+        if (!banner) {
+            return;
+        }
+
+        banner.classList.add("is-hidden");
+
+        window.setTimeout(
+            () => {
+                banner.style.display = "none";
+            },
+            280
+        );
+    }
+
+    document
+        .getElementById(
+            "analyticsFilterForm"
+        )
+        ?.addEventListener(
+            "submit",
+            () => {
+                const banner =
+                    document.getElementById(
+                        "loadingBanner"
+                    );
+
+                if (!banner) {
+                    return;
+                }
+
+                banner.style.display = "flex";
+                banner.classList.remove(
+                    "is-hidden"
+                );
+            }
+        );
+
+    window.addEventListener(
+        "load",
+        hideLoadingBanner
+    );
+
+    hideLoadingBanner();
+
     const stationCoordinates = {
     latitude: 3.957244,
     longitude: -73.495725

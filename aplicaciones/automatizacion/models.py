@@ -87,6 +87,7 @@ class SensorReading(models.Model):
     class Meta:
         managed = False
         db_table = '"telemetry"."sensor_readings"'
+        # Índices de rendimiento: aplicaciones/automatizacion/sql/optimize_telemetry.sql
 
     def __str__(self):
         return f"{self.device_id} - {self.received_at}"
