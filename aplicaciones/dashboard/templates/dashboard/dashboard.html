@@ -1,0 +1,154 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de sensores | OSIRIS{% endblock %}
+
+{% block content %}
+<section class="dashboard-heading">
+    <div>
+        <p class="eyebrow">Monitoreo en tiempo real</p>
+        <h1>Dashboard de sensores</h1>
+        <p>Lecturas, estado técnico y alertas de {{ current_client.name }}.</p>
+    </div>
+    {% if source %}<span class="status-pill success"><i></i>{{ source.name }} conectada</span>{% endif %}
+</section>
+
+{% if dashboard_error %}
+    <section class="empty-state dashboard-error">
+        <div class="empty-icon">!</div>
+        <h2>No fue posible cargar el dashboard</h2>
+        <p>{{ dashboard_error }}</p>
+        {% if user.is_staff %}<a class="button button-primary" href="{% url 'admin:core_client_changelist' %}">Revisar configuración</a>{% endif %}
+    </section>
+{% elif not sensors %}
+    <section class="empty-state">
+        <div class="empty-icon">○</div>
+        <h2>No hay sensores disponibles</h2>
+        <p>La conexión funciona, pero la fuente de datos aún no contiene sensores activos.</p>
+    </section>
+{% else %}
+    <form class="filter-bar" method="get" id="dashboard-filters">
+        <label>
+            <span>Sensor</span>
+            <select name="sensor" onchange="this.form.submit()">
+                {% for sensor in sensors %}
+                    <option value="{{ sensor.id }}" {% if sensor.id|stringformat:'s' == selected_sensor_id %}selected{% endif %}>{{ sensor.name }}{% if sensor.code %} · {{ sensor.code }}{% endif %}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            <span>Métrica</span>
+            <select name="metric" id="metric-select">
+                {% for metric in metrics %}
+                    <option value="{{ metric.id }}" data-probe="{{ metric.probe_no }}" {% if metric.id|stringformat:'s' == selected_metric_id and metric.probe_no == selected_probe_no %}selected{% endif %}>{{ metric.name }}{% if metric.probe_no %} · Sonda {{ metric.probe_no }}{% endif %}</option>
+                {% empty %}
+                    <option value="">Sin métricas</option>
+                {% endfor %}
+            </select>
+        </label>
+        <input type="hidden" name="probe" id="probe-input" value="{{ selected_probe_no|default:0 }}">
+        <label>
+            <span>Periodo</span>
+            <select name="range">
+                {% for key, range in ranges.items %}
+                    <option value="{{ key }}" {% if key == selected_range %}selected{% endif %}>{{ range.0 }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button class="button button-primary" type="submit">Aplicar</button>
+    </form>
+
+    <section class="sensor-summary">
+        <div class="sensor-identity">
+            <span class="sensor-orbit"><i></i></span>
+            <div>
+                <small>{{ selected_sensor.type_name }}</small>
+                <h2>{{ selected_sensor.name }}</h2>
+                <p>{{ selected_sensor.code|default:selected_sensor.id }}</p>
+            </div>
+        </div>
+        <div class="health-metrics">
+            <div><span>Estado</span><strong class="healthy">{% if selected_sensor.is_active %}Activo{% else %}Inactivo{% endif %}</strong></div>
+            <div><span>Última telemetría</span><strong>{% if selected_sensor.last_seen_at %}{{ selected_sensor.last_seen_at|date:'d M, H:i' }}{% else %}Sin dato{% endif %}</strong></div>
+            <div><span>Batería</span><strong>{% if selected_sensor.battery_value != None %}{{ selected_sensor.battery_value|floatformat:0 }} {{ selected_sensor.battery_unit|default:'' }}{% else %}—{% endif %}</strong></div>
+            <div><span>Señal</span><strong>{% if selected_sensor.rssi_dbm != None %}{{ selected_sensor.rssi_dbm|floatformat:0 }} dBm{% else %}—{% endif %}</strong></div>
+        </div>
+    </section>
+
+    <section class="metric-grid" aria-label="Últimas lecturas">
+        {% for reading in latest_values|slice:':8' %}
+            <article class="metric-card {% if reading.id|stringformat:'s' == selected_metric_id and reading.probe_no == selected_probe_no %}selected{% endif %}">
+                <div class="metric-card-head">
+                    <span>{{ reading.name }}{% if reading.probe_no %} · S{{ reading.probe_no }}{% endif %}</span>
+                    <i></i>
+                </div>
+                <p><strong>{{ reading.value|floatformat:reading.precision_digits }}</strong><small>{{ reading.unit }}</small></p>
+                <time datetime="{{ reading.measured_at|date:'c' }}">{{ reading.measured_at|timesince }} atrás</time>
+            </article>
+        {% empty %}
+            <article class="metric-card placeholder"><p>No hay lecturas recientes para este sensor.</p></article>
+        {% endfor %}
+    </section>
+
+    <section class="dashboard-grid">
+        <article class="panel chart-panel">
+            <header class="panel-header">
+                <div>
+                    <p class="eyebrow">Tendencia</p>
+                    <h2>{{ selected_metric.name|default:'Sin métrica disponible' }}{% if selected_probe_no %} · Sonda {{ selected_probe_no }}{% endif %}</h2>
+                </div>
+                {% if selected_metric.unit %}<span class="unit-chip">{{ selected_metric.unit }}</span>{% endif %}
+            </header>
+            {% if series %}
+                <div class="chart-wrap"><canvas id="trend-chart" aria-label="Gráfica de tendencia"></canvas></div>
+                <div class="chart-statistics">
+                    <div><span>Promedio</span><strong>{{ statistics.average|floatformat:2 }}</strong></div>
+                    <div><span>Mínimo</span><strong>{{ statistics.minimum|floatformat:2 }}</strong></div>
+                    <div><span>Máximo</span><strong>{{ statistics.maximum|floatformat:2 }}</strong></div>
+                    <div><span>Muestras</span><strong>{{ statistics.samples }}</strong></div>
+                </div>
+            {% else %}
+                <div class="chart-empty">No hay lecturas en el periodo seleccionado.</div>
+            {% endif %}
+        </article>
+
+        <aside class="panel alarms-panel">
+            <header class="panel-header">
+                <div>
+                    <p class="eyebrow">Atención</p>
+                    <h2>Alertas activas</h2>
+                </div>
+                <span class="count-badge">{{ alarms|length }}</span>
+            </header>
+            <div class="alarm-list">
+                {% for alarm in alarms|slice:':6' %}
+                    <article class="alarm-item">
+                        <span class="alarm-dot severity-{{ alarm.severity|default:0 }}"></span>
+                        <div>
+                            <strong>{{ alarm.rule_name }}</strong>
+                            <p>{{ alarm.metric_name }}{% if alarm.worst_value != None %}: {{ alarm.worst_value|floatformat:2 }} {{ alarm.unit }}{% endif %}</p>
+                            <time>{{ alarm.alarmed_at|date:'d M Y, H:i'|default:'Fecha no disponible' }}</time>
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="all-clear"><span>✓</span><strong>Todo en orden</strong><p>No hay alertas activas para este sensor.</p></div>
+                {% endfor %}
+            </div>
+        </aside>
+    </section>
+    {{ series|json_script:'series-data' }}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if series %}<script src="{% static 'dashboard/dashboard.js' %}" defer></script>{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const metric = document.getElementById('metric-select');
+    const probe = document.getElementById('probe-input');
+    if (metric && probe) metric.addEventListener('change', function () {
+        probe.value = metric.options[metric.selectedIndex].dataset.probe || '0';
+    });
+});
+</script>
+{% endblock %}

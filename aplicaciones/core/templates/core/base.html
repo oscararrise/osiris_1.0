@@ -1,0 +1,46 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>{% block title %}OSIRIS{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'dashboard/platform.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body style="--client-primary: {{ current_client.primary_color|default:'#176247' }}">
+    <header class="topbar">
+        <a class="brand" href="{% url 'inicio' %}" aria-label="Ir al inicio">
+            <span class="brand-mark">O</span>
+            <span><strong>OSIRIS</strong><small>{{ current_client.name|default:'Plataforma de monitoreo' }}</small></span>
+        </a>
+        {% if user.is_authenticated %}
+            <nav class="topbar-actions" aria-label="Cuenta">
+                <span class="user-chip"><span>{{ user.get_short_name|default:user.username|slice:':1'|upper }}</span>{{ user.get_short_name|default:user.username }}</span>
+                {% if user.is_staff %}<a class="quiet-link" href="{% url 'admin:index' %}">Administrar</a>{% endif %}
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button class="button button-ghost" type="submit">Salir</button>
+                </form>
+            </nav>
+        {% endif %}
+    </header>
+    {% if user.is_authenticated and available_modules %}
+        <nav class="module-nav" aria-label="Módulos habilitados">
+            {% for module in available_modules %}
+                <a href="{% url module.route_name %}" {% if request.resolver_match.url_name == module.route_name %}aria-current="page"{% endif %}>{{ module.name }}</a>
+            {% endfor %}
+        </nav>
+    {% endif %}
+    <main class="page-shell">
+        {% if messages %}
+            <div class="messages" role="status">
+                {% for message in messages %}<div class="message">{{ message }}</div>{% endfor %}
+            </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

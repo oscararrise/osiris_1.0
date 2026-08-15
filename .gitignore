@@ -12,6 +12,7 @@ env/
 .env
 .env.*
 !.env.example
+config/client_databases.json
 
 # Bases locales
 *.sqlite3
@@ -31,3 +32,10 @@ Thumbs.db
 
 # Caché de Django (dashboard telemetría)
 django_cache/
+staticfiles/
+
+# Pruebas y calidad
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/

@@ -1,5 +1,4 @@
 from django.db import models
-import jsonfield
 class data(models.Model):
     nombre = models.CharField(max_length=100)
     clave = models.CharField(max_length=100)  # Asegura que la clave es un campo de texto
@@ -19,22 +18,12 @@ class SensorData(models.Model):
 
 
 
-class ControlData(models.Model):
-    cliente = models.CharField(max_length=255)
-    fecha = models.CharField(max_length=255)
-    control_data =  models.CharField(max_length=255)
-
-    class Meta:
-        db_table = 'control_data'
-
-
-class Support(models.Model):
-    cliente = models.CharField(max_length=255)
-    fecha = models.CharField(max_length=255)
-    estado = models.CharField(max_length=255)
-    support_information = models.CharField(max_length=255)
-    class Meta:
-        db_table = 'support'
+# Modelo histórico conservado solo para mantener el estado de migraciones antiguas.
+# Las nuevas escrituras usan core.ControlEvent, que sí tiene FK al cliente.
+class control_data(models.Model):  # noqa: N801
+    cliente = models.CharField(max_length=100)
+    fecha = models.CharField(max_length=100)
+    control_data = models.CharField(max_length=100)
 
 
 class SensorReading(models.Model):
