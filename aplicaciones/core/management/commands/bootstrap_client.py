@@ -20,7 +20,11 @@ class Command(BaseCommand):
         parser.add_argument("--name", required=True, help="Nombre comercial del cliente")
         parser.add_argument("--slug", help="Identificador; por defecto se deriva del nombre")
         parser.add_argument("--db-alias", required=True, help="Alias declarado en CLIENT_DATABASES")
-        parser.add_argument("--adapter", default="aranet", choices=("aranet",))
+        parser.add_argument(
+            "--adapter",
+            default=ClientDataSource.Adapter.ARANET,
+            choices=tuple(ClientDataSource.Adapter.values),
+        )
         parser.add_argument("--username", required=True)
         parser.add_argument("--email", default="")
         parser.add_argument(
