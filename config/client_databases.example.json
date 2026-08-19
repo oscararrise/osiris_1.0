@@ -9,5 +9,16 @@
     "SSLMODE": "prefer",
     "CONN_MAX_AGE": 60,
     "CONNECT_TIMEOUT": 5
+  },
+  "telemetry_db": {
+    "ENGINE": "django.db.backends.postgresql",
+    "NAME": "agro_platform",
+    "USER": "osiris_telemetry_reader",
+    "PASSWORD": "replace-outside-git",
+    "HOST": "127.0.0.1",
+    "PORT": "5432",
+    "SSLMODE": "prefer",
+    "CONN_MAX_AGE": 60,
+    "CONNECT_TIMEOUT": 5
   }
 }
