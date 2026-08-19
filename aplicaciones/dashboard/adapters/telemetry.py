@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import math
+import math  # noqa: I001
 from datetime import datetime
 from typing import Any
 
@@ -10,7 +10,11 @@ from .base import SensorDataAdapter
 
 
 METRICS: dict[str, dict[str, Any]] = {
-    "sensor_1_soil_temperature_c": {"name": "Temperatura del suelo 1", "unit": "°C", "precision": 2},
+    "sensor_1_soil_temperature_c": {
+        "name": "Temperatura del suelo 1",
+        "unit": "°C",
+        "precision": 2,
+    },
     "sensor_1_soil_moisture_percent": {"name": "Humedad del suelo 1", "unit": "%", "precision": 2},
     "sensor_1_ec": {"name": "Conductividad eléctrica suelo 1", "unit": "µS/cm", "precision": 2},
     "sensor_1_ph": {"name": "pH suelo 1", "unit": "pH", "precision": 2},
@@ -18,7 +22,11 @@ METRICS: dict[str, dict[str, Any]] = {
     "sensor_1_phosphorus": {"name": "Fósforo suelo 1", "unit": "mg/kg", "precision": 2},
     "sensor_1_potassium": {"name": "Potasio suelo 1", "unit": "mg/kg", "precision": 2},
     "sensor_1_salinity": {"name": "Salinidad suelo 1", "unit": "mg/L", "precision": 2},
-    "sensor_2_soil_temperature_c": {"name": "Temperatura del suelo 2", "unit": "°C", "precision": 2},
+    "sensor_2_soil_temperature_c": {
+        "name": "Temperatura del suelo 2",
+        "unit": "°C",
+        "precision": 2,
+    },
     "sensor_2_soil_moisture_percent": {"name": "Humedad del suelo 2", "unit": "%", "precision": 2},
     "sensor_2_ec": {"name": "Conductividad eléctrica suelo 2", "unit": "µS/cm", "precision": 2},
     "sensor_2_ph": {"name": "pH suelo 2", "unit": "pH", "precision": 2},
@@ -37,7 +45,11 @@ METRICS: dict[str, dict[str, Any]] = {
     "sunshine_duration_h": {"name": "Brillo solar", "unit": "h", "precision": 2},
     "dew_point_temperature_c": {"name": "Punto de rocío", "unit": "°C", "precision": 2},
     "et0_mm": {"name": "Evapotranspiración de referencia", "unit": "mm", "precision": 2},
-    "level_temperature_c": {"name": "Temperatura del sensor de nivel", "unit": "°C", "precision": 2},
+    "level_temperature_c": {
+        "name": "Temperatura del sensor de nivel",
+        "unit": "°C",
+        "precision": 2,
+    },
     "level_value": {"name": "Nivel", "unit": "", "precision": 2},
 }
 
