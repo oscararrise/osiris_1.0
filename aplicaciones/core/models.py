@@ -53,6 +53,7 @@ class Client(models.Model):
 class ClientDataSource(models.Model):
     class Adapter(models.TextChoices):
         ARANET = "aranet", "Aranet PostgreSQL"
+        TELEMETRY = "telemetry", "Telemetría agrícola PostgreSQL"
 
     client = models.OneToOneField(
         Client,
