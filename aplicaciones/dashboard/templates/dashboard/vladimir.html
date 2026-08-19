@@ -1,0 +1,388 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Intelligence Dashboard | {{ current_client.name }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'dashboard/vladimir.css' %}">
+{% endblock %}
+
+{% block content %}
+{% if dashboard_error %}
+<section class="vx-empty-state">
+    <span class="vx-empty-icon">!</span>
+    <p class="vx-kicker">OSIRIS Intelligence</p>
+    <h1>No fue posible cargar la analítica</h1>
+    <p>{{ dashboard_error }}</p>
+</section>
+{% elif not sensors %}
+<section class="vx-empty-state">
+    <span class="vx-empty-icon">○</span>
+    <p class="vx-kicker">OSIRIS Intelligence</p>
+    <h1>Sin sensores disponibles</h1>
+    <p>La fuente está conectada, pero todavía no contiene sensores activos.</p>
+</section>
+{% else %}
+<section class="vx-hero">
+    <div class="vx-hero-copy">
+        <div class="vx-hero-topline">
+            <span class="vx-live"><i></i> Intelligence Dashboard</span>
+            <span class="vx-period-label">{{ ranges|get_item:selected_range|default:'' }}</span>
+        </div>
+        <h1>Visibilidad operativa que convierte telemetría en decisiones.</h1>
+        <p>
+            Análisis comparativo, salud de flota y señales accionables para
+            <strong>{{ current_client.name }}</strong>.
+        </p>
+    </div>
+    <div class="vx-hero-status">
+        <span>Fuente de datos</span>
+        <strong>{{ source.name }}</strong>
+        <small><i></i> Conexión activa</small>
+    </div>
+</section>
+
+<form class="vx-filterbar" method="get" id="dashboard-filters">
+    <label>
+        <span>Sensor</span>
+        <select name="sensor" onchange="this.form.submit()">
+            {% for sensor in sensors %}
+            <option value="{{ sensor.id }}" {% if sensor.id|stringformat:'s' == selected_sensor_id %}selected{% endif %}>
+                {{ sensor.name }}{% if sensor.code %} · {{ sensor.code }}{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>
+        <span>Métrica analizada</span>
+        <select name="metric" id="metric-select">
+            {% for metric in metrics %}
+            <option value="{{ metric.id }}" data-probe="{{ metric.probe_no }}" {% if metric.id|stringformat:'s' == selected_metric_id and metric.probe_no == selected_probe_no %}selected{% endif %}>
+                {{ metric.name }}{% if metric.probe_no %} · Sonda {{ metric.probe_no }}{% endif %}
+            </option>
+            {% empty %}
+            <option value="">Sin métricas</option>
+            {% endfor %}
+        </select>
+    </label>
+    <input type="hidden" name="probe" id="probe-input" value="{{ selected_probe_no|default:0 }}">
+    <label>
+        <span>Ventana de análisis</span>
+        <select name="range">
+            {% for key, range in ranges.items %}
+            <option value="{{ key }}" {% if key == selected_range %}selected{% endif %}>{{ range.0 }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <button class="vx-apply" type="submit">Actualizar análisis</button>
+</form>
+
+{% if executive %}
+<section class="vx-kpis" aria-label="Indicadores ejecutivos">
+    <article class="vx-kpi vx-kpi-primary">
+        <div class="vx-kpi-label"><span>Disponibilidad de flota</span><i class="vx-dot vx-dot-good"></i></div>
+        <strong>{{ executive.fleet.availability_pct|floatformat:1 }}%</strong>
+        <p>{{ executive.fleet.online }} de {{ executive.fleet.total }} sensores reportando recientemente</p>
+        <div class="vx-progress"><span style="width: {{ executive.fleet.availability_pct|floatformat:0 }}%"></span></div>
+    </article>
+
+    <article class="vx-kpi">
+        <div class="vx-kpi-label"><span>Promedio · {{ selected_metric.name }}</span><span class="vx-mini-unit">{{ selected_metric.unit }}</span></div>
+        <strong>{% if statistics.average != None %}{{ statistics.average|floatformat:selected_metric.precision_digits }}{% else %}—{% endif %}</strong>
+        <p>
+            {% if executive.average_delta_pct != None %}
+                <span class="vx-delta {% if executive.average_delta_pct > 0 %}up{% elif executive.average_delta_pct < 0 %}down{% endif %}">
+                    {{ executive.average_delta_pct|floatformat:1 }}%
+                </span>
+                vs. periodo anterior
+            {% else %}
+                Sin base comparable suficiente
+            {% endif %}
+        </p>
+    </article>
+
+    <article class="vx-kpi">
+        <div class="vx-kpi-label"><span>Volumen de datos</span><span class="vx-kpi-icon">Σ</span></div>
+        <strong>{{ statistics.samples|default:0 }}</strong>
+        <p>
+            {% if executive.sample_delta_pct != None %}
+                <span class="vx-delta {% if executive.sample_delta_pct > 0 %}up{% elif executive.sample_delta_pct < 0 %}down{% endif %}">
+                    {{ executive.sample_delta_pct|floatformat:1 }}%
+                </span>
+                vs. periodo anterior
+            {% else %}
+                muestras en la ventana seleccionada
+            {% endif %}
+        </p>
+    </article>
+
+    <article class="vx-kpi">
+        <div class="vx-kpi-label"><span>Alertas activas</span><i class="vx-dot {% if executive.fleet_alarms %}vx-dot-risk{% else %}vx-dot-good{% endif %}"></i></div>
+        <strong>{{ executive.fleet_alarms|length }}</strong>
+        <p>{% if executive.fleet_alarms %}requieren revisión en la flota{% else %}sin incidencias activas detectadas{% endif %}</p>
+    </article>
+</section>
+
+<section class="vx-insights" aria-label="Insights automáticos">
+    <div class="vx-section-heading">
+        <div>
+            <p class="vx-kicker">Data intelligence</p>
+            <h2>Qué está diciendo la información</h2>
+        </div>
+        <span class="vx-ai-badge">ANÁLISIS AUTOMÁTICO</span>
+    </div>
+    <div class="vx-insight-grid">
+        {% for insight in executive.insights %}
+        <article class="vx-insight vx-insight-{{ insight.tone }}">
+            <span class="vx-insight-marker"></span>
+            <div>
+                <strong>{{ insight.title }}</strong>
+                <p>{{ insight.text }}</p>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="vx-sensor-strip">
+    <div class="vx-sensor-name">
+        <span class="vx-sensor-orbit"><i></i></span>
+        <div>
+            <small>{{ selected_sensor.type_name }}</small>
+            <h2>{{ selected_sensor.name }}</h2>
+            <p>{{ selected_sensor.code|default:selected_sensor.id }}</p>
+        </div>
+    </div>
+    <div class="vx-sensor-facts">
+        <div>
+            <span>Estado</span>
+            <strong class="{% if executive.selected_health.health_status == 'online' %}good{% elif executive.selected_health.health_status == 'delayed' %}warning{% else %}risk{% endif %}">
+                {{ executive.selected_health.health_label|default:'Activo' }}
+            </strong>
+        </div>
+        <div>
+            <span>Última telemetría</span>
+            <strong>{% if selected_sensor.last_seen_at %}{{ selected_sensor.last_seen_at|date:'d M · H:i' }}{% else %}Sin dato{% endif %}</strong>
+        </div>
+        <div>
+            <span>Batería</span>
+            <strong>{% if selected_sensor.battery_value != None %}{{ selected_sensor.battery_value|floatformat:0 }} {{ selected_sensor.battery_unit|default:'' }}{% else %}—{% endif %}</strong>
+        </div>
+        <div>
+            <span>Señal</span>
+            <strong>{% if selected_sensor.rssi_dbm != None %}{{ selected_sensor.rssi_dbm|floatformat:0 }} dBm{% else %}—{% endif %}</strong>
+        </div>
+    </div>
+</section>
+
+<section class="vx-main-grid">
+    <article class="vx-panel vx-trend-panel">
+        <header class="vx-panel-head">
+            <div>
+                <p class="vx-kicker">Comparativa temporal</p>
+                <h2>{{ selected_metric.name|default:'Métrica' }}{% if selected_probe_no %} · Sonda {{ selected_probe_no }}{% endif %}</h2>
+                <p>Periodo actual frente al periodo inmediatamente anterior de igual duración.</p>
+            </div>
+            <div class="vx-chart-legend">
+                <span><i class="current"></i>Actual</span>
+                <span><i class="previous"></i>Anterior</span>
+            </div>
+        </header>
+        {% if series %}
+        <div class="vx-chart-wrap">
+            <canvas id="comparison-chart" aria-label="Comparación temporal"></canvas>
+            <div id="comparison-tooltip" class="vx-chart-tooltip" hidden></div>
+        </div>
+        <div class="vx-trend-foot">
+            <div>
+                <span>Cambio inicio → cierre</span>
+                <strong>{% if statistics.period_change_pct != None %}{{ statistics.period_change_pct|floatformat:1 }}%{% else %}—{% endif %}</strong>
+            </div>
+            <div>
+                <span>Desviación estándar</span>
+                <strong>{% if statistics.standard_deviation != None %}{{ statistics.standard_deviation|floatformat:2 }}{% else %}—{% endif %}</strong>
+            </div>
+            <div>
+                <span>Variabilidad relativa</span>
+                <strong>{% if statistics.coefficient_variation != None %}{{ statistics.coefficient_variation|floatformat:1 }}%{% else %}—{% endif %}</strong>
+            </div>
+            <div>
+                <span>Unidad</span>
+                <strong>{{ selected_metric.unit|default:'—' }}</strong>
+            </div>
+        </div>
+        {% else %}
+        <div class="vx-chart-empty">No hay suficientes lecturas en este periodo.</div>
+        {% endif %}
+    </article>
+
+    {% if executive %}
+    <aside class="vx-panel vx-health-panel">
+        <header class="vx-panel-head compact">
+            <div>
+                <p class="vx-kicker">Fleet health</p>
+                <h2>Salud de sensores</h2>
+                <p>Recencia de telemetría en toda la flota.</p>
+            </div>
+        </header>
+        <div class="vx-donut-wrap">
+            <canvas id="fleet-health-chart" width="230" height="230"></canvas>
+            <div class="vx-donut-center">
+                <strong>{{ executive.fleet.availability_pct|floatformat:0 }}%</strong>
+                <span>recientes</span>
+            </div>
+        </div>
+        <div class="vx-health-legend">
+            <div><i class="online"></i><span>En línea</span><strong>{{ executive.fleet.online }}</strong></div>
+            <div><i class="delayed"></i><span>Con retraso</span><strong>{{ executive.fleet.delayed }}</strong></div>
+            <div><i class="offline"></i><span>Sin telemetría</span><strong>{{ executive.fleet.offline }}</strong></div>
+        </div>
+        <div class="vx-rssi-summary">
+            <span>Señal promedio de flota</span>
+            <strong>{% if executive.fleet.average_rssi != None %}{{ executive.fleet.average_rssi|floatformat:0 }} dBm{% else %}Sin dato{% endif %}</strong>
+            <small>{{ executive.fleet.rssi_samples }} sensores con RSSI disponible</small>
+        </div>
+    </aside>
+    {% endif %}
+</section>
+
+{% if executive %}
+<section class="vx-secondary-grid">
+    <article class="vx-panel vx-comparison-panel">
+        <header class="vx-panel-head compact">
+            <div>
+                <p class="vx-kicker">Benchmark temporal</p>
+                <h2>Periodo actual vs. anterior</h2>
+            </div>
+        </header>
+        <div class="vx-comparison-table">
+            <div class="vx-comparison-row header">
+                <span>Indicador</span><span>Actual</span><span>Anterior</span><span>Variación</span>
+            </div>
+            {% for row in executive.comparison_rows %}
+            <div class="vx-comparison-row">
+                <strong>{{ row.label }}</strong>
+                <span>{% if row.current != None %}{% if row.is_count %}{{ row.current }}{% else %}{{ row.current|floatformat:2 }}{% endif %}{% else %}—{% endif %}</span>
+                <span>{% if row.previous != None %}{% if row.is_count %}{{ row.previous }}{% else %}{{ row.previous|floatformat:2 }}{% endif %}{% else %}—{% endif %}</span>
+                <span class="vx-delta {% if row.delta_pct > 0 %}up{% elif row.delta_pct < 0 %}down{% endif %}">{% if row.delta_pct != None %}{{ row.delta_pct|floatformat:1 }}%{% else %}—{% endif %}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="vx-panel vx-alert-panel">
+        <header class="vx-panel-head compact">
+            <div>
+                <p class="vx-kicker">Risk monitoring</p>
+                <h2>Alertas de flota</h2>
+            </div>
+            <span class="vx-count-badge">{{ executive.fleet_alarms|length }}</span>
+        </header>
+        <div class="vx-alert-list">
+            {% for alarm in executive.fleet_alarms|slice:':5' %}
+            <article class="vx-alert-item">
+                <i class="severity-{{ alarm.severity|default:0 }}"></i>
+                <div>
+                    <strong>{{ alarm.rule_name }}</strong>
+                    <p>{{ alarm.sensor_name }} · {{ alarm.metric_name }}</p>
+                    <small>{{ alarm.alarmed_at|date:'d M Y · H:i'|default:'Sin fecha' }}</small>
+                </div>
+            </article>
+            {% empty %}
+            <div class="vx-all-clear">
+                <span>✓</span>
+                <strong>Operación sin alertas activas</strong>
+                <p>No hay reglas activas reportadas por Aranet en este momento.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+{% endif %}
+
+<section class="vx-section-block">
+    <div class="vx-section-heading">
+        <div>
+            <p class="vx-kicker">Lectura instantánea</p>
+            <h2>Variables del sensor seleccionado</h2>
+        </div>
+        <span class="vx-section-note">Último valor disponible por métrica</span>
+    </div>
+    <div class="vx-metric-grid">
+        {% for reading in latest_values|slice:':12' %}
+        <article class="vx-metric-card {% if reading.id|stringformat:'s' == selected_metric_id and reading.probe_no == selected_probe_no %}selected{% endif %}">
+            <div class="vx-metric-head">
+                <span>{{ reading.name }}{% if reading.probe_no %} · S{{ reading.probe_no }}{% endif %}</span>
+                <i></i>
+            </div>
+            <div class="vx-metric-value">
+                <strong>{{ reading.value|floatformat:reading.precision_digits }}</strong>
+                <small>{{ reading.unit }}</small>
+            </div>
+            <time>{{ reading.measured_at|timesince }} atrás</time>
+        </article>
+        {% empty %}
+        <div class="vx-no-data">Sin lecturas recientes.</div>
+        {% endfor %}
+    </div>
+</section>
+
+{% if executive %}
+<section class="vx-section-block">
+    <div class="vx-section-heading">
+        <div>
+            <p class="vx-kicker">Observabilidad</p>
+            <h2>Estado de la flota</h2>
+        </div>
+        <span class="vx-section-note">Umbral reciente: {{ executive.fleet.freshness_minutes }} min</span>
+    </div>
+    <div class="vx-fleet-table-wrap">
+        <table class="vx-fleet-table">
+            <thead>
+                <tr>
+                    <th>Sensor</th>
+                    <th>Estado</th>
+                    <th>Última telemetría</th>
+                    <th>RSSI</th>
+                    <th>Batería</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sensor in executive.fleet.sensors %}
+                <tr>
+                    <td><strong>{{ sensor.name }}</strong><small>{{ sensor.code|default:sensor.id }}</small></td>
+                    <td><span class="vx-health-pill {{ sensor.health_status }}"><i></i>{{ sensor.health_label }}</span></td>
+                    <td>{% if sensor.last_seen_at %}{{ sensor.last_seen_at|date:'d M Y · H:i' }}{% else %}Sin dato{% endif %}</td>
+                    <td>{% if sensor.rssi_dbm != None %}{{ sensor.rssi_dbm|floatformat:0 }} dBm{% else %}—{% endif %}</td>
+                    <td>{% if sensor.battery_value != None %}{{ sensor.battery_value|floatformat:0 }} {{ sensor.battery_unit|default:'' }}{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endif %}
+
+{{ series|json_script:'current-series-data' }}
+{% if executive %}
+{{ executive.previous_series|json_script:'previous-series-data' }}
+{{ executive.fleet|json_script:'fleet-health-data' }}
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'dashboard/vladimir.js' %}" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const metric = document.getElementById('metric-select');
+    const probe = document.getElementById('probe-input');
+    if (metric && probe) {
+        metric.addEventListener('change', function () {
+            probe.value = metric.options[metric.selectedIndex].dataset.probe || '0';
+        });
+    }
+});
+</script>
+{% endblock %}
