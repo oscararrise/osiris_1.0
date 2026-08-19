@@ -13,5 +13,7 @@ urlpatterns = [
         name="login",
     ),
     path("salir/", auth_views.LogoutView.as_view(), name="logout"),
+    # Compatibilidad con las plantillas legacy de OSIRIS 1.0 que hacen POST a /salir.
+    path("salir", auth_views.LogoutView.as_view(), name="logout_legacy"),
     path("inicio/", views.operations, name="inicio"),
 ]
