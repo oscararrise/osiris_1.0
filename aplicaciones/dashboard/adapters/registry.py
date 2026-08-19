@@ -6,9 +6,11 @@ from aplicaciones.core.models import ClientDataSource
 
 from .aranet import AranetAdapter
 from .base import AdapterConfigurationError, SensorDataAdapter
+from .telemetry import TelemetryAdapter
 
 ADAPTERS: dict[str, type[SensorDataAdapter]] = {
     ClientDataSource.Adapter.ARANET: AranetAdapter,
+    ClientDataSource.Adapter.TELEMETRY: TelemetryAdapter,
 }
 
 
