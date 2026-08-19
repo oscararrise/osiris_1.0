@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.http import HttpResponse
 from django.test import TestCase
 from django.urls import reverse
 
@@ -59,8 +62,6 @@ class TenantAccessTests(TestCase):
     def test_dashboard_always_uses_client_from_authenticated_membership(self):
         self.client.force_login(self.user_a)
         with self.settings(DEBUG=False):
-            from unittest.mock import patch
-
             with patch.object(
                 dashboard_views,
                 "build_dashboard",
@@ -84,6 +85,40 @@ class TenantAccessTests(TestCase):
         response = self.client.get(reverse("inicio"))
         self.assertContains(response, "Dashboard")
         self.assertNotContains(response, "Visión artificial")
+
+    def test_telemetry_client_keeps_legacy_home(self):
+        ClientDataSource.objects.create(
+            client=self.client_a,
+            database_alias="telemetry_db",
+            adapter_key=ClientDataSource.Adapter.TELEMETRY,
+        )
+        self.client.force_login(self.user_a)
+
+        with patch(
+            "aplicaciones.automatizacion.views.inicio",
+            return_value=HttpResponse("legacy-home"),
+        ) as legacy_home:
+            response = self.client.get(reverse("inicio"))
+
+        self.assertContains(response, "legacy-home")
+        legacy_home.assert_called_once()
+
+    def test_telemetry_client_uses_legacy_sensor_dashboard(self):
+        ClientDataSource.objects.create(
+            client=self.client_a,
+            database_alias="telemetry_db",
+            adapter_key=ClientDataSource.Adapter.TELEMETRY,
+        )
+        self.client.force_login(self.user_a)
+
+        with patch(
+            "aplicaciones.automatizacion.views.s2",
+            return_value=HttpResponse("legacy-s2"),
+        ) as legacy_dashboard:
+            response = self.client.get(reverse("s2"))
+
+        self.assertContains(response, "legacy-s2")
+        legacy_dashboard.assert_called_once()
 
     def test_control_event_uses_authenticated_client(self):
         control_module = PlatformModule.objects.get(code="control")
@@ -133,6 +168,9 @@ class ClientDataSourceValidationTests(TestCase):
         )
         with self.assertRaises(ValidationError):
             source.full_clean()
+
+    def test_telemetry_is_a_supported_adapter(self):
+        self.assertIn("telemetry", ClientDataSource.Adapter.values)
 
     def test_django_migrations_are_blocked_on_client_databases(self):
         router = ClientDatabaseRouter()
