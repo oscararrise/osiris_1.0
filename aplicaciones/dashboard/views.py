@@ -17,10 +17,13 @@ logger = logging.getLogger(__name__)
 @module_access_required("dashboard")
 def dashboard(request):
     context = {"dashboard_error": None}
+    template_name = "dashboard/dashboard.html"
     try:
         if request.client is None:
             raise AdapterError("Tu cuenta no tiene un cliente activo asignado.")
         context.update(build_dashboard(request.client, request.GET))
+        if request.client.slug == "vladimir":
+            template_name = "dashboard/vladimir.html"
     except ObjectDoesNotExist:
         context["dashboard_error"] = "El cliente todavía no tiene una fuente de datos configurada."
     except AdapterError as exc:
@@ -33,4 +36,4 @@ def dashboard(request):
         context["dashboard_error"] = (
             "No pudimos consultar los sensores en este momento. Intenta nuevamente en unos minutos."
         )
-    return render(request, "dashboard/dashboard.html", context)
+    return render(request, template_name, context)
