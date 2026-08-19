@@ -1,6 +1,7 @@
+# ruff: noqa: I001
 from __future__ import annotations
 
-import math  # noqa: I001
+import math
 from datetime import datetime
 from typing import Any
 
