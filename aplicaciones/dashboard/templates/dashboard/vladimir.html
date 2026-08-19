@@ -27,7 +27,7 @@
     <div class="vx-hero-copy">
         <div class="vx-hero-topline">
             <span class="vx-live"><i></i> Intelligence Dashboard</span>
-            <span class="vx-period-label">{{ ranges|get_item:selected_range|default:'' }}</span>
+            <span class="vx-period-label">{{ selected_range|upper }}</span>
         </div>
         <h1>Visibilidad operativa que convierte telemetría en decisiones.</h1>
         <p>
@@ -157,9 +157,13 @@
     <div class="vx-sensor-facts">
         <div>
             <span>Estado</span>
+            {% if executive %}
             <strong class="{% if executive.selected_health.health_status == 'online' %}good{% elif executive.selected_health.health_status == 'delayed' %}warning{% else %}risk{% endif %}">
                 {{ executive.selected_health.health_label|default:'Activo' }}
             </strong>
+            {% else %}
+            <strong class="good">Activo</strong>
+            {% endif %}
         </div>
         <div>
             <span>Última telemetría</span>
@@ -265,7 +269,7 @@
                 <strong>{{ row.label }}</strong>
                 <span>{% if row.current != None %}{% if row.is_count %}{{ row.current }}{% else %}{{ row.current|floatformat:2 }}{% endif %}{% else %}—{% endif %}</span>
                 <span>{% if row.previous != None %}{% if row.is_count %}{{ row.previous }}{% else %}{{ row.previous|floatformat:2 }}{% endif %}{% else %}—{% endif %}</span>
-                <span class="vx-delta {% if row.delta_pct > 0 %}up{% elif row.delta_pct < 0 %}down{% endif %}">{% if row.delta_pct != None %}{{ row.delta_pct|floatformat:1 }}%{% else %}—{% endif %}</span>
+                <span class="vx-delta {% if row.delta_pct != None and row.delta_pct > 0 %}up{% elif row.delta_pct != None and row.delta_pct < 0 %}down{% endif %}">{% if row.delta_pct != None %}{{ row.delta_pct|floatformat:1 }}%{% else %}—{% endif %}</span>
             </div>
             {% endfor %}
         </div>
