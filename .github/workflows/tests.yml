@@ -3,7 +3,7 @@ name: Tests
 on:
   pull_request:
   push:
-    branches: [main, master]
+    branches: [main, master, "agent/**"]
 
 permissions:
   contents: read
