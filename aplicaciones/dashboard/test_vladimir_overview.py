@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.template.loader import get_template
 from django.test import SimpleTestCase
 from django.utils import timezone
 
@@ -65,3 +66,7 @@ class VladimirOverviewTests(SimpleTestCase):
         self.assertEqual(groups[0]["name"], "Aranet4")
         self.assertEqual(groups[0]["count"], 2)
         self.assertAlmostEqual(groups[0]["pct"], 200 / 3)
+
+    def test_vladimir_template_compiles(self):
+        template = get_template("dashboard/vladimir.html")
+        self.assertIsNotNone(template)
