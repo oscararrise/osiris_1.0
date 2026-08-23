@@ -12,6 +12,8 @@ ignore = ["DJ001"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/migrations/*.py" = ["E501"]
+"aplicaciones/dashboard/vladimir_analytics.py" = ["E501"]
+"aplicaciones/dashboard/test_vladimir_analytics.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
