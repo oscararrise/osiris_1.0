@@ -22,7 +22,12 @@ RANGES = {
 }
 
 
-def _cache_key(client: Client, source: ClientDataSource, section: str, *parts: object) -> str:
+def _cache_key(
+    client: Client,
+    source: ClientDataSource,
+    section: str,
+    *parts: object,
+) -> str:
     identity = "|".join(str(part) for part in (client.pk, source.pk, section, *parts))
     digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()
     return f"osiris:dashboard:{digest}"
@@ -64,11 +69,7 @@ def _series_statistics(series: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def build_dashboard(client: Client, query: dict[str, str]) -> dict[str, Any]:
-    """Build the generic sensor explorer for the authenticated client's own source.
-
-    This context deliberately describes the selected sensor's current state and one
-    historical series. Client-specific fleet overviews are layered on top by the view.
-    """
+    """Build the selected sensor's current-state explorer."""
 
     source = client.data_source
     adapter = get_adapter(source)
@@ -94,7 +95,9 @@ def build_dashboard(client: Client, query: dict[str, str]) -> dict[str, Any]:
     selected_sensor_id = query.get("sensor", "")
     if selected_sensor_id not in sensor_ids:
         selected_sensor_id = str(sensors[0]["id"])
-    selected_sensor = next(sensor for sensor in sensors if str(sensor["id"]) == selected_sensor_id)
+    selected_sensor = next(
+        sensor for sensor in sensors if str(sensor["id"]) == selected_sensor_id
+    )
 
     metrics = _cached(
         _cache_key(client, source, "metrics", selected_sensor_id),
