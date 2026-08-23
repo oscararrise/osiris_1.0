@@ -10,6 +10,7 @@ from aplicaciones.core.decorators import module_access_required
 
 from .adapters.base import AdapterError
 from .services import build_dashboard
+from .vladimir_analytics import build_vladimir_analytics
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,11 @@ def dashboard(request):
         context.update(build_dashboard(request.client, request.GET))
         if request.client.slug == "vladimir":
             template_name = "dashboard/vladimir.html"
+            context["vladimir_analytics"] = build_vladimir_analytics(
+                request.client,
+                context,
+                request.GET,
+            )
     except ObjectDoesNotExist:
         context["dashboard_error"] = "El cliente todavía no tiene una fuente de datos configurada."
     except AdapterError as exc:
