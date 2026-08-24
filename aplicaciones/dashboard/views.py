@@ -43,12 +43,16 @@ def _save_automation_policy(request, context: dict) -> SensorAutomationPolicy:
     )
 
     automation_level = str(request.POST.get("automation_level", "recommend"))
-    valid_levels = {value for value, _label in SensorAutomationPolicy.AutomationLevel.choices}
+    valid_levels = {
+        value for value, _label in SensorAutomationPolicy.AutomationLevel.choices
+    }
     if automation_level not in valid_levels:
         automation_level = SensorAutomationPolicy.AutomationLevel.RECOMMEND
 
     operator = str(request.POST.get("operator", "gt"))
-    valid_operators = {value for value, _label in SensorAutomationPolicy.Operator.choices}
+    valid_operators = {
+        value for value, _label in SensorAutomationPolicy.Operator.choices
+    }
     if operator not in valid_operators:
         operator = SensorAutomationPolicy.Operator.GREATER_THAN
 
@@ -64,15 +68,23 @@ def _save_automation_policy(request, context: dict) -> SensorAutomationPolicy:
         "metric_id": metric_id[:120] if metric else "",
         "metric_name": str(metric.get("name") or metric_id)[:160] if metric else "",
         "operator": operator,
-        "threshold_value": _optional_float(str(request.POST.get("threshold_value", ""))),
+        "threshold_value": _optional_float(
+            str(request.POST.get("threshold_value", ""))
+        ),
         "cooldown_minutes": cooldown_minutes,
         "email_enabled": request.POST.get("email_enabled") == "on",
-        "email_recipients": str(request.POST.get("email_recipients", ""))[:500].strip(),
+        "email_recipients": str(
+            request.POST.get("email_recipients", "")
+        )[:500].strip(),
         "whatsapp_enabled": request.POST.get("whatsapp_enabled") == "on",
-        "whatsapp_recipients": str(request.POST.get("whatsapp_recipients", ""))[:500].strip(),
+        "whatsapp_recipients": str(
+            request.POST.get("whatsapp_recipients", "")
+        )[:500].strip(),
         "automation_level": automation_level,
         "requires_confirmation": request.POST.get("requires_confirmation") == "on",
-        "ai_instruction": str(request.POST.get("ai_instruction", ""))[:2500].strip(),
+        "ai_instruction": str(
+            request.POST.get("ai_instruction", "")
+        )[:2500].strip(),
         "updated_by": request.user,
     }
     policy, _created = SensorAutomationPolicy.objects.update_or_create(
@@ -96,9 +108,15 @@ def dashboard(request):
 
         if request.client.slug == "vladimir":
             template_name = "dashboard/vladimir.html"
-            context["vladimir_overview"] = build_vladimir_overview(request.client, context)
+            context["vladimir_overview"] = build_vladimir_overview(
+                request.client,
+                context,
+            )
 
-            if request.method == "POST" and request.POST.get("action") == "save_automation":
+            if (
+                request.method == "POST"
+                and request.POST.get("action") == "save_automation"
+            ):
                 _save_automation_policy(request, context)
                 messages.success(
                     request,
@@ -121,7 +139,9 @@ def dashboard(request):
                 client=request.client,
                 sensor_id=selected_sensor_id,
             ).first()
-            context["automation_levels"] = SensorAutomationPolicy.AutomationLevel.choices
+            context["automation_levels"] = (
+                SensorAutomationPolicy.AutomationLevel.choices
+            )
             context["automation_operators"] = SensorAutomationPolicy.Operator.choices
             context["open_automation_modal"] = request.GET.get("configure") == "1"
 
@@ -137,6 +157,7 @@ def dashboard(request):
             extra={"client_id": getattr(request.client, "pk", None)},
         )
         context["dashboard_error"] = (
-            "No pudimos consultar los sensores en este momento. Intenta nuevamente en unos minutos."
+            "No pudimos consultar los sensores en este momento. "
+            "Intenta nuevamente en unos minutos."
         )
     return render(request, template_name, context)
