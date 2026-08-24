@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
 from django.shortcuts import redirect, render
+from django.urls import reverse
 
 from aplicaciones.core.decorators import module_access_required
 
@@ -113,7 +114,7 @@ def dashboard(request):
                         "saved": "1",
                     }
                 )
-                return redirect(f"/dashboard/?{params}")
+                return redirect(f"{reverse('s2')}?{params}")
 
             selected_sensor_id = str(context.get("selected_sensor_id") or "")
             context["automation_policy"] = SensorAutomationPolicy.objects.filter(
