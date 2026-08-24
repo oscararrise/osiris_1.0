@@ -175,6 +175,30 @@ def _metric_coverage(database_alias: str) -> list[dict[str, Any]]:
     )
 
 
+def _configured_alarm_rules(database_alias: str) -> list[dict[str, Any]]:
+    return _query(
+        database_alias,
+        """
+        SELECT
+            rule.id,
+            COALESCE(NULLIF(rule.name, ''), rule.id) AS name,
+            rule.metric_id,
+            COALESCE(NULLIF(metric.name, ''), rule.metric_id, 'Sin métrica') AS metric_name,
+            rule.notes,
+            rule.source_created_at,
+            COUNT(alarm.id) AS event_count,
+            COUNT(alarm.id) FILTER (WHERE alarm.is_active) AS active_event_count,
+            MAX(alarm.alarmed_at) AS last_alarmed_at
+        FROM aranet.alarm_rule AS rule
+        LEFT JOIN aranet.metric AS metric ON metric.id = rule.metric_id
+        LEFT JOIN aranet.alarm AS alarm ON alarm.rule_id = rule.id
+        WHERE rule.is_active
+        GROUP BY rule.id, metric.name
+        ORDER BY active_event_count DESC, last_alarmed_at DESC NULLS LAST, name
+        """,
+    )
+
+
 def _catalog_counts(database_alias: str) -> dict[str, int]:
     rows = _query(
         database_alias,
@@ -188,7 +212,8 @@ def _catalog_counts(database_alias: str) -> dict[str, int]:
                 FROM aranet.measurement_point
                 WHERE is_active
             ) AS measurement_points,
-            (SELECT COUNT(*) FROM aranet.metric WHERE is_active) AS metrics
+            (SELECT COUNT(*) FROM aranet.metric WHERE is_active) AS metrics,
+            (SELECT COUNT(*) FROM aranet.alarm_rule WHERE is_active) AS alarm_rules
         """,
     )
     return rows[0] if rows else {}
@@ -356,9 +381,7 @@ def _analysis_insights(
                     {
                         "tone": "warn",
                         "title": "Batería baja",
-                        "text": (
-                            f"El sensor seleccionado reporta {battery:.0f}% de batería."
-                        ),
+                        "text": f"El sensor seleccionado reporta {battery:.0f}% de batería.",
                     }
                 )
 
@@ -392,7 +415,7 @@ def _analysis_insights(
             {
                 "tone": "good",
                 "title": "Sin alertas activas",
-                "text": "Aranet no reporta reglas de alarma activas en este momento.",
+                "text": "Aranet no reporta alertas activas en este momento.",
             }
         )
 
@@ -426,6 +449,7 @@ def build_vladimir_overview(
         catalog = {
             "bases": _base_stations(source.database_alias),
             "metrics": _metric_coverage(source.database_alias),
+            "alarm_rules": _configured_alarm_rules(source.database_alias),
             "counts": _catalog_counts(source.database_alias),
         }
         cache.set(
@@ -465,6 +489,7 @@ def build_vladimir_overview(
         "sensor_types": _type_groups(sensors),
         "base_stations": catalog["bases"],
         "metric_coverage": catalog["metrics"],
+        "configured_alarm_rules": catalog["alarm_rules"],
         "counts": catalog["counts"],
         "alarms": alarms,
         "active_alarm_count": len(alarms),
