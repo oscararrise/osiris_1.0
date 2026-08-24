@@ -48,7 +48,11 @@ class SensorAutomationPolicy(models.Model):
     cooldown_minutes = models.PositiveIntegerField("cooldown en minutos", default=30)
 
     email_enabled = models.BooleanField("notificar por email", default=False)
-    email_recipients = models.CharField("destinatarios email", max_length=500, blank=True)
+    email_recipients = models.CharField(
+        "destinatarios email",
+        max_length=500,
+        blank=True,
+    )
     whatsapp_enabled = models.BooleanField("notificar por WhatsApp", default=False)
     whatsapp_recipients = models.CharField(
         "destinatarios WhatsApp",
@@ -62,12 +66,18 @@ class SensorAutomationPolicy(models.Model):
         choices=AutomationLevel.choices,
         default=AutomationLevel.RECOMMEND,
     )
-    requires_confirmation = models.BooleanField("requiere confirmación humana", default=True)
+    requires_confirmation = models.BooleanField(
+        "requiere confirmación humana",
+        default=True,
+    )
     ai_instruction = models.TextField(
         "instrucción para la IA",
         max_length=2500,
         blank=True,
-        help_text="Contexto operativo que la IA debe considerar antes de proponer o ejecutar acciones.",
+        help_text=(
+            "Contexto operativo que la IA debe considerar antes de proponer "
+            "o ejecutar acciones."
+        ),
     )
 
     updated_by = models.ForeignKey(
