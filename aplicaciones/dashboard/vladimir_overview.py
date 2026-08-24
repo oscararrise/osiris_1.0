@@ -474,6 +474,9 @@ def build_vladimir_overview(
         (sensor for sensor in sensors if str(sensor.get("id")) == selected_sensor_id),
         None,
     )
+    selected_sensor_alarms = [
+        alarm for alarm in alarms if str(alarm.get("sensor_id") or "") == selected_sensor_id
+    ]
     locations = _location_groups(sensors)
     metric_name = str(
         (dashboard.get("selected_metric") or {}).get("name")
@@ -492,6 +495,7 @@ def build_vladimir_overview(
         "configured_alarm_rules": catalog["alarm_rules"],
         "counts": catalog["counts"],
         "alarms": alarms,
+        "selected_sensor_alarms": selected_sensor_alarms,
         "active_alarm_count": len(alarms),
         "insights": _analysis_insights(
             health,
