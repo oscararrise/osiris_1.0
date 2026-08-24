@@ -1,309 +1,437 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Aranet Overview | {{ current_client.name }}{% endblock %}
+{% block title %}Aranet Monitoring | {{ current_client.name }}{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'dashboard/vladimir.css' %}">
+<link rel="stylesheet" href="{% static 'dashboard/vladimir.css' %}?v=20260823-monitoring-1">
 {% endblock %}
 
 {% block content %}
 {% if dashboard_error %}
-<section class="ar-empty">
+<section class="aranet-empty">
     <span>!</span>
-    <p class="ar-kicker">OSIRIS · Aranet</p>
-    <h1>No fue posible cargar la información</h1>
+    <h1>No fue posible cargar Aranet</h1>
     <p>{{ dashboard_error }}</p>
 </section>
 {% elif not sensors or not vladimir_overview %}
-<section class="ar-empty">
+<section class="aranet-empty">
     <span>○</span>
-    <p class="ar-kicker">OSIRIS · Aranet</p>
     <h1>Sin sensores disponibles</h1>
     <p>La fuente está conectada, pero todavía no contiene sensores activos.</p>
 </section>
 {% else %}
-<section class="ar-hero">
-    <div class="ar-hero-copy">
-        <div class="ar-eyebrow">
-            <span class="ar-live"><i></i> API CONNECTED</span>
-            <span>Aranet ecosystem overview</span>
+
+<section class="aranet-header">
+    <div>
+        <div class="aranet-eyebrow">
+            <span class="aranet-live"><i></i> ARANET CONNECTED</span>
+            <span>{{ current_client.name }}</span>
         </div>
-        <h1>Todo el despliegue Aranet, en una sola vista.</h1>
+        <h1>Monitoreo de sensores</h1>
         <p>
-            Inventario, ubicación, infraestructura, conectividad y variables disponibles
-            a partir de la información obtenida directamente desde la API de Aranet.
+            Estado actual, lecturas, tendencias y análisis de los sensores obtenidos
+            desde la integración con Aranet.
         </p>
-        <div class="ar-hero-meta">
-            <span>Cliente <strong>{{ current_client.name }}</strong></span>
-            <span>Fuente <strong>{{ source.name }}</strong></span>
-            <span>Estado <strong>datos sincronizados</strong></span>
-        </div>
     </div>
-    <div class="ar-hero-orbit" aria-hidden="true">
-        <div class="ar-orbit-ring ring-a"></div>
-        <div class="ar-orbit-ring ring-b"></div>
-        <div class="ar-orbit-core">
-            <strong>{{ vladimir_overview.health.total }}</strong>
-            <small>sensores</small>
-        </div>
-        <i class="node node-1"></i>
-        <i class="node node-2"></i>
-        <i class="node node-3"></i>
+    <div class="aranet-header-meta">
+        <span>Fuente</span>
+        <strong>{{ source.name }}</strong>
+        <small>{{ vladimir_overview.health.total }} sensores activos</small>
     </div>
 </section>
 
-<section class="ar-kpis" aria-label="Resumen de la integración">
-    <article class="ar-kpi ar-kpi-primary">
-        <div><span>Sensores activos</span><i class="ar-icon">S</i></div>
+<form class="aranet-controls" method="get" id="dashboard-filters">
+    <label>
+        <span>Sensor</span>
+        <select name="sensor" id="sensor-select">
+            {% for sensor in sensors %}
+            <option value="{{ sensor.id }}"
+                {% if sensor.id|stringformat:'s' == selected_sensor_id %}selected{% endif %}>
+                {{ sensor.name }}{% if sensor.code %} · {{ sensor.code }}{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label>
+        <span>Variable</span>
+        <select name="metric" id="metric-select">
+            {% for metric in metrics %}
+            <option value="{{ metric.id }}"
+                data-probe="{{ metric.probe_no }}"
+                {% if metric.id|stringformat:'s' == selected_metric_id and metric.probe_no == selected_probe_no %}selected{% endif %}>
+                {{ metric.name }}{% if metric.probe_no %} · Sonda {{ metric.probe_no }}{% endif %}
+            </option>
+            {% empty %}
+            <option value="">Sin variables</option>
+            {% endfor %}
+        </select>
+    </label>
+    <input type="hidden" name="probe" id="probe-input" value="{{ selected_probe_no|default:0 }}">
+
+    <label>
+        <span>Periodo</span>
+        <select name="range" id="range-select">
+            {% for key, range in ranges.items %}
+            <option value="{{ key }}" {% if key == selected_range %}selected{% endif %}>
+                {{ range.0 }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <button type="submit">Actualizar</button>
+</form>
+
+<section class="aranet-kpis">
+    <article>
+        <span>Sensores</span>
         <strong>{{ vladimir_overview.health.total }}</strong>
-        <p>{{ vladimir_overview.health.online }} reportando dentro de la ventana reciente</p>
+        <small>activos en Aranet</small>
     </article>
-    <article class="ar-kpi">
-        <div><span>Base stations</span><i class="ar-icon">B</i></div>
-        <strong>{{ vladimir_overview.counts.bases|default:0 }}</strong>
-        <p>gateways descubiertos en el catálogo</p>
+    <article>
+        <span>Reportando</span>
+        <strong>{{ vladimir_overview.health.online }}</strong>
+        <small>{{ vladimir_overview.health.reporting_pct|floatformat:0 }}% de la flota</small>
     </article>
-    <article class="ar-kpi">
-        <div><span>Assets</span><i class="ar-icon">A</i></div>
-        <strong>{{ vladimir_overview.counts.assets|default:0 }}</strong>
-        <p>{{ vladimir_overview.counts.measurement_points|default:0 }} measurement points</p>
+    <article>
+        <span>Con retraso</span>
+        <strong>{{ vladimir_overview.health.delayed }}</strong>
+        <small>telemetría fuera de ventana</small>
     </article>
-    <article class="ar-kpi">
-        <div><span>Ubicaciones</span><i class="ar-icon">⌖</i></div>
-        <strong>{{ vladimir_overview.assigned_location_count }}</strong>
-        <p>{{ vladimir_overview.unassigned_sensor_count }} sensores sin ubicación asignada</p>
+    <article>
+        <span>Sin telemetría</span>
+        <strong>{{ vladimir_overview.health.offline }}</strong>
+        <small>requieren revisión</small>
     </article>
-    <article class="ar-kpi">
-        <div><span>Métricas</span><i class="ar-icon">M</i></div>
-        <strong>{{ vladimir_overview.counts.metrics|default:0 }}</strong>
-        <p>variables disponibles en el catálogo Aranet</p>
-    </article>
-    <article class="ar-kpi">
-        <div>
-            <span>Alertas activas</span>
-            <i class="ar-status-dot {% if vladimir_overview.active_alarm_count %}risk{% else %}good{% endif %}"></i>
-        </div>
+    <article>
+        <span>Alertas</span>
         <strong>{{ vladimir_overview.active_alarm_count }}</strong>
-        <p>
-            {% if vladimir_overview.active_alarm_count %}
-                reglas activas detectadas
-            {% else %}
-                sin alertas activas
-            {% endif %}
-        </p>
+        <small>activas en Aranet</small>
     </article>
 </section>
 
-<section class="ar-section" id="deployment">
-    <div class="ar-section-head">
-        <div>
-            <p class="ar-kicker">Deployment</p>
-            <h2>Dónde están los sensores</h2>
-            <p>Ubicación construida con Asset, Location y Measurement Point entregados por Aranet.</p>
-        </div>
-        <span class="ar-note">
-            El catálogo actual no expone latitud/longitud de forma explícita, por eso no se inventa un mapa GPS.
-        </span>
-    </div>
-    <div class="ar-location-grid">
-        {% for location in vladimir_overview.locations %}
-        <article class="ar-location-card {% if location.name == 'Sin ubicación asignada' %}unassigned{% endif %}">
-            <div class="ar-location-pin">⌖</div>
-            <div class="ar-location-main">
-                <div class="ar-location-title">
-                    <div>
-                        <small>
-                            {% if location.name == 'Sin ubicación asignada' %}Metadata pendiente{% else %}Location{% endif %}
-                        </small>
-                        <h3>{{ location.name }}</h3>
-                    </div>
-                    <strong>{{ location.sensor_count }}</strong>
-                </div>
-                <div class="ar-location-tags">
-                    {% for asset in location.assets %}<span>{{ asset }}</span>{% endfor %}
-                    {% for base in location.bases %}<span class="base">{{ base }}</span>{% endfor %}
-                </div>
-                <div class="ar-location-sensors">
-                    {% for sensor in location.sensors|slice:':5' %}
-                    <a href="?sensor={{ sensor.id }}#sensor-detail">{{ sensor.name }}</a>
-                    {% endfor %}
-                    {% if location.sensor_count > 5 %}
-                    <span>+{{ location.sensor_count|add:'-5' }} más</span>
-                    {% endif %}
-                </div>
+<section class="aranet-main-grid">
+    <article class="aranet-panel aranet-trend-panel">
+        <header class="aranet-panel-head">
+            <div>
+                <p class="aranet-kicker">Tendencia</p>
+                <h2>{{ selected_metric.name|default:'Variable del sensor' }}</h2>
+                <p>
+                    {{ selected_sensor.name }} · {{ selected_range|upper }}
+                    {% if selected_metric.unit %} · {{ selected_metric.unit }}{% endif %}
+                </p>
             </div>
-        </article>
+            <div class="aranet-stat-row">
+                <span>
+                    Promedio
+                    <strong>
+                        {% if statistics.average != None %}
+                            {{ statistics.average|floatformat:2 }}
+                        {% else %}—{% endif %}
+                    </strong>
+                </span>
+                <span>
+                    Mínimo
+                    <strong>
+                        {% if statistics.minimum != None %}
+                            {{ statistics.minimum|floatformat:2 }}
+                        {% else %}—{% endif %}
+                    </strong>
+                </span>
+                <span>
+                    Máximo
+                    <strong>
+                        {% if statistics.maximum != None %}
+                            {{ statistics.maximum|floatformat:2 }}
+                        {% else %}—{% endif %}
+                    </strong>
+                </span>
+            </div>
+        </header>
+        {% if series %}
+        <div class="aranet-chart-wrap">
+            <canvas id="sensor-trend-chart"></canvas>
+            <div id="sensor-trend-tooltip" class="aranet-tooltip" hidden></div>
+        </div>
+        <footer class="aranet-chart-foot">
+            <span><i class="line"></i>Promedio por intervalo</span>
+            <span><i class="band"></i>Rango mínimo–máximo</span>
+            <strong>{{ statistics.samples|default:0 }} muestras</strong>
+        </footer>
+        {% else %}
+        <div class="aranet-no-data">No hay datos para esta variable en el periodo seleccionado.</div>
+        {% endif %}
+    </article>
+
+    <aside class="aranet-panel aranet-sensor-card">
+        {% with detail=vladimir_overview.selected_sensor %}
+        <div class="aranet-sensor-top">
+            <div class="aranet-sensor-icon"><i></i></div>
+            <div>
+                <p class="aranet-kicker">Sensor seleccionado</p>
+                <h2>{{ detail.name|default:selected_sensor.name }}</h2>
+                <small>{{ detail.code|default:selected_sensor.code|default:selected_sensor.id }}</small>
+            </div>
+            <span class="aranet-health-pill {{ detail.health_status }}">
+                {{ detail.health_label|default:'Activo' }}
+            </span>
+        </div>
+
+        <dl class="aranet-sensor-facts">
+            <div>
+                <dt>Tipo</dt>
+                <dd>{{ detail.type_name|default:selected_sensor.type_name }}</dd>
+            </div>
+            <div>
+                <dt>Última telemetría</dt>
+                <dd>
+                    {% if detail.last_seen_at %}
+                        {{ detail.last_seen_at|date:'d M Y · H:i' }}
+                    {% else %}Sin dato{% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt>RSSI</dt>
+                <dd>
+                    {% if detail.rssi_dbm != None %}
+                        {{ detail.rssi_dbm|floatformat:0 }} dBm
+                    {% else %}—{% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt>Batería</dt>
+                <dd>
+                    {% if detail.battery_value != None %}
+                        {{ detail.battery_value|floatformat:0 }} {{ detail.battery_unit }}
+                    {% else %}—{% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt>Ubicación</dt>
+                <dd>{{ detail.location|default:detail.asset_name|default:'Sin asignar' }}</dd>
+            </div>
+            <div>
+                <dt>Measurement point</dt>
+                <dd>{{ detail.measurement_point_name|default:'—' }}</dd>
+            </div>
+            <div>
+                <dt>Base station</dt>
+                <dd>{{ detail.base_station_name|default:'—' }}</dd>
+            </div>
+            <div>
+                <dt>Métricas</dt>
+                <dd>{{ detail.metric_count|default:metrics|length }}</dd>
+            </div>
+        </dl>
+        {% endwith %}
+    </aside>
+</section>
+
+<section class="aranet-section">
+    <div class="aranet-section-head">
+        <div>
+            <p class="aranet-kicker">Lecturas actuales</p>
+            <h2>Variables del sensor</h2>
+            <p>Último valor recibido para cada métrica disponible.</p>
+        </div>
+        <span>{{ latest_values|length }} lecturas</span>
+    </div>
+
+    <div class="aranet-readings-grid">
+        {% for reading in latest_values %}
+        <a class="aranet-reading-card
+            {% if reading.id|stringformat:'s' == selected_metric_id and reading.probe_no == selected_probe_no %}selected{% endif %}"
+            href="?sensor={{ selected_sensor_id }}&metric={{ reading.id }}&probe={{ reading.probe_no }}&range={{ selected_range }}">
+            <span>{{ reading.name }}{% if reading.probe_no %} · S{{ reading.probe_no }}{% endif %}</span>
+            <div>
+                <strong>{{ reading.value|floatformat:reading.precision_digits }}</strong>
+                <small>{{ reading.unit }}</small>
+            </div>
+            <time>
+                {% if reading.measured_at %}
+                    {{ reading.measured_at|timesince }} atrás
+                {% else %}Sin fecha{% endif %}
+            </time>
+        </a>
+        {% empty %}
+        <div class="aranet-no-data">No hay lecturas recientes para este sensor.</div>
         {% endfor %}
     </div>
 </section>
 
-<section class="ar-two-col">
-    <article class="ar-panel">
-        <div class="ar-panel-head">
-            <div><p class="ar-kicker">Telemetry health</p><h2>Estado de la flota</h2></div>
-            <span class="ar-big-pct">{{ vladimir_overview.health.reporting_pct|floatformat:0 }}%</span>
-        </div>
-        <div class="ar-health-body">
-            <div class="ar-donut-wrap">
-                <canvas id="fleet-health-chart" width="220" height="220"></canvas>
-                <div><strong>{{ vladimir_overview.health.online }}</strong><span>reportando</span></div>
+<section class="aranet-analysis-grid">
+    <article class="aranet-panel aranet-insights-panel">
+        <header class="aranet-panel-head compact">
+            <div>
+                <p class="aranet-kicker">Análisis</p>
+                <h2>Qué está pasando ahora</h2>
+                <p>Lectura descriptiva del estado actual y de la variable seleccionada.</p>
             </div>
-            <div class="ar-health-list">
-                <div><i class="online"></i><span>Reportando</span><strong>{{ vladimir_overview.health.online }}</strong></div>
-                <div><i class="delayed"></i><span>Con retraso</span><strong>{{ vladimir_overview.health.delayed }}</strong></div>
-                <div><i class="offline"></i><span>Sin telemetría reciente</span><strong>{{ vladimir_overview.health.offline }}</strong></div>
-                <small>Ventana reciente configurada: {{ vladimir_overview.health.freshness_minutes }} min.</small>
-            </div>
+        </header>
+        <div class="aranet-insights">
+            {% for insight in vladimir_overview.insights %}
+            <article class="{{ insight.tone }}">
+                <i></i>
+                <div>
+                    <strong>{{ insight.title }}</strong>
+                    <p>{{ insight.text }}</p>
+                </div>
+            </article>
+            {% endfor %}
         </div>
     </article>
 
-    <article class="ar-panel">
-        <div class="ar-panel-head">
-            <div><p class="ar-kicker">Connectivity</p><h2>Señal y batería</h2></div>
-            <span class="ar-chip">{{ vladimir_overview.health.rssi_coverage }} con RSSI</span>
+    <article class="aranet-panel">
+        <header class="aranet-panel-head compact">
+            <div>
+                <p class="aranet-kicker">Flota</p>
+                <h2>Estado de sensores</h2>
+                <p>Recencia de telemetría.</p>
+            </div>
+        </header>
+        <div class="aranet-donut-box">
+            <canvas id="fleet-health-chart" width="220" height="220"></canvas>
+            <div>
+                <strong>{{ vladimir_overview.health.reporting_pct|floatformat:0 }}%</strong>
+                <span>reportando</span>
+            </div>
         </div>
-        <div class="ar-signal-summary">
+        <div class="aranet-health-legend">
+            <span><i class="online"></i>Reportando <strong>{{ vladimir_overview.health.online }}</strong></span>
+            <span><i class="delayed"></i>Retraso <strong>{{ vladimir_overview.health.delayed }}</strong></span>
+            <span><i class="offline"></i>Sin telemetría <strong>{{ vladimir_overview.health.offline }}</strong></span>
+        </div>
+    </article>
+
+    <article class="aranet-panel">
+        <header class="aranet-panel-head compact">
+            <div>
+                <p class="aranet-kicker">Cobertura</p>
+                <h2>Tipos de sensor</h2>
+                <p>Distribución del inventario activo.</p>
+            </div>
+        </header>
+        <div class="aranet-small-chart">
+            <canvas id="sensor-types-chart"></canvas>
+        </div>
+    </article>
+</section>
+
+<section class="aranet-two-grid">
+    <article class="aranet-panel">
+        <header class="aranet-panel-head compact">
+            <div>
+                <p class="aranet-kicker">Variables disponibles</p>
+                <h2>Cobertura de métricas</h2>
+                <p>Cuántos sensores reportan cada variable.</p>
+            </div>
+        </header>
+        <div class="aranet-metric-chart">
+            <canvas id="metric-coverage-chart"></canvas>
+        </div>
+    </article>
+
+    <article class="aranet-panel aranet-connectivity-panel">
+        <header class="aranet-panel-head compact">
+            <div>
+                <p class="aranet-kicker">Conectividad</p>
+                <h2>Señal y batería</h2>
+                <p>Resumen de disponibilidad de datos de hardware.</p>
+            </div>
+        </header>
+        <div class="aranet-connectivity-kpis">
             <div>
                 <span>RSSI promedio</span>
                 <strong>
                     {% if vladimir_overview.health.average_rssi != None %}
-                    {{ vladimir_overview.health.average_rssi|floatformat:0 }} dBm
+                        {{ vladimir_overview.health.average_rssi|floatformat:0 }} dBm
                     {% else %}—{% endif %}
                 </strong>
             </div>
             <div>
-                <span>Rango observado</span>
-                <strong>
-                    {% if vladimir_overview.health.minimum_rssi != None %}
-                    {{ vladimir_overview.health.minimum_rssi|floatformat:0 }} → {{ vladimir_overview.health.maximum_rssi|floatformat:0 }} dBm
-                    {% else %}—{% endif %}
-                </strong>
+                <span>Sensores con RSSI</span>
+                <strong>{{ vladimir_overview.health.rssi_coverage }}</strong>
             </div>
             <div>
-                <span>Batería disponible</span>
-                <strong>{{ vladimir_overview.health.battery_coverage }}/{{ vladimir_overview.health.total }}</strong>
+                <span>Con batería</span>
+                <strong>{{ vladimir_overview.health.battery_coverage }}</strong>
             </div>
         </div>
-        <div class="ar-battery-list">
-            <p>Lecturas de batería más bajas disponibles</p>
+        <div class="aranet-low-battery">
+            <span>Baterías más bajas reportadas</span>
             {% for sensor in vladimir_overview.health.battery_sensors %}
             <div>
-                <span>{{ sensor.name }}</span>
-                <strong>{{ sensor.battery_value|floatformat:0 }} {{ sensor.battery_unit }}</strong>
+                <strong>{{ sensor.name }}</strong>
+                <span>{{ sensor.battery_value|floatformat:0 }} {{ sensor.battery_unit }}</span>
             </div>
             {% empty %}
-            <small>Aranet no está entregando batería para estos sensores.</small>
+            <p>Sin datos de batería disponibles.</p>
             {% endfor %}
         </div>
     </article>
 </section>
 
-<section class="ar-section" id="inventory">
-    <div class="ar-section-head ar-inventory-head">
+<section class="aranet-section">
+    <div class="aranet-section-head">
         <div>
-            <p class="ar-kicker">Sensor inventory</p>
+            <p class="aranet-kicker">Inventario</p>
             <h2>Todos los sensores</h2>
-            <p>Busca o filtra el despliegue sin salir del dashboard.</p>
+            <p>Vista rápida del estado y ubicación de la flota Aranet.</p>
         </div>
-        <span id="sensor-result-count" class="ar-count-pill">{{ vladimir_overview.health.total }} sensores</span>
+        <input id="sensor-search" class="aranet-search" type="search" placeholder="Buscar sensor...">
     </div>
 
-    <div class="ar-filterbar">
-        <label class="ar-search">
-            <span>Buscar</span>
-            <input id="sensor-search" type="search" placeholder="Nombre, código, asset, ubicación...">
-        </label>
-        <label>
-            <span>Ubicación</span>
-            <select id="filter-location">
-                <option value="">Todas</option>
-                {% for location in vladimir_overview.locations %}
-                <option value="{{ location.name }}">{{ location.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            <span>Tipo</span>
-            <select id="filter-type">
-                <option value="">Todos</option>
-                {% for type in vladimir_overview.sensor_types %}
-                <option value="{{ type.name }}">{{ type.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            <span>Base station</span>
-            <select id="filter-base">
-                <option value="">Todas</option>
-                {% for base in vladimir_overview.base_stations %}
-                <option value="{{ base.name }}">{{ base.name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            <span>Estado</span>
-            <select id="filter-status">
-                <option value="">Todos</option>
-                <option value="online">Reportando</option>
-                <option value="delayed">Con retraso</option>
-                <option value="offline">Sin telemetría reciente</option>
-            </select>
-        </label>
-        <button id="clear-filters" type="button">Limpiar</button>
-    </div>
-
-    <div class="ar-table-wrap">
-        <table class="ar-sensor-table">
+    <div class="aranet-table-wrap">
+        <table class="aranet-table">
             <thead>
                 <tr>
-                    <th>Sensor</th><th>Ubicación</th><th>Infraestructura</th>
-                    <th>Telemetría</th><th>Señal / batería</th><th>Métricas</th><th></th>
+                    <th>Sensor</th>
+                    <th>Estado</th>
+                    <th>Ubicación</th>
+                    <th>Base station</th>
+                    <th>Última telemetría</th>
+                    <th>RSSI</th>
+                    <th>Batería</th>
+                    <th></th>
                 </tr>
             </thead>
-            <tbody id="sensor-table-body">
+            <tbody>
                 {% for sensor in vladimir_overview.sensors %}
                 <tr class="sensor-row"
-                    data-search="{{ sensor.name }} {{ sensor.code }} {{ sensor.asset_name }} {{ sensor.location }} {{ sensor.measurement_point_name }} {{ sensor.base_station_name }}"
-                    data-location="{% if sensor.location %}{{ sensor.location }}{% elif sensor.asset_name %}{{ sensor.asset_name }}{% else %}Sin ubicación asignada{% endif %}"
-                    data-type="{{ sensor.type_name }}"
-                    data-base="{{ sensor.base_station_name|default:'' }}"
-                    data-status="{{ sensor.health_status }}">
+                    data-search="{{ sensor.name }} {{ sensor.code }} {{ sensor.type_name }} {{ sensor.location }} {{ sensor.asset_name }} {{ sensor.base_station_name }}">
                     <td>
-                        <div class="ar-sensor-name">
-                            <i class="{{ sensor.health_status }}"></i>
-                            <div>
-                                <strong>{{ sensor.name }}</strong>
-                                <small>{{ sensor.code|default:sensor.id }} · {{ sensor.type_name }}</small>
-                            </div>
-                        </div>
+                        <strong>{{ sensor.name }}</strong>
+                        <small>{{ sensor.code|default:sensor.id }} · {{ sensor.type_name }}</small>
                     </td>
                     <td>
-                        <strong>{{ sensor.location|default:sensor.asset_name|default:'Sin ubicación' }}</strong>
-                        <small>{{ sensor.measurement_point_name|default:'Sin measurement point' }}</small>
+                        <span class="aranet-health-pill {{ sensor.health_status }}">
+                            {{ sensor.health_label }}
+                        </span>
                     </td>
                     <td>
-                        <strong>{{ sensor.base_station_name|default:'Sin base asociada' }}</strong>
-                        <small>{{ sensor.asset_name|default:'Sin asset' }}</small>
+                        {{ sensor.location|default:sensor.asset_name|default:'—' }}
+                    </td>
+                    <td>{{ sensor.base_station_name|default:'—' }}</td>
+                    <td>
+                        {% if sensor.last_seen_at %}
+                            {{ sensor.last_seen_at|date:'d M · H:i' }}
+                        {% else %}—{% endif %}
                     </td>
                     <td>
-                        <span class="ar-health-pill {{ sensor.health_status }}">{{ sensor.health_label }}</span>
-                        <small>
-                            {% if sensor.last_seen_at %}{{ sensor.last_seen_at|date:'d M · H:i' }}{% else %}Sin lectura{% endif %}
-                        </small>
+                        {% if sensor.rssi_dbm != None %}
+                            {{ sensor.rssi_dbm|floatformat:0 }} dBm
+                        {% else %}—{% endif %}
                     </td>
                     <td>
-                        <strong>
-                            {% if sensor.rssi_dbm != None %}{{ sensor.rssi_dbm|floatformat:0 }} dBm{% else %}—{% endif %}
-                        </strong>
-                        <small>
-                            {% if sensor.battery_value != None %}
-                                {{ sensor.battery_value|floatformat:0 }} {{ sensor.battery_unit }}
-                            {% else %}Batería —{% endif %}
-                        </small>
+                        {% if sensor.battery_value != None %}
+                            {{ sensor.battery_value|floatformat:0 }} {{ sensor.battery_unit }}
+                        {% else %}—{% endif %}
                     </td>
-                    <td><span class="ar-metric-count">{{ sensor.metric_count }}</span></td>
-                    <td><a class="ar-open" href="?sensor={{ sensor.id }}#sensor-detail">Ver sensor</a></td>
+                    <td>
+                        <a href="?sensor={{ sensor.id }}">Abrir</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -311,227 +439,27 @@
     </div>
 </section>
 
-<section class="ar-three-col">
-    <article class="ar-panel ar-stack-panel">
-        <div class="ar-panel-head">
-            <div><p class="ar-kicker">Gateways</p><h2>Base stations</h2></div>
-            <span class="ar-chip">{{ vladimir_overview.base_stations|length }}</span>
-        </div>
-        <div class="ar-stack-list">
-            {% for base in vladimir_overview.base_stations %}
-            <article>
-                <div class="ar-stack-title">
-                    <i></i>
-                    <div>
-                        <strong>{{ base.name }}</strong>
-                        <small>{{ base.product|default:'Aranet base' }}{% if base.region %} · {{ base.region }}{% endif %}</small>
-                    </div>
-                    <b>{{ base.sensor_count }}</b>
-                </div>
-                <dl>
-                    <div><dt>Firmware</dt><dd>{{ base.firmware|default:'—' }}</dd></div>
-                    <div><dt>Última señal</dt><dd>{% if base.last_seen_at %}{{ base.last_seen_at|date:'d M · H:i' }}{% else %}—{% endif %}</dd></div>
-                </dl>
-            </article>
-            {% empty %}<div class="ar-no-data">Sin base stations activas.</div>{% endfor %}
-        </div>
-    </article>
-
-    <article class="ar-panel ar-stack-panel">
-        <div class="ar-panel-head">
-            <div><p class="ar-kicker">Physical assets</p><h2>Assets y puntos</h2></div>
-            <span class="ar-chip">{{ vladimir_overview.assets|length }}</span>
-        </div>
-        <div class="ar-stack-list">
-            {% for asset in vladimir_overview.assets %}
-            <article>
-                <div class="ar-stack-title asset">
-                    <i></i>
-                    <div><strong>{{ asset.name }}</strong><small>{{ asset.location|default:'Sin location' }}</small></div>
-                    <b>{{ asset.sensor_count }}</b>
-                </div>
-                <dl>
-                    <div><dt>Measurement points</dt><dd>{{ asset.measurement_point_count }}</dd></div>
-                    <div><dt>Sensores</dt><dd>{{ asset.sensor_count }}</dd></div>
-                </dl>
-                {% if asset.notes %}<p>{{ asset.notes }}</p>{% endif %}
-            </article>
-            {% empty %}<div class="ar-no-data">Sin assets activos.</div>{% endfor %}
-        </div>
-    </article>
-
-    <article class="ar-panel ar-stack-panel">
-        <div class="ar-panel-head"><div><p class="ar-kicker">Catalog</p><h2>Contenido sincronizado</h2></div></div>
-        <div class="ar-catalog-grid">
-            <div><strong>{{ vladimir_overview.counts.sensors|default:0 }}</strong><span>Sensores</span></div>
-            <div><strong>{{ vladimir_overview.counts.metrics|default:0 }}</strong><span>Métricas</span></div>
-            <div><strong>{{ vladimir_overview.counts.measurement_points|default:0 }}</strong><span>Puntos</span></div>
-            <div><strong>{{ vladimir_overview.counts.tags|default:0 }}</strong><span>Tags</span></div>
-            <div><strong>{{ vladimir_overview.counts.attachments|default:0 }}</strong><span>Adjuntos</span></div>
-            <div><strong>{{ vladimir_overview.counts.assets|default:0 }}</strong><span>Assets</span></div>
-        </div>
-    </article>
-</section>
-
-<section class="ar-two-col ar-catalog-section">
-    <article class="ar-panel">
-        <div class="ar-panel-head">
-            <div>
-                <p class="ar-kicker">Metric coverage</p>
-                <h2>Qué mide la flota</h2>
-                <p>Cuántos sensores tienen disponible cada variable.</p>
-            </div>
-        </div>
-        <div class="ar-bar-list">
-            {% for metric in vladimir_overview.metric_coverage|slice:':12' %}
-            {% widthratio metric.sensor_count vladimir_overview.health.total 100 as coverage_pct %}
-            <div class="ar-bar-row">
-                <div><strong>{{ metric.name }}</strong><span>{{ metric.sensor_count }} sensores</span></div>
-                <div class="ar-bar-track"><i style="width: {{ coverage_pct }}%"></i></div>
-                <b>{{ coverage_pct }}%</b>
-            </div>
-            {% empty %}<div class="ar-no-data">No hay métricas catalogadas.</div>{% endfor %}
-        </div>
-    </article>
-
-    <article class="ar-panel">
-        <div class="ar-panel-head">
-            <div>
-                <p class="ar-kicker">Device mix</p>
-                <h2>Tipos de sensor</h2>
-                <p>Composición del inventario activo.</p>
-            </div>
-        </div>
-        <div class="ar-bar-list ar-type-list">
-            {% for type in vladimir_overview.sensor_types %}
-            <div class="ar-bar-row">
-                <div><strong>{{ type.name }}</strong><span>{{ type.count }} sensores</span></div>
-                <div class="ar-bar-track"><i style="width: {{ type.pct|floatformat:0 }}%"></i></div>
-                <b>{{ type.pct|floatformat:0 }}%</b>
-            </div>
-            {% endfor %}
-        </div>
-        {% if vladimir_overview.tags %}
-        <div class="ar-tags-block">
-            <p>Tags sincronizados</p>
-            <div>
-                {% for tag in vladimir_overview.tags %}
-                <span>{{ tag.name }} <b>{{ tag.assignment_count }}</b></span>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-    </article>
-</section>
-
-<section class="ar-section ar-detail" id="sensor-detail">
-    <div class="ar-section-head">
-        <div>
-            <p class="ar-kicker">Sensor explorer</p>
-            <h2>Explorar un sensor</h2>
-            <p>Información actual y evolución de una sola variable, sin comparaciones.</p>
-        </div>
-    </div>
-
-    <form class="ar-detail-controls" method="get">
-        <label>
-            <span>Sensor</span>
-            <select name="sensor" onchange="this.form.submit()">
-                {% for sensor in sensors %}
-                <option value="{{ sensor.id }}" {% if sensor.id|stringformat:'s' == selected_sensor_id %}selected{% endif %}>
-                    {{ sensor.name }}{% if sensor.code %} · {{ sensor.code }}{% endif %}
-                </option>
-                {% endfor %}
-            </select>
-        </label>
-        <label>
-            <span>Variable</span>
-            <select name="metric" id="metric-select">
-                {% for metric in metrics %}
-                <option value="{{ metric.id }}" data-probe="{{ metric.probe_no }}"
-                    {% if metric.id|stringformat:'s' == selected_metric_id and metric.probe_no == selected_probe_no %}selected{% endif %}>
-                    {{ metric.name }}{% if metric.probe_no %} · Sonda {{ metric.probe_no }}{% endif %}
-                </option>
-                {% endfor %}
-            </select>
-        </label>
-        <input type="hidden" name="probe" id="probe-input" value="{{ selected_probe_no|default:0 }}">
-        <label>
-            <span>Histórico</span>
-            <select name="range">
-                {% for key, range in ranges.items %}
-                <option value="{{ key }}" {% if key == selected_range %}selected{% endif %}>{{ range.0 }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button type="submit">Actualizar</button>
-    </form>
-
-    {% with detail=vladimir_overview.selected_sensor %}
-    <div class="ar-detail-header">
-        <div class="ar-device-avatar"><span>AR</span></div>
-        <div class="ar-detail-title">
-            <small>{{ detail.type_name|default:selected_sensor.type_name }}</small>
-            <h3>{{ detail.name|default:selected_sensor.name }}</h3>
-            <p>{{ detail.code|default:selected_sensor.code|default:selected_sensor.id }}</p>
-        </div>
-        <div class="ar-detail-facts">
-            <div><span>Ubicación</span><strong>{{ detail.location|default:detail.asset_name|default:'Sin ubicación' }}</strong></div>
-            <div><span>Measurement point</span><strong>{{ detail.measurement_point_name|default:'—' }}</strong></div>
-            <div><span>Base station</span><strong>{{ detail.base_station_name|default:'—' }}</strong></div>
-            <div><span>Última telemetría</span><strong>{% if detail.last_seen_at %}{{ detail.last_seen_at|date:'d M · H:i' }}{% else %}—{% endif %}</strong></div>
-        </div>
-    </div>
-    {% endwith %}
-
-    <div class="ar-reading-grid">
-        {% for reading in latest_values %}
-        <article class="ar-reading {% if reading.id|stringformat:'s' == selected_metric_id and reading.probe_no == selected_probe_no %}selected{% endif %}">
-            <span>{{ reading.name }}{% if reading.probe_no %} · S{{ reading.probe_no }}{% endif %}</span>
-            <div><strong>{{ reading.value|floatformat:reading.precision_digits }}</strong><small>{{ reading.unit }}</small></div>
-            <time>{% if reading.measured_at %}{{ reading.measured_at|timesince }} atrás{% endif %}</time>
-        </article>
-        {% empty %}<div class="ar-no-data">Sin lecturas recientes para este sensor.</div>{% endfor %}
-    </div>
-
-    <div class="ar-trend-panel">
-        <div class="ar-panel-head">
-            <div>
-                <p class="ar-kicker">Time series</p>
-                <h2>{{ selected_metric.name|default:'Variable' }}</h2>
-                <p>{{ selected_range|upper }} · ventana seleccionada</p>
-            </div>
-            <div class="ar-trend-stats">
-                <span>Prom. <strong>{% if statistics.average != None %}{{ statistics.average|floatformat:2 }}{% else %}—{% endif %}</strong></span>
-                <span>Mín. <strong>{% if statistics.minimum != None %}{{ statistics.minimum|floatformat:2 }}{% else %}—{% endif %}</strong></span>
-                <span>Máx. <strong>{% if statistics.maximum != None %}{{ statistics.maximum|floatformat:2 }}{% else %}—{% endif %}</strong></span>
-            </div>
-        </div>
-        {% if series %}
-        <div class="ar-chart-wrap">
-            <canvas id="sensor-trend-chart"></canvas>
-            <div id="sensor-trend-tooltip" class="ar-tooltip" hidden></div>
-        </div>
-        {% else %}
-        <div class="ar-no-data ar-chart-empty">Sin histórico en la ventana seleccionada.</div>
-        {% endif %}
-    </div>
-</section>
-
 {% if vladimir_overview.alarms %}
-<section class="ar-section">
-    <div class="ar-section-head">
-        <div><p class="ar-kicker">Active alarms</p><h2>Alertas reportadas por Aranet</h2></div>
-        <span class="ar-count-pill">{{ vladimir_overview.active_alarm_count }}</span>
+<section class="aranet-section">
+    <div class="aranet-section-head">
+        <div>
+            <p class="aranet-kicker">Alertas</p>
+            <h2>Alertas activas de Aranet</h2>
+        </div>
+        <span>{{ vladimir_overview.active_alarm_count }}</span>
     </div>
-    <div class="ar-alert-grid">
+    <div class="aranet-alerts">
         {% for alarm in vladimir_overview.alarms|slice:':8' %}
         <article>
             <i></i>
             <div>
                 <strong>{{ alarm.rule_name }}</strong>
                 <p>{{ alarm.sensor_name }}{% if alarm.metric_name %} · {{ alarm.metric_name }}{% endif %}</p>
-                <small>{% if alarm.alarmed_at %}{{ alarm.alarmed_at|date:'d M Y · H:i' }}{% endif %}</small>
+                <small>
+                    {% if alarm.alarmed_at %}
+                        {{ alarm.alarmed_at|date:'d M Y · H:i' }}
+                    {% endif %}
+                </small>
             </div>
         </article>
         {% endfor %}
@@ -541,9 +469,11 @@
 
 {{ series|json_script:'sensor-series-data' }}
 {{ vladimir_overview.health|json_script:'fleet-health-data' }}
+{{ vladimir_overview.sensor_types|json_script:'sensor-types-data' }}
+{{ vladimir_overview.metric_coverage|json_script:'metric-coverage-data' }}
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/vladimir.js' %}" defer></script>
+<script src="{% static 'dashboard/vladimir.js' %}?v=20260823-monitoring-1" defer></script>
 {% endblock %}
