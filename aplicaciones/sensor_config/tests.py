@@ -217,6 +217,27 @@ class SensorConfigurationModelTests(TestCase):
         self.assertEqual(repeated.unchanged, 2)
         self.assertEqual(repeated.deactivated, 0)
 
+    def test_sync_does_not_override_local_dashboard_visibility(self):
+        self.sensor.dashboard_enabled = False
+        self.sensor.save(update_fields=("dashboard_enabled", "updated_at"))
+
+        sync_sensor_snapshot(
+            client=self.client,
+            sensor_rows=[
+                {
+                    "id": "aranet-001",
+                    "name": "Cuarto frío",
+                    "type_name": "Aranet4",
+                    "is_active": True,
+                }
+            ],
+        )
+
+        self.sensor.refresh_from_db()
+        self.assertTrue(self.sensor.is_active)
+        self.assertFalse(self.sensor.dashboard_enabled)
+        self.assertFalse(self.sensor.is_dashboard_visible)
+
     def test_sync_sensor_snapshot_dry_run_does_not_write(self):
         result = sync_sensor_snapshot(
             client=self.client,
@@ -280,7 +301,35 @@ class SensorConfigurationViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "sensor-23")
-        self.assertContains(response, "Sin configurar")
+        self.assertContains(response, "Sin ubicación")
+        self.assertContains(response, "En dashboard")
+
+    def test_toggle_hides_and_reenables_sensor_for_dashboard(self):
+        toggle_url = reverse("sensor_configuration_toggle", args=(self.sensor.pk,))
+
+        response = self.client.post(toggle_url, {"enabled": "0"})
+        self.assertEqual(response.status_code, 302)
+        self.sensor.refresh_from_db()
+        self.assertFalse(self.sensor.dashboard_enabled)
+
+        response = self.client.post(toggle_url, {"enabled": "1"})
+        self.assertEqual(response.status_code, 302)
+        self.sensor.refresh_from_db()
+        self.assertTrue(self.sensor.dashboard_enabled)
+
+    def test_inactive_source_sensor_cannot_be_enabled_for_dashboard(self):
+        self.sensor.is_active = False
+        self.sensor.dashboard_enabled = False
+        self.sensor.save(update_fields=("is_active", "dashboard_enabled", "updated_at"))
+
+        response = self.client.post(
+            reverse("sensor_configuration_toggle", args=(self.sensor.pk,)),
+            {"enabled": "1"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.sensor.refresh_from_db()
+        self.assertFalse(self.sensor.dashboard_enabled)
 
     def test_detail_post_creates_current_location(self):
         response = self.client.post(
