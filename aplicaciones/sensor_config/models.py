@@ -131,6 +131,14 @@ class Zone(models.Model):
 class ClientSensor(models.Model):
     """OSIRIS-owned metadata for a sensor that lives in an external source."""
 
+    class ActivityType(models.TextChoices):
+        CROP = "crop", "Cultivo"
+        POULTRY = "poultry", "Avicultura"
+        LIVESTOCK = "livestock", "Ganadería"
+        AQUACULTURE = "aquaculture", "Acuicultura"
+        STORAGE = "storage", "Almacenamiento / cadena de frío"
+        OTHER = "other", "Otro"
+
     client = models.ForeignKey(
         Client,
         on_delete=models.CASCADE,
@@ -140,6 +148,20 @@ class ClientSensor(models.Model):
     external_sensor_id = models.CharField("sensor ID", max_length=160)
     sensor_name = models.CharField("nombre del sensor", max_length=200, blank=True)
     sensor_detail = models.CharField("sensor detail", max_length=500, blank=True)
+    activity_type = models.CharField(
+        "actividad",
+        max_length=24,
+        choices=ActivityType.choices,
+        blank=True,
+        default="",
+        help_text="Contexto productivo local de OSIRIS.",
+    )
+    product_name = models.CharField(
+        "producto / especie",
+        max_length=160,
+        blank=True,
+        help_text="Ej. Arándano, Fresa, Tomate o Gallinas.",
+    )
     is_active = models.BooleanField(
         "activo en fuente",
         default=True,
@@ -181,6 +203,13 @@ class ClientSensor(models.Model):
     @property
     def is_dashboard_visible(self) -> bool:
         return self.is_active and self.dashboard_enabled
+
+    @property
+    def productive_context(self) -> str:
+        activity = self.get_activity_type_display() if self.activity_type else ""
+        if activity and self.product_name:
+            return f"{activity} · {self.product_name}"
+        return activity or self.product_name or "Sin definir"
 
 
 class SensorPlacement(models.Model):
