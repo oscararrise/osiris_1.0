@@ -1,0 +1,122 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Configuración de sensores | OSIRIS{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'sensor_config/sensor_config.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="hero compact config-hero">
+    <div>
+        <p class="eyebrow">Configuración</p>
+        <h1>Sensores</h1>
+        <p>Asigna la ubicación operativa de cada sensor sin modificar la información original de Aranet.</p>
+    </div>
+</section>
+
+<section class="config-stats" aria-label="Resumen de configuración">
+    <article class="config-stat">
+        <span>Sensores activos</span>
+        <strong>{{ stats.total }}</strong>
+    </article>
+    <article class="config-stat">
+        <span>Configurados</span>
+        <strong>{{ stats.configured }}</strong>
+    </article>
+    <article class="config-stat warning">
+        <span>Sin ubicación</span>
+        <strong>{{ stats.unconfigured }}</strong>
+    </article>
+    <article class="config-stat muted">
+        <span>Inactivos</span>
+        <strong>{{ stats.inactive }}</strong>
+    </article>
+</section>
+
+<form class="config-filter" method="get">
+    <label>
+        Buscar sensor
+        <input type="search" name="q" value="{{ search }}" placeholder="Nombre, ID o detalle">
+    </label>
+    <label>
+        Estado
+        <select name="status">
+            <option value="all" {% if status == 'all' %}selected{% endif %}>Activos</option>
+            <option value="configured" {% if status == 'configured' %}selected{% endif %}>Configurados</option>
+            <option value="unconfigured" {% if status == 'unconfigured' %}selected{% endif %}>Sin ubicación</option>
+            <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactivos</option>
+        </select>
+    </label>
+    <button class="button button-primary" type="submit">Filtrar</button>
+    {% if search or status != 'all' %}
+        <a class="button config-button-secondary" href="{% url 'sensor_configuration' %}">Limpiar</a>
+    {% endif %}
+</form>
+
+<section class="panel config-panel">
+    <div class="panel-header">
+        <div>
+            <p class="eyebrow">Catálogo</p>
+            <h2>Sensores del cliente</h2>
+        </div>
+        <span class="count-badge">{{ sensors|length }}</span>
+    </div>
+
+    {% if sensors %}
+        <div class="config-table-wrap">
+            <table class="config-table">
+                <thead>
+                    <tr>
+                        <th>Sensor</th>
+                        <th>Sensor ID</th>
+                        <th>Sensor detail</th>
+                        <th>Ubicación</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sensor in sensors %}
+                        {% with placement=sensor.active_placements.0 %}
+                        <tr>
+                            <td>
+                                <strong>{{ sensor.sensor_name|default:sensor.external_sensor_id }}</strong>
+                            </td>
+                            <td><code>{{ sensor.external_sensor_id }}</code></td>
+                            <td>{{ sensor.sensor_detail|default:'—' }}</td>
+                            <td>
+                                {% if placement %}
+                                    <strong>{{ placement.zone.full_name|default:'Ubicación registrada' }}</strong>
+                                    {% if placement.city %}<small>{{ placement.city }}{% if placement.department %}, {{ placement.department }}{% endif %}</small>{% endif %}
+                                {% else %}
+                                    <span class="config-empty-location">Sin configurar</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not sensor.is_active %}
+                                    <span class="config-status neutral">Inactivo</span>
+                                {% elif placement %}
+                                    <span class="config-status success">Configurado</span>
+                                {% else %}
+                                    <span class="config-status warning">Pendiente</span>
+                                {% endif %}
+                            </td>
+                            <td class="config-action-cell">
+                                <a class="button config-button-secondary" href="{% url 'sensor_configuration_detail' sensor.pk %}">Configurar</a>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="config-empty-state">
+            <strong>No encontramos sensores con estos filtros.</strong>
+            <p>Prueba otra búsqueda o vuelve al listado de sensores activos.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
