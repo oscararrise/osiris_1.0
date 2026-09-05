@@ -1,0 +1,207 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ sensor.sensor_name|default:sensor.external_sensor_id }} | Configuración de sensores{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'sensor_config/sensor_config.css' %}">
+{% endblock %}
+
+{% block content %}
+<a class="config-back-link" href="{% url 'sensor_configuration' %}">← Volver a sensores</a>
+
+<section class="hero compact config-detail-hero">
+    <div>
+        <p class="eyebrow">Configuración de sensor</p>
+        <h1>{{ sensor.sensor_name|default:sensor.external_sensor_id }}</h1>
+        <p>{{ sensor.sensor_detail|default:'Sensor sincronizado desde la fuente externa.' }}</p>
+    </div>
+    {% if current %}
+        <span class="config-status success">Configurado</span>
+    {% else %}
+        <span class="config-status warning">Sin ubicación</span>
+    {% endif %}
+</section>
+
+<section class="sensor-meta-grid">
+    <article class="sensor-meta-card">
+        <span>Cliente</span>
+        <strong>{{ current_client.name }}</strong>
+    </article>
+    <article class="sensor-meta-card">
+        <span>Sensor ID</span>
+        <strong><code>{{ sensor.external_sensor_id }}</code></strong>
+    </article>
+    <article class="sensor-meta-card wide">
+        <span>Sensor detail</span>
+        <strong>{{ sensor.sensor_detail|default:'—' }}</strong>
+    </article>
+    <article class="sensor-meta-card">
+        <span>Estado externo</span>
+        <strong>{% if sensor.is_active %}Activo{% else %}Inactivo{% endif %}</strong>
+    </article>
+</section>
+
+<div class="config-detail-grid">
+    <section class="panel config-panel">
+        <div class="panel-header">
+            <div>
+                <p class="eyebrow">Ubicación</p>
+                <h2>Ubicación operativa</h2>
+            </div>
+        </div>
+
+        <form method="post" class="sensor-location-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="config-form-errors">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="config-form-grid two-columns">
+                <div class="config-form-field">
+                    <label for="{{ form.facility_type.id_for_label }}">{{ form.facility_type.label }}</label>
+                    {{ form.facility_type }}
+                    {{ form.facility_type.errors }}
+                </div>
+                <div class="config-form-field">
+                    <label for="{{ form.facility_name.id_for_label }}">{{ form.facility_name.label }}</label>
+                    {{ form.facility_name }}
+                    <small>Si no existe, OSIRIS la creará automáticamente.</small>
+                    {{ form.facility_name.errors }}
+                </div>
+                <div class="config-form-field full-width">
+                    <label for="{{ form.zone_name.id_for_label }}">{{ form.zone_name.label }}</label>
+                    {{ form.zone_name }}
+                    <small>Ej. Sector A1, Cuarto frío 2 o Cama 5. Puede quedar vacío si el sensor pertenece directamente a la finca o invernadero.</small>
+                    {{ form.zone_name.errors }}
+                </div>
+                <div class="config-form-field">
+                    <label for="{{ form.city.id_for_label }}">{{ form.city.label }}</label>
+                    {{ form.city }}
+                    {{ form.city.errors }}
+                </div>
+                <div class="config-form-field">
+                    <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+                    {{ form.department }}
+                    {{ form.department.errors }}
+                </div>
+            </div>
+
+            <div class="config-section-divider">
+                <div>
+                    <strong>Coordenadas</strong>
+                    <span>Opcionales. Latitud y longitud deben registrarse juntas.</span>
+                </div>
+            </div>
+
+            <div class="config-form-grid three-columns">
+                <div class="config-form-field">
+                    <label for="{{ form.latitude.id_for_label }}">{{ form.latitude.label }}</label>
+                    {{ form.latitude }}
+                    {{ form.latitude.errors }}
+                </div>
+                <div class="config-form-field">
+                    <label for="{{ form.longitude.id_for_label }}">{{ form.longitude.label }}</label>
+                    {{ form.longitude }}
+                    {{ form.longitude.errors }}
+                </div>
+                <div class="config-form-field">
+                    <label for="{{ form.altitude_m.id_for_label }}">{{ form.altitude_m.label }}</label>
+                    {{ form.altitude_m }}
+                    {{ form.altitude_m.errors }}
+                </div>
+                <div class="config-form-field full-width">
+                    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                    {{ form.notes }}
+                    {{ form.notes.errors }}
+                </div>
+            </div>
+
+            <datalist id="facility-options">
+                {% for facility in facilities %}<option value="{{ facility.name }}">{% endfor %}
+            </datalist>
+            <datalist id="zone-options">
+                {% for zone_name in zone_names %}<option value="{{ zone_name }}">{% endfor %}
+            </datalist>
+
+            <div class="config-form-actions">
+                <a class="button config-button-secondary" href="{% url 'sensor_configuration' %}">Cancelar</a>
+                <button class="button button-primary" type="submit">Guardar ubicación</button>
+            </div>
+        </form>
+    </section>
+
+    <aside class="config-side-column">
+        <section class="panel config-panel current-location-panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Actual</p>
+                    <h2>Ubicación vigente</h2>
+                </div>
+            </div>
+            {% if current %}
+                <dl class="location-summary">
+                    <div>
+                        <dt>Finca / Invernadero</dt>
+                        <dd>{% if current.farm_or_greenhouse %}{{ current.farm_or_greenhouse.name }}{% else %}—{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt>Zona</dt>
+                        <dd>{% if current.zone %}{{ current.zone.full_name }}{% else %}—{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt>Ciudad</dt>
+                        <dd>{{ current.city|default:'—' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Departamento</dt>
+                        <dd>{{ current.department|default:'—' }}</dd>
+                    </div>
+                    <div>
+                        <dt>Latitud / Longitud</dt>
+                        <dd>{% if current.latitude != None %}{{ current.latitude }}, {{ current.longitude }}{% else %}—{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt>Altura</dt>
+                        <dd>{% if current.altitude_m != None %}{{ current.altitude_m }} m{% else %}—{% endif %}</dd>
+                    </div>
+                </dl>
+            {% else %}
+                <div class="config-empty-state compact">
+                    <strong>Este sensor aún no tiene ubicación.</strong>
+                    <p>Completa el formulario para asignarlo por primera vez.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="panel config-panel history-panel">
+            <div class="panel-header">
+                <div>
+                    <p class="eyebrow">Historial</p>
+                    <h2>Movimientos recientes</h2>
+                </div>
+            </div>
+            {% if history %}
+                <div class="placement-history">
+                    {% for placement in history %}
+                        <article>
+                            <strong>{% if placement.zone %}{{ placement.zone.full_name }}{% else %}Sin zona{% endif %}</strong>
+                            <span>{{ placement.valid_from|date:'d M Y · H:i' }}</span>
+                            {% if placement.valid_until %}
+                                <small>Hasta {{ placement.valid_until|date:'d M Y · H:i' }}</small>
+                            {% else %}
+                                <small class="current-marker">Ubicación actual</small>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="config-empty-state compact">
+                    <p>No hay movimientos registrados.</p>
+                </div>
+            {% endif %}
+        </section>
+    </aside>
+</div>
+{% endblock %}
