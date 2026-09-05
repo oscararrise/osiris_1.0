@@ -4,6 +4,7 @@ from django.urls import include, path
 from aplicaciones.automatizacion import views as legacy_views
 from aplicaciones.core.decorators import module_access_required
 from aplicaciones.core.views import sensor_dashboard
+from aplicaciones.dashboard.context_api import sensor_context
 
 admin.site.site_header = "Administración OSIRIS"
 admin.site.site_title = "OSIRIS"
@@ -13,6 +14,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("aplicaciones.core.urls")),
     path("sensor-config/", include("aplicaciones.sensor_config.urls")),
+    path("s2/context", sensor_context, name="sensor_context"),
     path("s2", sensor_dashboard, name="s2"),
     path("s1", module_access_required("monitoring")(legacy_views.s1), name="s1"),
     path("control", module_access_required("control")(legacy_views.s3), name="s3"),
