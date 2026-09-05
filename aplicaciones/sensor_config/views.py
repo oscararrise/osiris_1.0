@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Exists, OuterRef, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -14,28 +15,39 @@ from .models import ClientSensor, SensorPlacement, Zone
 from .services import save_sensor_location_configuration
 
 
-def _current_placement_initial(placement: SensorPlacement | None) -> dict[str, object]:
+def _sensor_configuration_initial(
+    sensor: ClientSensor,
+    placement: SensorPlacement | None,
+) -> dict[str, object]:
+    initial: dict[str, object] = {
+        "activity_type": sensor.activity_type,
+        "product_name": sensor.product_name,
+        "facility_type": Zone.ZoneType.GREENHOUSE,
+    }
     if placement is None:
-        return {"facility_type": Zone.ZoneType.GREENHOUSE}
+        return initial
 
     facility = placement.farm_or_greenhouse
     zone_name = ""
     if facility is not None and placement.zone_id != facility.id:
         zone_name = placement.zone.name
 
-    return {
-        "facility_type": (
-            facility.zone_type if facility is not None else Zone.ZoneType.GREENHOUSE
-        ),
-        "facility_name": facility.name if facility is not None else "",
-        "zone_name": zone_name,
-        "city": placement.city,
-        "department": placement.department,
-        "latitude": placement.latitude,
-        "longitude": placement.longitude,
-        "altitude_m": placement.altitude_m,
-        "notes": placement.notes,
-    }
+    initial.update(
+        {
+            "facility_type": (
+                facility.zone_type if facility is not None else Zone.ZoneType.GREENHOUSE
+            ),
+            "facility_name": facility.name if facility is not None else "",
+            "zone_name": zone_name,
+            "city": placement.city,
+            "department": placement.department,
+            "latitude": placement.latitude,
+            "longitude": placement.longitude,
+            "altitude_m": placement.altitude_m,
+            "notes": placement.notes,
+        }
+    )
+    return initial
 
 
 def _return_after_sensor_action(request, fallback_name: str, **kwargs):
@@ -70,6 +82,7 @@ def sensor_configuration(request):
         dashboard_enabled=False,
     ).count()
     configured = base_queryset.filter(is_active=True, has_current_placement=True).count()
+    productive_context = base_queryset.filter(is_active=True).exclude(activity_type="").count()
     inactive = base_queryset.filter(is_active=False).count()
 
     search = request.GET.get("q", "").strip()
@@ -80,6 +93,8 @@ def sensor_configuration(request):
             Q(sensor_name__icontains=search)
             | Q(external_sensor_id__icontains=search)
             | Q(sensor_detail__icontains=search)
+            | Q(product_name__icontains=search)
+            | Q(activity_type__icontains=search)
         )
     if status == "visible":
         sensors = sensors.filter(is_active=True, dashboard_enabled=True)
@@ -89,6 +104,8 @@ def sensor_configuration(request):
         sensors = sensors.filter(is_active=True, has_current_placement=True)
     elif status == "unconfigured":
         sensors = sensors.filter(is_active=True, has_current_placement=False)
+    elif status == "productive":
+        sensors = sensors.filter(is_active=True).exclude(activity_type="")
     elif status == "inactive":
         sensors = sensors.filter(is_active=False)
     else:
@@ -113,6 +130,7 @@ def sensor_configuration(request):
                 "dashboard_visible": dashboard_visible,
                 "dashboard_hidden": dashboard_hidden,
                 "configured": configured,
+                "productive_context": productive_context,
                 "unconfigured": max(source_active - configured, 0),
                 "inactive": inactive,
             },
@@ -164,29 +182,45 @@ def sensor_configuration_detail(request, sensor_pk: int):
         form = SensorLocationForm(request.POST)
         if form.is_valid():
             try:
-                _, changed = save_sensor_location_configuration(
-                    sensor=sensor,
-                    facility_name=form.cleaned_data["facility_name"],
-                    facility_type=form.cleaned_data["facility_type"],
-                    zone_name=form.cleaned_data["zone_name"],
-                    city=form.cleaned_data["city"],
-                    department=form.cleaned_data["department"],
-                    latitude=form.cleaned_data["latitude"],
-                    longitude=form.cleaned_data["longitude"],
-                    altitude_m=form.cleaned_data["altitude_m"],
-                    notes=form.cleaned_data["notes"],
-                    changed_by=request.user,
-                )
+                with transaction.atomic():
+                    _, location_changed = save_sensor_location_configuration(
+                        sensor=sensor,
+                        facility_name=form.cleaned_data["facility_name"],
+                        facility_type=form.cleaned_data["facility_type"],
+                        zone_name=form.cleaned_data["zone_name"],
+                        city=form.cleaned_data["city"],
+                        department=form.cleaned_data["department"],
+                        latitude=form.cleaned_data["latitude"],
+                        longitude=form.cleaned_data["longitude"],
+                        altitude_m=form.cleaned_data["altitude_m"],
+                        notes=form.cleaned_data["notes"],
+                        changed_by=request.user,
+                    )
+
+                    desired_context = {
+                        "activity_type": form.cleaned_data["activity_type"],
+                        "product_name": form.cleaned_data["product_name"].strip()[:160],
+                    }
+                    context_changed_fields = []
+                    for field, value in desired_context.items():
+                        if getattr(sensor, field) != value:
+                            setattr(sensor, field, value)
+                            context_changed_fields.append(field)
+                    if context_changed_fields:
+                        sensor.save(update_fields=(*context_changed_fields, "updated_at"))
             except ValidationError as exc:
                 form.add_error(None, " ".join(exc.messages))
             else:
-                if changed:
-                    messages.success(request, "Ubicación del sensor guardada correctamente.")
+                if location_changed or context_changed_fields:
+                    messages.success(
+                        request,
+                        "Configuración operativa del sensor guardada correctamente.",
+                    )
                 else:
                     messages.info(request, "La configuración ya estaba actualizada.")
                 return redirect("sensor_configuration_detail", sensor_pk=sensor.pk)
     else:
-        form = SensorLocationForm(initial=_current_placement_initial(current))
+        form = SensorLocationForm(initial=_sensor_configuration_initial(sensor, current))
 
     facilities = Zone.objects.filter(
         client=client,
@@ -198,6 +232,13 @@ def sensor_configuration_detail(request, sensor_pk: int):
         Zone.objects.filter(client=client, parent__isnull=False, is_active=True)
         .order_by("name")
         .values_list("name", flat=True)
+        .distinct()
+    )
+    product_names = (
+        ClientSensor.objects.filter(client=client)
+        .exclude(product_name="")
+        .order_by("product_name")
+        .values_list("product_name", flat=True)
         .distinct()
     )
     history = (
@@ -215,6 +256,7 @@ def sensor_configuration_detail(request, sensor_pk: int):
             "form": form,
             "facilities": facilities,
             "zone_names": zone_names,
+            "product_names": product_names,
             "history": history,
         },
     )
