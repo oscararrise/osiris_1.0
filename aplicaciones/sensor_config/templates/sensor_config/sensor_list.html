@@ -5,6 +5,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'sensor_config/sensor_config.css' %}?v=20260905-2">
+<link rel="stylesheet" href="{% static 'sensor_config/productive_context.css' %}?v=20260905-1">
 {% endblock %}
 
 {% block content %}
@@ -12,11 +13,12 @@
     <div class="config-hero-copy">
         <div class="config-hero-kicker"><span></span> Configuración inteligente</div>
         <h1>Centro de sensores</h1>
-        <p>Decide qué dispositivos participan en la operación, organiza su ubicación física y mantén el dashboard enfocado únicamente en los sensores relevantes.</p>
+        <p>Decide qué dispositivos participan en la operación, organiza su ubicación física y añade el contexto productivo necesario para interpretar correctamente cada lectura.</p>
         <div class="config-hero-tags" aria-label="Capacidades">
             <span>Inventario sincronizado</span>
             <span>Control de visibilidad</span>
             <span>Contexto geográfico</span>
+            <span>Actividad y producto</span>
         </div>
     </div>
     <div class="config-hero-control">
@@ -24,7 +26,7 @@
         <div>
             <small>Dashboard operativo</small>
             <strong>{{ stats.dashboard_visible }} sensores visibles</strong>
-            <p>{{ stats.dashboard_hidden }} ocultos por configuración local</p>
+            <p>{{ stats.productive_context }} con contexto productivo</p>
         </div>
     </div>
 </section>
@@ -69,13 +71,13 @@
         <span class="command-dot"></span>
         <div>
             <strong>Inventario operativo</strong>
-            <small>Los cambios de visibilidad afectan OSIRIS, nunca la base de Aranet.</small>
+            <small>Ubicación, actividad y producto viven en OSIRIS; Aranet permanece como fuente de telemetría.</small>
         </div>
     </div>
     <form class="config-filter" method="get">
         <label class="config-search-field">
             <span class="sr-only">Buscar sensor</span>
-            <input type="search" name="q" value="{{ search }}" placeholder="Buscar por nombre, ID o tipo…">
+            <input type="search" name="q" value="{{ search }}" placeholder="Nombre, ID, producto o tipo…">
         </label>
         <label>
             <span class="sr-only">Estado</span>
@@ -85,6 +87,7 @@
                 <option value="hidden" {% if status == 'hidden' %}selected{% endif %}>Ocultos</option>
                 <option value="configured" {% if status == 'configured' %}selected{% endif %}>Con ubicación</option>
                 <option value="unconfigured" {% if status == 'unconfigured' %}selected{% endif %}>Sin ubicación</option>
+                <option value="productive" {% if status == 'productive' %}selected{% endif %}>Con contexto productivo</option>
                 <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactivos en fuente</option>
             </select>
         </label>
@@ -111,6 +114,7 @@
                     <tr>
                         <th>Dispositivo</th>
                         <th>Ubicación operativa</th>
+                        <th>Actividad / producto</th>
                         <th>Fuente</th>
                         <th>Dashboard</th>
                         <th class="actions-heading">Acciones</th>
@@ -149,6 +153,22 @@
                                     <div class="location-cell pending">
                                         <span class="location-pin"></span>
                                         <div><strong>Sin ubicación</strong><small>Requiere contexto operativo</small></div>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sensor.activity_type or sensor.product_name %}
+                                    <div class="productive-cell configured">
+                                        <span class="productive-cell-icon">P</span>
+                                        <div>
+                                            <strong>{{ sensor.get_activity_type_display|default:'Actividad pendiente' }}</strong>
+                                            <small>{{ sensor.product_name|default:'Producto / especie pendiente' }}</small>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="productive-cell pending">
+                                        <span class="productive-cell-icon">P</span>
+                                        <div><strong>Sin definir</strong><small>Asigna actividad y producto</small></div>
                                     </div>
                                 {% endif %}
                             </td>
@@ -197,6 +217,6 @@
 
 <section class="config-footnote">
     <span class="footnote-mark">i</span>
-    <p><strong>Cómo funciona:</strong> ocultar un sensor solo lo retira de las vistas de monitoreo de OSIRIS. La telemetría continúa llegando a Aranet y el dispositivo permanece disponible para reactivarlo cuando quieras.</p>
+    <p><strong>Cómo funciona:</strong> Aranet entrega la telemetría y el estado técnico. OSIRIS añade el contexto operativo: visibilidad, ubicación, actividad y producto, sin escribir en la base externa.</p>
 </section>
 {% endblock %}
