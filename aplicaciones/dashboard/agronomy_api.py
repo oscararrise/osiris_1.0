@@ -365,7 +365,10 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
     sensor_id = str(raw_sensor_id or "").strip()
     sensor = _sensor_for_request(request, sensor_id)
     if sensor is None:
-        return JsonResponse({"error": "Sensor principal no disponible en el dashboard."}, status=404)
+        return JsonResponse(
+            {"error": "Sensor principal no disponible en el dashboard."},
+            status=404,
+        )
 
     catalog = _sensor_catalog(request)
     metrics = _flatten_metrics(catalog)
