@@ -16,16 +16,18 @@ class ClientSensorAdmin(admin.ModelAdmin):
     list_display = (
         "external_sensor_id",
         "sensor_name",
-        "sensor_detail",
+        "activity_type",
+        "product_name",
         "client",
         "is_active",
         "dashboard_enabled",
     )
-    list_filter = ("client", "is_active", "dashboard_enabled")
+    list_filter = ("client", "activity_type", "is_active", "dashboard_enabled")
     search_fields = (
         "external_sensor_id",
         "sensor_name",
         "sensor_detail",
+        "product_name",
         "client__name",
     )
 
