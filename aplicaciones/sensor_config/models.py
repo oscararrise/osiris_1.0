@@ -140,7 +140,16 @@ class ClientSensor(models.Model):
     external_sensor_id = models.CharField("sensor ID", max_length=160)
     sensor_name = models.CharField("nombre del sensor", max_length=200, blank=True)
     sensor_detail = models.CharField("sensor detail", max_length=500, blank=True)
-    is_active = models.BooleanField("activo", default=True)
+    is_active = models.BooleanField(
+        "activo en fuente",
+        default=True,
+        help_text="Refleja el estado reportado por la fuente externa.",
+    )
+    dashboard_enabled = models.BooleanField(
+        "visible en dashboard",
+        default=True,
+        help_text="Control local de OSIRIS. No modifica el sensor ni la base externa.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -168,6 +177,10 @@ class ClientSensor(models.Model):
     @property
     def current_placement(self) -> SensorPlacement | None:
         return self.placements.filter(valid_until__isnull=True).select_related("zone").first()
+
+    @property
+    def is_dashboard_visible(self) -> bool:
+        return self.is_active and self.dashboard_enabled
 
 
 class SensorPlacement(models.Model):
