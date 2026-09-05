@@ -17,7 +17,9 @@ from .models import AgronomicVariableRelationship
 
 def _normalise(value: object) -> str:
     text = unicodedata.normalize("NFKD", str(value or ""))
-    return "".join(character for character in text if not unicodedata.combining(character)).lower()
+    return "".join(
+        character for character in text if not unicodedata.combining(character)
+    ).lower()
 
 
 def _metric_key(metric: dict[str, Any]) -> str:
@@ -65,11 +67,22 @@ def _suggested_relationships(metrics: list[dict[str, Any]]) -> list[dict[str, An
     )
     soil_temperature = _find_metric(
         metrics,
-        ("soil temperature", "temperatura suelo", "substrate temperature", "temperatura sustrato"),
+        (
+            "soil temperature",
+            "temperatura suelo",
+            "substrate temperature",
+            "temperatura sustrato",
+        ),
     )
     soil_moisture = _find_metric(
         metrics,
-        ("soil moisture", "humedad suelo", "substrate moisture", "vwc", "water content"),
+        (
+            "soil moisture",
+            "humedad suelo",
+            "substrate moisture",
+            "vwc",
+            "water content",
+        ),
     )
     ec = _find_metric(
         metrics,
@@ -113,7 +126,10 @@ def _suggested_relationships(metrics: list[dict[str, Any]]) -> list[dict[str, An
         "Balance climático y transpiración",
         AgronomicVariableRelationship.RelationshipType.CLIMATE,
         [temperature, humidity],
-        "Interpretar simultáneamente temperatura y humedad para anticipar estrés climático y demanda de agua.",
+        (
+            "Interpretar simultáneamente temperatura y humedad para anticipar "
+            "estrés climático y demanda de agua."
+        ),
         (
             "En Alstroemeria conviene evitar interpretar la temperatura de forma aislada. "
             "Su efecto debe leerse junto con la humedad relativa y, cuando sea posible, "
@@ -124,7 +140,10 @@ def _suggested_relationships(metrics: list[dict[str, Any]]) -> list[dict[str, An
         "Zona radicular y fertirriego",
         AgronomicVariableRelationship.RelationshipType.ROOT_ZONE,
         [soil_temperature, soil_moisture, ec, ph],
-        "Relacionar estado hídrico, temperatura radicular y concentración de sales/nutrientes.",
+        (
+            "Relacionar estado hídrico, temperatura radicular y concentración "
+            "de sales/nutrientes."
+        ),
         (
             "Alstroemeria responde de forma marcada a la temperatura de la zona radicular. "
             "Humedad, EC y pH deben analizarse en conjunto para distinguir déficit de agua, "
@@ -135,10 +154,14 @@ def _suggested_relationships(metrics: list[dict[str, Any]]) -> list[dict[str, An
         "Ambiente fotosintético",
         AgronomicVariableRelationship.RelationshipType.PHOTOSYNTHESIS,
         [co2, light, temperature],
-        "Evaluar si CO₂, radiación y temperatura están alineados para sostener crecimiento y floración.",
         (
-            "La respuesta a CO₂ depende de que exista luz suficiente y una temperatura compatible "
-            "con el cultivo. La relación permite evitar conclusiones basadas únicamente en CO₂."
+            "Evaluar si CO₂, radiación y temperatura están alineados para sostener "
+            "crecimiento y floración."
+        ),
+        (
+            "La respuesta a CO₂ depende de que exista luz suficiente y una temperatura "
+            "compatible con el cultivo. La relación evita conclusiones basadas "
+            "únicamente en CO₂."
         ),
     )
     add(
@@ -154,7 +177,9 @@ def _suggested_relationships(metrics: list[dict[str, Any]]) -> list[dict[str, An
     return suggestions
 
 
-def _relationship_payload(relationship: AgronomicVariableRelationship) -> dict[str, Any]:
+def _relationship_payload(
+    relationship: AgronomicVariableRelationship,
+) -> dict[str, Any]:
     return {
         "id": relationship.pk,
         "crop_name": relationship.crop_name,
@@ -188,10 +213,12 @@ def _available_metrics(request: HttpRequest, sensor_id: str) -> list[dict[str, A
 @require_http_methods(["GET", "POST"])
 @module_access_required("dashboard")
 def agronomy_relationships(request: HttpRequest) -> JsonResponse:
-    sensor_id = str(
-        request.GET.get("sensor") if request.method == "GET" else request.POST.get("sensor")
-        or ""
-    ).strip()
+    raw_sensor_id = (
+        request.GET.get("sensor")
+        if request.method == "GET"
+        else request.POST.get("sensor")
+    )
+    sensor_id = str(raw_sensor_id or "").strip()
     sensor = _sensor_for_request(request, sensor_id)
     if sensor is None:
         return JsonResponse({"error": "Sensor no disponible en el dashboard."}, status=404)
@@ -201,7 +228,10 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
 
     if request.method == "POST":
         if not can_access_module(request.user, "sensor_configuration"):
-            return JsonResponse({"error": "No tienes permiso para configurar relaciones."}, status=403)
+            return JsonResponse(
+                {"error": "No tienes permiso para configurar relaciones."},
+                status=403,
+            )
 
         action = str(request.POST.get("action") or "save").strip()
         if action == "delete":
@@ -216,9 +246,14 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
         try:
             requested_keys = json.loads(str(request.POST.get("variable_ids") or "[]"))
         except json.JSONDecodeError:
-            return JsonResponse({"error": "La lista de variables no es válida."}, status=400)
+            return JsonResponse(
+                {"error": "La lista de variables no es válida."},
+                status=400,
+            )
 
-        selected_keys = [str(key) for key in requested_keys if str(key) in allowed_metrics]
+        selected_keys = [
+            str(key) for key in requested_keys if str(key) in allowed_metrics
+        ]
         selected_keys = list(dict.fromkeys(selected_keys))
         if len(selected_keys) < 2:
             return JsonResponse(
@@ -228,7 +263,8 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
 
         relationship_type = str(request.POST.get("relationship_type") or "custom")
         valid_types = {
-            value for value, _label in AgronomicVariableRelationship.RelationshipType.choices
+            value
+            for value, _label in AgronomicVariableRelationship.RelationshipType.choices
         }
         if relationship_type not in valid_types:
             relationship_type = AgronomicVariableRelationship.RelationshipType.CUSTOM
@@ -236,7 +272,10 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
         name = str(request.POST.get("name") or "").strip()[:200]
         crop_name = str(request.POST.get("crop_name") or "").strip()[:160]
         if not name or not crop_name:
-            return JsonResponse({"error": "Cultivo y nombre de relación son obligatorios."}, status=400)
+            return JsonResponse(
+                {"error": "Cultivo y nombre de relación son obligatorios."},
+                status=400,
+            )
 
         selected_metrics = [allowed_metrics[key] for key in selected_keys]
         relationship, _created = AgronomicVariableRelationship.objects.update_or_create(
@@ -249,8 +288,12 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
                 "relationship_type": relationship_type,
                 "variable_ids": selected_keys,
                 "variable_names": [metric["name"] for metric in selected_metrics],
-                "agronomic_goal": str(request.POST.get("agronomic_goal") or "").strip()[:500],
-                "expert_guidance": str(request.POST.get("expert_guidance") or "").strip()[:2500],
+                "agronomic_goal": str(
+                    request.POST.get("agronomic_goal") or ""
+                ).strip()[:500],
+                "expert_guidance": str(
+                    request.POST.get("expert_guidance") or ""
+                ).strip()[:2500],
                 "is_enabled": request.POST.get("is_enabled", "1") == "1",
                 "created_by": request.user,
             },
@@ -273,6 +316,8 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
                 for value, label in AgronomicVariableRelationship.RelationshipType.choices
             ],
             "suggestions": _suggested_relationships(metrics),
-            "relationships": [_relationship_payload(item) for item in relationships],
+            "relationships": [
+                _relationship_payload(item) for item in relationships
+            ],
         }
     )
