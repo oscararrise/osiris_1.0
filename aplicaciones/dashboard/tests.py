@@ -14,6 +14,7 @@ from aplicaciones.core.models import (
     ClientModule,
     PlatformModule,
 )
+from aplicaciones.sensor_config.models import ClientSensor
 
 from .adapters.aranet import AranetAdapter, _rows
 from .adapters.base import AdapterConfigurationError
@@ -100,6 +101,27 @@ class DashboardServiceTests(TestCase):
         context_b = build_dashboard(self.client_b, {})
         self.assertEqual(context_a["selected_sensor_id"], "sensor-a")
         self.assertEqual(context_b["selected_sensor_id"], "sensor-b")
+
+    @patch("aplicaciones.dashboard.services.get_adapter")
+    def test_aranet_dashboard_honors_local_sensor_visibility(self, adapter_factory):
+        registry_sensor = ClientSensor.objects.create(
+            client=self.client_a,
+            external_sensor_id="sensor-a",
+            sensor_name="Sensor A",
+            dashboard_enabled=False,
+        )
+        adapter = FakeAdapter("sensor-a")
+        adapter_factory.return_value = adapter
+
+        hidden_context = build_dashboard(self.client_a, {})
+        self.assertEqual(hidden_context["sensors"], [])
+        self.assertEqual(adapter.metric_sensor_calls, [])
+
+        registry_sensor.dashboard_enabled = True
+        registry_sensor.save(update_fields=("dashboard_enabled", "updated_at"))
+        visible_context = build_dashboard(self.client_a, {})
+        self.assertEqual(visible_context["selected_sensor_id"], "sensor-a")
+        self.assertEqual(adapter.metric_sensor_calls, ["sensor-a"])
 
 
 class AdapterRegistryTests(TestCase):
