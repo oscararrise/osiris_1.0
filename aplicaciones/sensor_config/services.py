@@ -8,6 +8,7 @@ from typing import Any
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from django.utils.text import slugify
 
 from aplicaciones.core.models import Client
 
@@ -125,6 +126,85 @@ def sync_sensor_snapshot(
     )
 
 
+def _unique_zone_code(*, client: Client, name: str) -> str:
+    base = slugify(name)[:90] or "zona"
+    candidate = base
+    sequence = 2
+    while Zone.objects.filter(client=client, code=candidate).exists():
+        suffix = f"-{sequence}"
+        candidate = f"{base[: 100 - len(suffix)]}{suffix}"
+        sequence += 1
+    return candidate
+
+
+def _ensure_facility(*, client: Client, name: str, zone_type: str) -> Zone:
+    clean_name = name.strip()
+    if not clean_name:
+        raise ValidationError({"facility_name": "La finca o invernadero es obligatorio."})
+    if zone_type not in {Zone.ZoneType.FARM, Zone.ZoneType.GREENHOUSE}:
+        raise ValidationError({"facility_type": "El tipo de ubicación principal no es válido."})
+
+    facility = (
+        Zone.objects.select_for_update()
+        .filter(client=client, parent__isnull=True, name__iexact=clean_name)
+        .first()
+    )
+    if facility is None:
+        return Zone.objects.create(
+            client=client,
+            name=clean_name,
+            code=_unique_zone_code(client=client, name=clean_name),
+            zone_type=zone_type,
+        )
+
+    changed_fields: list[str] = []
+    if facility.name != clean_name:
+        facility.name = clean_name
+        changed_fields.append("name")
+    if facility.zone_type != zone_type:
+        facility.zone_type = zone_type
+        changed_fields.append("zone_type")
+    if not facility.is_active:
+        facility.is_active = True
+        changed_fields.append("is_active")
+    if changed_fields:
+        facility.full_clean()
+        facility.save(update_fields=(*changed_fields, "updated_at"))
+    return facility
+
+
+def _ensure_zone(*, facility: Zone, name: str) -> Zone:
+    clean_name = name.strip()
+    if not clean_name:
+        return facility
+
+    zone = (
+        Zone.objects.select_for_update()
+        .filter(client=facility.client, parent=facility, name__iexact=clean_name)
+        .first()
+    )
+    if zone is None:
+        return Zone.objects.create(
+            client=facility.client,
+            parent=facility,
+            name=clean_name,
+            code=_unique_zone_code(client=facility.client, name=clean_name),
+            zone_type=Zone.ZoneType.SECTOR,
+        )
+
+    changed_fields: list[str] = []
+    if zone.name != clean_name:
+        zone.name = clean_name
+        changed_fields.append("name")
+    if not zone.is_active:
+        zone.is_active = True
+        changed_fields.append("is_active")
+    if changed_fields:
+        zone.full_clean()
+        zone.save(update_fields=(*changed_fields, "updated_at"))
+    return zone
+
+
 @transaction.atomic
 def assign_sensor_location(
     *,
@@ -183,3 +263,62 @@ def assign_sensor_location(
     placement.full_clean()
     placement.save()
     return placement
+
+
+@transaction.atomic
+def save_sensor_location_configuration(
+    *,
+    sensor: ClientSensor,
+    facility_name: str,
+    facility_type: str,
+    zone_name: str = "",
+    city: str = "",
+    department: str = "",
+    latitude: Decimal | None = None,
+    longitude: Decimal | None = None,
+    altitude_m: Decimal | None = None,
+    notes: str = "",
+    changed_by=None,
+) -> tuple[SensorPlacement, bool]:
+    """Persist the simple UI location model and return ``(placement, changed)``."""
+
+    locked_sensor = ClientSensor.objects.select_for_update().get(pk=sensor.pk)
+    facility = _ensure_facility(
+        client=locked_sensor.client,
+        name=facility_name,
+        zone_type=facility_type,
+    )
+    zone = _ensure_zone(facility=facility, name=zone_name)
+
+    normalized = {
+        "city": city.strip()[:120],
+        "department": department.strip()[:120],
+        "latitude": latitude,
+        "longitude": longitude,
+        "altitude_m": altitude_m,
+        "notes": notes.strip()[:500],
+    }
+    current = (
+        SensorPlacement.objects.select_for_update()
+        .filter(sensor=locked_sensor, valid_until__isnull=True)
+        .first()
+    )
+    if current is not None:
+        same_location = current.zone_id == zone.id and all(
+            getattr(current, field) == value for field, value in normalized.items()
+        )
+        if same_location:
+            return current, False
+
+    placement = assign_sensor_location(
+        sensor=locked_sensor,
+        zone=zone,
+        city=normalized["city"],
+        department=normalized["department"],
+        latitude=normalized["latitude"],
+        longitude=normalized["longitude"],
+        altitude_m=normalized["altitude_m"],
+        notes=normalized["notes"],
+        changed_by=changed_by,
+    )
+    return placement, True
