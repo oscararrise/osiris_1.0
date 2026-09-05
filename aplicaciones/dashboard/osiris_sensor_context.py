@@ -59,6 +59,7 @@ def build_osiris_sensor_context(
             location_label = placement.city or placement.department
 
         item = {
+            "sensor_pk": sensor.pk,
             "sensor_id": sensor.external_sensor_id,
             "sensor_name": sensor.sensor_name or sensor.external_sensor_id,
             "sensor_detail": sensor.sensor_detail,
