@@ -46,6 +46,7 @@
     </main>
     {% if current_client.slug == 'vladimir' %}
         <script src="{% static 'dashboard/vladimir_automation.js' %}?v=20260824-automation-1" defer></script>
+        <script src="{% static 'dashboard/vladimir_context.js' %}?v=20260905-1" defer></script>
     {% endif %}
     {% block scripts %}{% endblock %}
 </body>
