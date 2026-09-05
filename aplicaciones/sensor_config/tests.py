@@ -1,14 +1,26 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
-from aplicaciones.core.models import Client
+from aplicaciones.core.models import (
+    AccessLevel,
+    Client,
+    ClientMembership,
+    ClientModule,
+    PlatformModule,
+)
 
 from .models import ClientSensor, SensorPlacement, Zone
-from .services import assign_sensor_location, sync_sensor_snapshot
+from .services import (
+    assign_sensor_location,
+    save_sensor_location_configuration,
+    sync_sensor_snapshot,
+)
 
 
 class SensorConfigurationModelTests(TestCase):
@@ -123,6 +135,40 @@ class SensorConfigurationModelTests(TestCase):
         with self.assertRaises(ValidationError):
             assign_sensor_location(sensor=self.sensor, zone=foreign_zone)
 
+    def test_simple_configuration_creates_facility_zone_and_avoids_duplicate_history(self):
+        placement, changed = save_sensor_location_configuration(
+            sensor=self.sensor,
+            facility_name="Finca La Esperanza",
+            facility_type=Zone.ZoneType.FARM,
+            zone_name="Sector Norte",
+            city="Bogotá",
+            department="Cundinamarca",
+            latitude=Decimal("4.6872531"),
+            longitude=Decimal("-74.0628734"),
+            altitude_m=Decimal("2630.00"),
+        )
+
+        self.assertTrue(changed)
+        self.assertEqual(placement.zone.parent.name, "Finca La Esperanza")
+        self.assertEqual(placement.zone.name, "Sector Norte")
+        self.assertEqual(self.sensor.placements.count(), 1)
+
+        repeated, changed = save_sensor_location_configuration(
+            sensor=self.sensor,
+            facility_name="Finca La Esperanza",
+            facility_type=Zone.ZoneType.FARM,
+            zone_name="Sector Norte",
+            city="Bogotá",
+            department="Cundinamarca",
+            latitude=Decimal("4.6872531"),
+            longitude=Decimal("-74.0628734"),
+            altitude_m=Decimal("2630.00"),
+        )
+
+        self.assertFalse(changed)
+        self.assertEqual(repeated.pk, placement.pk)
+        self.assertEqual(self.sensor.placements.count(), 1)
+
     def test_sync_sensor_snapshot_creates_updates_and_deactivates(self):
         obsolete = ClientSensor.objects.create(
             client=self.client,
@@ -190,3 +236,71 @@ class SensorConfigurationModelTests(TestCase):
         self.assertEqual(ClientSensor.objects.filter(client=self.client).count(), 1)
         self.sensor.refresh_from_db()
         self.assertTrue(self.sensor.is_active)
+
+
+class SensorConfigurationViewTests(TestCase):
+    def setUp(self):
+        self.client_org = Client.objects.create(name="Vladimir Test", slug="vladimir-test")
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username="config-admin",
+            password="test-password-123",
+        )
+        ClientMembership.objects.create(
+            user=self.user,
+            client=self.client_org,
+            access_level=AccessLevel.CLIENT_ADMIN,
+        )
+        module, _ = PlatformModule.objects.update_or_create(
+            code="sensor_configuration",
+            defaults={
+                "name": "Configuración de sensores",
+                "description": "Ubicación física de sensores",
+                "route_name": "sensor_configuration",
+                "category": "Configuración",
+                "sort_order": 15,
+                "is_active": True,
+            },
+        )
+        ClientModule.objects.create(
+            client=self.client_org,
+            module=module,
+            minimum_access_level=AccessLevel.CLIENT_ADMIN,
+        )
+        self.sensor = ClientSensor.objects.create(
+            client=self.client_org,
+            external_sensor_id="sensor-23",
+            sensor_name="Aranet 23",
+            sensor_detail="Aranet4 · Código A23",
+        )
+        self.client.login(username="config-admin", password="test-password-123")
+
+    def test_sensor_list_shows_unconfigured_sensor(self):
+        response = self.client.get(reverse("sensor_configuration"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "sensor-23")
+        self.assertContains(response, "Sin configurar")
+
+    def test_detail_post_creates_current_location(self):
+        response = self.client.post(
+            reverse("sensor_configuration_detail", args=(self.sensor.pk,)),
+            {
+                "facility_type": Zone.ZoneType.GREENHOUSE,
+                "facility_name": "Invernadero Principal",
+                "zone_name": "Sector A1",
+                "city": "Bogotá",
+                "department": "Cundinamarca",
+                "latitude": "4.6872531",
+                "longitude": "-74.0628734",
+                "altitude_m": "2630",
+                "notes": "Instalado sobre la línea central.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        placement = self.sensor.placements.get(valid_until__isnull=True)
+        self.assertEqual(placement.zone.name, "Sector A1")
+        self.assertEqual(placement.zone.parent.name, "Invernadero Principal")
+        self.assertEqual(placement.city, "Bogotá")
+        self.assertEqual(placement.latitude, Decimal("4.6872531"))
