@@ -8,7 +8,7 @@ from django.utils import timezone
 from aplicaciones.core.models import Client
 
 from .models import ClientSensor, SensorPlacement, Zone
-from .services import assign_sensor_location
+from .services import assign_sensor_location, sync_sensor_snapshot
 
 
 class SensorConfigurationModelTests(TestCase):
@@ -122,3 +122,71 @@ class SensorConfigurationModelTests(TestCase):
 
         with self.assertRaises(ValidationError):
             assign_sensor_location(sensor=self.sensor, zone=foreign_zone)
+
+    def test_sync_sensor_snapshot_creates_updates_and_deactivates(self):
+        obsolete = ClientSensor.objects.create(
+            client=self.client,
+            external_sensor_id="aranet-old",
+            sensor_name="Sensor antiguo",
+        )
+        rows = [
+            {
+                "id": "aranet-001",
+                "name": "Cuarto frío actualizado",
+                "code": "A001",
+                "type_name": "Aranet4",
+                "is_active": True,
+            },
+            {
+                "id": "aranet-002",
+                "name": "Invernadero norte",
+                "code": "A002",
+                "type_name": "Aranet2",
+                "is_active": True,
+            },
+        ]
+
+        result = sync_sensor_snapshot(client=self.client, sensor_rows=rows)
+
+        self.assertEqual(result.created, 1)
+        self.assertEqual(result.updated, 1)
+        self.assertEqual(result.deactivated, 1)
+        self.assertEqual(result.unchanged, 0)
+        self.sensor.refresh_from_db()
+        obsolete.refresh_from_db()
+        self.assertEqual(self.sensor.sensor_name, "Cuarto frío actualizado")
+        self.assertEqual(self.sensor.sensor_detail, "Aranet4 · Código A001")
+        self.assertFalse(obsolete.is_active)
+        self.assertTrue(
+            ClientSensor.objects.filter(
+                client=self.client,
+                external_sensor_id="aranet-002",
+                sensor_detail="Aranet2 · Código A002",
+            ).exists()
+        )
+
+        repeated = sync_sensor_snapshot(client=self.client, sensor_rows=rows)
+        self.assertEqual(repeated.created, 0)
+        self.assertEqual(repeated.updated, 0)
+        self.assertEqual(repeated.unchanged, 2)
+        self.assertEqual(repeated.deactivated, 0)
+
+    def test_sync_sensor_snapshot_dry_run_does_not_write(self):
+        result = sync_sensor_snapshot(
+            client=self.client,
+            sensor_rows=[
+                {
+                    "id": "aranet-002",
+                    "name": "Sensor nuevo",
+                    "type_name": "Aranet4",
+                    "is_active": True,
+                }
+            ],
+            dry_run=True,
+        )
+
+        self.assertEqual(result.created, 1)
+        self.assertEqual(result.deactivated, 1)
+        self.assertEqual(ClientSensor.objects.filter(client=self.client).count(), 1)
+        self.sensor.refresh_from_db()
+        self.assertTrue(self.sensor.is_active)
