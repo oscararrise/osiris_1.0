@@ -1,6 +1,6 @@
+import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
-import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
@@ -23,10 +23,32 @@ class Migration(migrations.Migration):
                         verbose_name="ID",
                     ),
                 ),
-                ("sensor_id", models.CharField(max_length=160, verbose_name="sensor externo")),
-                ("sensor_name", models.CharField(blank=True, max_length=200, verbose_name="nombre del sensor")),
-                ("crop_name", models.CharField(max_length=160, verbose_name="cultivo")),
-                ("name", models.CharField(max_length=200, verbose_name="nombre de la relación")),
+                (
+                    "sensor_id",
+                    models.CharField(
+                        max_length=160,
+                        verbose_name="sensor externo",
+                    ),
+                ),
+                (
+                    "sensor_name",
+                    models.CharField(
+                        blank=True,
+                        max_length=200,
+                        verbose_name="nombre del sensor",
+                    ),
+                ),
+                (
+                    "crop_name",
+                    models.CharField(max_length=160, verbose_name="cultivo"),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        max_length=200,
+                        verbose_name="nombre de la relación",
+                    ),
+                ),
                 (
                     "relationship_type",
                     models.CharField(
@@ -42,17 +64,40 @@ class Migration(migrations.Migration):
                         verbose_name="tipo de relación",
                     ),
                 ),
-                ("variable_ids", models.JSONField(default=list, verbose_name="IDs de variables")),
-                ("variable_names", models.JSONField(default=list, verbose_name="nombres de variables")),
+                (
+                    "variable_ids",
+                    models.JSONField(
+                        default=list,
+                        verbose_name="IDs de variables",
+                    ),
+                ),
+                (
+                    "variable_names",
+                    models.JSONField(
+                        default=list,
+                        verbose_name="nombres de variables",
+                    ),
+                ),
                 (
                     "agronomic_goal",
-                    models.CharField(blank=True, max_length=500, verbose_name="objetivo agronómico"),
+                    models.CharField(
+                        blank=True,
+                        max_length=500,
+                        verbose_name="objetivo agronómico",
+                    ),
                 ),
                 (
                     "expert_guidance",
-                    models.TextField(blank=True, max_length=2500, verbose_name="interpretación agronómica"),
+                    models.TextField(
+                        blank=True,
+                        max_length=2500,
+                        verbose_name="interpretación agronómica",
+                    ),
                 ),
-                ("is_enabled", models.BooleanField(default=True, verbose_name="activa")),
+                (
+                    "is_enabled",
+                    models.BooleanField(default=True, verbose_name="activa"),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
@@ -78,7 +123,12 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "relación agronómica de variables",
                 "verbose_name_plural": "relaciones agronómicas de variables",
-                "ordering": ("client__name", "crop_name", "sensor_name", "name"),
+                "ordering": (
+                    "client__name",
+                    "crop_name",
+                    "sensor_name",
+                    "name",
+                ),
             },
         ),
         migrations.AddConstraint(
