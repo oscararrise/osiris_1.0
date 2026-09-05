@@ -11,6 +11,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from aplicaciones.core.models import Client, ClientDataSource
+from aplicaciones.sensor_config.models import ClientSensor
 
 from .adapters import get_adapter
 
@@ -39,6 +40,34 @@ def _cached(key: str, loader: Callable[[], Any], timeout: int | None = None):
         value = loader()
         cache.set(key, value, timeout or settings.DASHBOARD_CACHE_TTL)
     return value
+
+
+def _filter_dashboard_sensors(
+    client: Client,
+    source: ClientDataSource,
+    sensors: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Apply OSIRIS-local sensor visibility without mutating the external source.
+
+    Aranet remains authoritative for telemetry/source state. Once a client has a
+    local sensor registry, only sensors that are active in the source and enabled
+    for the dashboard are exposed. The empty-registry fallback preserves the
+    dashboard for newly onboarded clients before their first synchronization.
+    """
+
+    if source.adapter_key != ClientDataSource.Adapter.ARANET:
+        return sensors
+
+    registry = ClientSensor.objects.filter(client=client)
+    if not registry.exists():
+        return sensors
+
+    visible_ids = set(
+        registry.filter(is_active=True, dashboard_enabled=True).values_list(
+            "external_sensor_id", flat=True
+        )
+    )
+    return [sensor for sensor in sensors if str(sensor.get("id")) in visible_ids]
 
 
 def _series_statistics(series: list[dict[str, Any]]) -> dict[str, Any]:
@@ -78,6 +107,7 @@ def build_dashboard(client: Client, query: dict[str, str]) -> dict[str, Any]:
         adapter.list_sensors,
         timeout=max(settings.DASHBOARD_CACHE_TTL, 300),
     )
+    sensors = _filter_dashboard_sensors(client, source, sensors)
     if not sensors:
         return {
             "source": source,
