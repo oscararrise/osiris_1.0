@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db.models import Prefetch, Q
+from django.db.models import Exists, OuterRef, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from aplicaciones.core.decorators import module_access_required
@@ -39,14 +39,16 @@ def _current_placement_initial(placement: SensorPlacement | None) -> dict[str, o
 @module_access_required("sensor_configuration")
 def sensor_configuration(request):
     client = request.client
-    base_queryset = ClientSensor.objects.filter(client=client)
+    current_placement_exists = SensorPlacement.objects.filter(
+        sensor_id=OuterRef("pk"),
+        valid_until__isnull=True,
+    )
+    base_queryset = ClientSensor.objects.filter(client=client).annotate(
+        has_current_placement=Exists(current_placement_exists)
+    )
 
     total = base_queryset.filter(is_active=True).count()
-    configured = (
-        base_queryset.filter(is_active=True, placements__valid_until__isnull=True)
-        .distinct()
-        .count()
-    )
+    configured = base_queryset.filter(is_active=True, has_current_placement=True).count()
     inactive = base_queryset.filter(is_active=False).count()
 
     search = request.GET.get("q", "").strip()
@@ -59,11 +61,9 @@ def sensor_configuration(request):
             | Q(sensor_detail__icontains=search)
         )
     if status == "configured":
-        sensors = sensors.filter(is_active=True, placements__valid_until__isnull=True).distinct()
+        sensors = sensors.filter(is_active=True, has_current_placement=True)
     elif status == "unconfigured":
-        sensors = sensors.filter(is_active=True).exclude(
-            placements__valid_until__isnull=True
-        )
+        sensors = sensors.filter(is_active=True, has_current_placement=False)
     elif status == "inactive":
         sensors = sensors.filter(is_active=False)
     else:
