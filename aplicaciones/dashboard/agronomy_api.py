@@ -4,14 +4,16 @@ import json
 import unicodedata
 from typing import Any
 
+from django.db.models import Prefetch
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from aplicaciones.core.access import can_access_module
 from aplicaciones.core.decorators import module_access_required
-from aplicaciones.sensor_config.models import ClientSensor
+from aplicaciones.sensor_config.models import ClientSensor, SensorPlacement
 
 from .adapters import get_adapter
+from .adapters.base import AdapterError
 from .models import AgronomicVariableRelationship
 
 
@@ -22,17 +24,27 @@ def _normalise(value: object) -> str:
     ).lower()
 
 
-def _metric_key(metric: dict[str, Any]) -> str:
+def _local_metric_key(metric: dict[str, Any]) -> str:
     return f"{metric.get('id', '')}:{int(metric.get('probe_no') or 0)}"
 
 
-def _serialise_metric(metric: dict[str, Any]) -> dict[str, Any]:
+def _global_metric_key(sensor_id: str, metric: dict[str, Any]) -> str:
+    return f"{sensor_id}::{_local_metric_key(metric)}"
+
+
+def _serialise_metric(
+    sensor: ClientSensor,
+    metric: dict[str, Any],
+) -> dict[str, Any]:
     return {
-        "key": _metric_key(metric),
+        "key": _global_metric_key(sensor.external_sensor_id, metric),
+        "local_key": _local_metric_key(metric),
         "id": str(metric.get("id") or ""),
         "name": str(metric.get("name") or metric.get("id") or "Variable"),
         "probe_no": int(metric.get("probe_no") or 0),
         "unit": str(metric.get("unit") or ""),
+        "sensor_id": sensor.external_sensor_id,
+        "sensor_name": sensor.sensor_name or sensor.external_sensor_id,
     }
 
 
@@ -177,8 +189,145 @@ def _suggested_relationships(metrics: list[dict[str, Any]]) -> list[dict[str, An
     return suggestions
 
 
+def _placement_payload(sensor: ClientSensor) -> dict[str, Any]:
+    placement = (
+        sensor.agronomy_current_placements[0]
+        if sensor.agronomy_current_placements
+        else None
+    )
+    zone = placement.zone if placement is not None else None
+    facility = zone.nearest_facility() if zone is not None else None
+    return {
+        "facility_name": facility.name if facility is not None else "",
+        "zone_name": zone.name if zone is not None else "",
+        "zone_path": zone.full_name if zone is not None else "",
+        "city": placement.city if placement is not None else "",
+        "department": placement.department if placement is not None else "",
+        "latitude": (
+            float(placement.latitude)
+            if placement is not None and placement.latitude is not None
+            else None
+        ),
+        "longitude": (
+            float(placement.longitude)
+            if placement is not None and placement.longitude is not None
+            else None
+        ),
+        "altitude_m": (
+            float(placement.altitude_m)
+            if placement is not None and placement.altitude_m is not None
+            else None
+        ),
+    }
+
+
+def _sensor_catalog(request: HttpRequest) -> list[dict[str, Any]]:
+    current_placements = SensorPlacement.objects.filter(
+        valid_until__isnull=True,
+    ).select_related(
+        "zone",
+        "zone__parent",
+        "zone__parent__parent",
+        "zone__parent__parent__parent",
+    )
+    sensors = ClientSensor.objects.filter(
+        client=request.client,
+        is_active=True,
+    ).prefetch_related(
+        Prefetch(
+            "placements",
+            queryset=current_placements,
+            to_attr="agronomy_current_placements",
+        )
+    )
+    adapter = get_adapter(request.client.data_source)
+    catalog: list[dict[str, Any]] = []
+
+    for sensor in sensors:
+        metrics_error = ""
+        try:
+            metrics = [
+                _serialise_metric(sensor, metric)
+                for metric in adapter.list_metrics(sensor.external_sensor_id)
+            ]
+        except AdapterError as exc:
+            metrics = []
+            metrics_error = str(exc)
+
+        placement = _placement_payload(sensor)
+        catalog.append(
+            {
+                "sensor_id": sensor.external_sensor_id,
+                "sensor_name": sensor.sensor_name or sensor.external_sensor_id,
+                "sensor_detail": sensor.sensor_detail,
+                "activity_label": (
+                    sensor.get_activity_type_display() if sensor.activity_type else ""
+                ),
+                "product_name": sensor.product_name,
+                "productive_context": sensor.productive_context,
+                "dashboard_enabled": sensor.dashboard_enabled,
+                "dashboard_label": (
+                    "Visible en dashboard"
+                    if sensor.dashboard_enabled
+                    else "Oculto en dashboard"
+                ),
+                **placement,
+                "metrics": metrics,
+                "metric_count": len(metrics),
+                "metrics_error": metrics_error,
+            }
+        )
+
+    return catalog
+
+
+def _flatten_metrics(catalog: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [metric for sensor in catalog for metric in sensor.get("metrics", [])]
+
+
+def _metric_lookup(catalog: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {metric["key"]: metric for metric in _flatten_metrics(catalog)}
+
+
+def _relationship_variable_details(
+    relationship: AgronomicVariableRelationship,
+    lookup: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    details: list[dict[str, Any]] = []
+    for index, stored_key in enumerate(relationship.variable_ids):
+        key = str(stored_key)
+        metric = lookup.get(key)
+        if metric is None and "::" not in key:
+            metric = lookup.get(f"{relationship.sensor_id}::{key}")
+        stored_name = (
+            str(relationship.variable_names[index])
+            if index < len(relationship.variable_names)
+            else key
+        )
+        if metric is None:
+            details.append(
+                {
+                    "key": key,
+                    "name": stored_name,
+                    "sensor_id": relationship.sensor_id,
+                    "sensor_name": relationship.sensor_name or relationship.sensor_id,
+                    "unit": "",
+                    "available": False,
+                }
+            )
+            continue
+        details.append(
+            {
+                **metric,
+                "available": True,
+            }
+        )
+    return details
+
+
 def _relationship_payload(
     relationship: AgronomicVariableRelationship,
+    lookup: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     return {
         "id": relationship.pk,
@@ -188,6 +337,7 @@ def _relationship_payload(
         "relationship_type_label": relationship.get_relationship_type_display(),
         "variable_ids": relationship.variable_ids,
         "variable_names": relationship.variable_names,
+        "variable_details": _relationship_variable_details(relationship, lookup),
         "agronomic_goal": relationship.agronomic_goal,
         "expert_guidance": relationship.expert_guidance,
         "is_enabled": relationship.is_enabled,
@@ -204,12 +354,6 @@ def _sensor_for_request(request: HttpRequest, sensor_id: str) -> ClientSensor | 
     ).first()
 
 
-def _available_metrics(request: HttpRequest, sensor_id: str) -> list[dict[str, Any]]:
-    source = request.client.data_source
-    adapter = get_adapter(source)
-    return [_serialise_metric(metric) for metric in adapter.list_metrics(sensor_id)]
-
-
 @require_http_methods(["GET", "POST"])
 @module_access_required("dashboard")
 def agronomy_relationships(request: HttpRequest) -> JsonResponse:
@@ -221,10 +365,11 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
     sensor_id = str(raw_sensor_id or "").strip()
     sensor = _sensor_for_request(request, sensor_id)
     if sensor is None:
-        return JsonResponse({"error": "Sensor no disponible en el dashboard."}, status=404)
+        return JsonResponse({"error": "Sensor principal no disponible en el dashboard."}, status=404)
 
-    metrics = _available_metrics(request, sensor_id)
-    allowed_metrics = {metric["key"]: metric for metric in metrics}
+    catalog = _sensor_catalog(request)
+    metrics = _flatten_metrics(catalog)
+    allowed_metrics = _metric_lookup(catalog)
 
     if request.method == "POST":
         if not can_access_module(request.user, "sensor_configuration"):
@@ -257,7 +402,12 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
         selected_keys = list(dict.fromkeys(selected_keys))
         if len(selected_keys) < 2:
             return JsonResponse(
-                {"error": "Selecciona al menos dos variables reales del sensor."},
+                {
+                    "error": (
+                        "Selecciona al menos dos variables reales. Pueden pertenecer "
+                        "a sensores diferentes."
+                    )
+                },
                 status=400,
             )
 
@@ -278,6 +428,10 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
             )
 
         selected_metrics = [allowed_metrics[key] for key in selected_keys]
+        variable_names = [
+            f"{metric['sensor_name']} · {metric['name']}"
+            for metric in selected_metrics
+        ]
         relationship, _created = AgronomicVariableRelationship.objects.update_or_create(
             client=request.client,
             sensor_id=sensor_id,
@@ -287,7 +441,7 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
                 "crop_name": crop_name,
                 "relationship_type": relationship_type,
                 "variable_ids": selected_keys,
-                "variable_names": [metric["name"] for metric in selected_metrics],
+                "variable_names": variable_names,
                 "agronomic_goal": str(
                     request.POST.get("agronomic_goal") or ""
                 ).strip()[:500],
@@ -298,7 +452,9 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
                 "created_by": request.user,
             },
         )
-        return JsonResponse({"relationship": _relationship_payload(relationship)})
+        return JsonResponse(
+            {"relationship": _relationship_payload(relationship, allowed_metrics)}
+        )
 
     relationships = AgronomicVariableRelationship.objects.filter(
         client=request.client,
@@ -311,13 +467,14 @@ def agronomy_relationships(request: HttpRequest) -> JsonResponse:
             "crop_name": sensor.product_name or "Astromelia",
             "can_edit": can_access_module(request.user, "sensor_configuration"),
             "metrics": metrics,
+            "sensor_catalog": catalog,
             "relationship_types": [
                 {"value": value, "label": label}
                 for value, label in AgronomicVariableRelationship.RelationshipType.choices
             ],
             "suggestions": _suggested_relationships(metrics),
             "relationships": [
-                _relationship_payload(item) for item in relationships
+                _relationship_payload(item, allowed_metrics) for item in relationships
             ],
         }
     )
