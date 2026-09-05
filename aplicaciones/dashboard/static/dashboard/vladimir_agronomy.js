@@ -39,35 +39,45 @@
             <header class="agronomy-head">
                 <div>
                     <div class="agronomy-kicker"><i></i> AGRONOMIC INTELLIGENCE</div>
-                    <h2>Relaciones entre variables</h2>
-                    <p>Combina varias señales del sensor para interpretar el cultivo como un sistema y no como variables aisladas.</p>
+                    <h2>Relaciones multivariable y multi-sensor</h2>
+                    <p>Combina señales de distintos sensores para interpretar clima, suelo, fertirriego y cultivo como un solo sistema.</p>
                 </div>
                 <div class="agronomy-head-badge">
                     <span>Perfil activo</span>
                     <strong id="agronomy-profile-name">—</strong>
-                    <small id="agronomy-sensor-name">Cargando sensor…</small>
+                    <small id="agronomy-sensor-name">Cargando sensor principal…</small>
                 </div>
             </header>
             <div id="agronomy-body" class="agronomy-body">
-                <div class="agronomy-loading"><span></span> Cargando variables disponibles…</div>
+                <div class="agronomy-loading"><span></span> Cargando sensores y variables…</div>
             </div>
         `;
         anchor.insertAdjacentElement("afterend", panel);
         return panel;
     };
 
-    const metricLabel = (metric) => {
-        const probe = Number(metric.probe_no || 0) ? ` · Sonda ${metric.probe_no}` : "";
-        const unit = metric.unit ? ` · ${metric.unit}` : "";
-        return `${metric.name}${probe}${unit}`;
+    const metricMeta = (metric) => {
+        const probe = Number(metric.probe_no || 0) ? `Sonda ${metric.probe_no}` : "";
+        const unit = metric.unit || "";
+        return [probe, unit].filter(Boolean).join(" · ") || "Variable Aranet";
     };
+
+    const coordinates = (sensor) => {
+        if (sensor.latitude == null || sensor.longitude == null) return "Sin coordenadas";
+        return `${Number(sensor.latitude).toFixed(5)}, ${Number(sensor.longitude).toFixed(5)}`;
+    };
+
+    const locationSummary = (sensor) =>
+        sensor.zone_path ||
+        [sensor.city, sensor.department].filter(Boolean).join(" · ") ||
+        "Sin ubicación configurada";
 
     const renderSuggestions = (suggestions) => {
         if (!suggestions.length) {
             return `
                 <div class="agronomy-suggestion-empty">
                     <strong>No hay una combinación automática completa todavía.</strong>
-                    <p>Puedes crear una relación personalizada con cualquiera de las variables disponibles abajo.</p>
+                    <p>Puedes crear una relación personalizada combinando variables de cualquier sensor.</p>
                 </div>
             `;
         }
@@ -79,7 +89,7 @@
                         <div>
                             <strong>${escapeHtml(item.name)}</strong>
                             <p>${escapeHtml(item.agronomic_goal)}</p>
-                            <small>${item.variable_keys.length} variables relacionadas</small>
+                            <small>${item.variable_keys.length} variables · pueden provenir de sensores distintos</small>
                         </div>
                         <i>→</i>
                     </button>
@@ -88,21 +98,100 @@
             .join("");
     };
 
-    const renderMetrics = (metrics) =>
-        metrics
+    const renderSensorMetrics = (sensor, canEdit) => {
+        if (sensor.metrics_error) {
+            return `<div class="agronomy-sensor-error">${escapeHtml(sensor.metrics_error)}</div>`;
+        }
+        if (!sensor.metrics?.length) {
+            return `<div class="agronomy-sensor-empty">Este sensor no expone variables disponibles.</div>`;
+        }
+        return sensor.metrics
             .map(
                 (metric) => `
-                    <label class="agronomy-variable-chip">
-                        <input type="checkbox" name="agronomy_variable" value="${escapeHtml(metric.key)}">
+                    <label class="agronomy-variable-chip multisensor-variable">
+                        <input
+                            type="checkbox"
+                            name="agronomy_variable"
+                            value="${escapeHtml(metric.key)}"
+                            ${canEdit ? "" : "disabled"}
+                        >
                         <span>
                             <strong>${escapeHtml(metric.name)}</strong>
-                            <small>${escapeHtml(metricLabel(metric).replace(`${metric.name}`, "").replace(/^ · /, "")) || "Variable Aranet"}</small>
+                            <small>${escapeHtml(metricMeta(metric))}</small>
                         </span>
                         <i></i>
                     </label>
                 `,
             )
             .join("");
+    };
+
+    const renderSensorCatalog = (catalog, selectedSensor, canEdit) => {
+        if (!catalog.length) {
+            return `<div class="agronomy-sensor-empty">No hay sensores activos disponibles.</div>`;
+        }
+        return catalog
+            .map((sensor) => {
+                const isPrimary = sensor.sensor_id === selectedSensor;
+                const search = [
+                    sensor.sensor_name,
+                    sensor.sensor_id,
+                    sensor.sensor_detail,
+                    sensor.productive_context,
+                    sensor.facility_name,
+                    sensor.zone_path,
+                    sensor.city,
+                    sensor.department,
+                    ...(sensor.metrics || []).map((metric) => metric.name),
+                ]
+                    .filter(Boolean)
+                    .join(" ");
+                return `
+                    <details
+                        class="agronomy-sensor-card"
+                        data-sensor-search="${escapeHtml(search)}"
+                        ${isPrimary ? "open" : ""}
+                    >
+                        <summary>
+                            <div class="agronomy-sensor-identity">
+                                <span class="agronomy-sensor-icon">S</span>
+                                <div>
+                                    <strong>${escapeHtml(sensor.sensor_name)}</strong>
+                                    <small>ID ${escapeHtml(sensor.sensor_id)} · ${escapeHtml(locationSummary(sensor))}</small>
+                                </div>
+                            </div>
+                            <div class="agronomy-sensor-summary-meta">
+                                ${isPrimary ? '<span class="primary">PRINCIPAL</span>' : ""}
+                                <span class="${sensor.dashboard_enabled ? "visible" : "hidden"}">
+                                    ${escapeHtml(sensor.dashboard_label)}
+                                </span>
+                                <b>${Number(sensor.metric_count || 0)} vars.</b>
+                            </div>
+                        </summary>
+                        <div class="agronomy-sensor-content">
+                            <div class="agronomy-sensor-config-grid">
+                                <div><span>Actividad</span><strong>${escapeHtml(sensor.activity_label || "Sin definir")}</strong></div>
+                                <div><span>Producto / especie</span><strong>${escapeHtml(sensor.product_name || "Sin definir")}</strong></div>
+                                <div><span>Finca / invernadero</span><strong>${escapeHtml(sensor.facility_name || "Sin definir")}</strong></div>
+                                <div><span>Zona</span><strong>${escapeHtml(sensor.zone_path || "Sin definir")}</strong></div>
+                                <div><span>Ciudad / departamento</span><strong>${escapeHtml([sensor.city, sensor.department].filter(Boolean).join(" · ") || "Sin definir")}</strong></div>
+                                <div><span>Coordenadas</span><strong>${escapeHtml(coordinates(sensor))}</strong></div>
+                                <div><span>Altitud</span><strong>${sensor.altitude_m == null ? "Sin definir" : `${escapeHtml(sensor.altitude_m)} m`}</strong></div>
+                                <div><span>Detalle</span><strong>${escapeHtml(sensor.sensor_detail || "Sin detalle")}</strong></div>
+                            </div>
+                            <div class="agronomy-sensor-variable-head">
+                                <strong>Variables de este sensor</strong>
+                                <small>Selecciona una o varias para agregarlas a la relación.</small>
+                            </div>
+                            <div class="agronomy-variable-grid multisensor-grid">
+                                ${renderSensorMetrics(sensor, canEdit)}
+                            </div>
+                        </div>
+                    </details>
+                `;
+            })
+            .join("");
+    };
 
     const renderRelationships = (relationships, canEdit) => {
         if (!relationships.length) {
@@ -110,24 +199,38 @@
                 <div class="agronomy-empty-list">
                     <span>+</span>
                     <strong>Aún no hay relaciones guardadas.</strong>
-                    <p>Usa una recomendación o crea la primera relación manualmente.</p>
+                    <p>Crea una relación usando variables de uno o varios sensores.</p>
                 </div>
             `;
         }
         return relationships
-            .map(
-                (item) => `
+            .map((item) => {
+                const variables = (item.variable_details || []).length
+                    ? item.variable_details
+                          .map(
+                              (variable) => `
+                                  <span class="agronomy-saved-variable ${variable.available ? "" : "unavailable"}">
+                                      <b>${escapeHtml(variable.sensor_name)}</b>
+                                      ${escapeHtml(variable.name)}
+                                  </span>
+                              `,
+                          )
+                          .join("")
+                    : (item.variable_names || [])
+                          .map((name) => `<span>${escapeHtml(name)}</span>`)
+                          .join("");
+                return `
                     <article class="agronomy-saved-card">
                         <div class="agronomy-saved-top">
                             <div>
                                 <span>${escapeHtml(item.relationship_type_label)}</span>
                                 <strong>${escapeHtml(item.name)}</strong>
                             </div>
-                            <span class="agronomy-state ${item.is_enabled ? "on" : "off"}">${item.is_enabled ? "ACTIVA" : "PAUSADA"}</span>
+                            <span class="agronomy-state ${item.is_enabled ? "on" : "off"}">
+                                ${item.is_enabled ? "ACTIVA" : "PAUSADA"}
+                            </span>
                         </div>
-                        <div class="agronomy-variable-list">
-                            ${item.variable_names.map((name) => `<span>${escapeHtml(name)}</span>`).join("")}
-                        </div>
+                        <div class="agronomy-variable-list">${variables}</div>
                         ${item.agronomic_goal ? `<p>${escapeHtml(item.agronomic_goal)}</p>` : ""}
                         ${
                             canEdit
@@ -135,28 +238,30 @@
                                 : ""
                         }
                     </article>
-                `,
-            )
+                `;
+            })
             .join("");
     };
 
     const renderBody = (payload) => {
         const body = document.getElementById("agronomy-body");
         if (!body) return;
-        document.getElementById("agronomy-profile-name").textContent = payload.crop_name || "Cultivo";
-        document.getElementById("agronomy-sensor-name").textContent = payload.sensor_name || payload.sensor_id;
+        document.getElementById("agronomy-profile-name").textContent =
+            payload.crop_name || "Cultivo";
+        document.getElementById("agronomy-sensor-name").textContent =
+            `Principal: ${payload.sensor_name || payload.sensor_id}`;
 
         body.innerHTML = `
             <section class="agronomy-reference">
                 <div class="agronomy-reference-copy">
-                    <span>CASO BASE · ALSTROEMERIA</span>
-                    <h3>Qué conviene relacionar</h3>
-                    <p>La lectura agronómica gana valor cuando combinamos clima, zona radicular y ambiente fotosintético. Los valores objetivo deben ajustarse por cultivar, sustrato, etapa y manejo local.</p>
+                    <span>MODELO MULTI-SENSOR</span>
+                    <h3>Relaciona el cultivo completo</h3>
+                    <p>Una relación puede combinar temperatura ambiental de un sensor, humedad o EC de otro y CO₂ o radiación de un tercero. OSIRIS conserva el origen de cada variable.</p>
                 </div>
                 <div class="agronomy-reference-points">
-                    <div><b>01</b><span><strong>Temperatura + humedad</strong><small>Estrés climático y demanda evaporativa.</small></span></div>
-                    <div><b>02</b><span><strong>Humedad + EC + pH + T° raíz</strong><small>Riego, sales y disponibilidad nutricional.</small></span></div>
-                    <div><b>03</b><span><strong>CO₂ + luz/PAR + temperatura</strong><small>Ambiente fotosintético y floración.</small></span></div>
+                    <div><b>01</b><span><strong>Clima</strong><small>Temperatura + humedad de ambiente.</small></span></div>
+                    <div><b>02</b><span><strong>Raíz / fertirriego</strong><small>Humedad + EC + pH + T° de suelo.</small></span></div>
+                    <div><b>03</b><span><strong>Fotosíntesis</strong><small>CO₂ + luz/PAR + temperatura.</small></span></div>
                 </div>
             </section>
 
@@ -164,8 +269,8 @@
                 <section class="agronomy-editor">
                     <div class="agronomy-section-title">
                         <span>Recomendaciones</span>
-                        <h3>Relaciones sugeridas con tus variables reales</h3>
-                        <p>Solo aparecen combinaciones que pueden construirse con las métricas que este sensor reporta.</p>
+                        <h3>Relaciones sugeridas con toda la red de sensores</h3>
+                        <p>Las sugerencias ahora pueden tomar variables de sensores diferentes.</p>
                     </div>
                     <div class="agronomy-suggestions" id="agronomy-suggestions">
                         ${renderSuggestions(payload.suggestions || [])}
@@ -174,7 +279,7 @@
                     <form id="agronomy-form" class="agronomy-form" ${payload.can_edit ? "" : "data-readonly='1'"}>
                         <div class="agronomy-section-title compact">
                             <span>Configurador</span>
-                            <h3>Crea una relación multivariable</h3>
+                            <h3>Crea una relación multi-sensor</h3>
                         </div>
                         <div class="agronomy-form-grid">
                             <label>
@@ -191,18 +296,27 @@
                             </label>
                             <label class="full">
                                 <span>Nombre</span>
-                                <input name="name" maxlength="200" placeholder="Ej. Balance climático de floración" ${payload.can_edit ? "" : "disabled"}>
+                                <input name="name" maxlength="200" placeholder="Ej. Balance clima-raíz sector norte" ${payload.can_edit ? "" : "disabled"}>
                             </label>
                         </div>
 
-                        <div class="agronomy-variable-picker">
-                            <div>
-                                <strong>Variables relacionadas</strong>
-                                <small>Selecciona mínimo dos. Puedes combinar todas las que tengan sentido agronómico.</small>
+                        <div class="agronomy-variable-picker multisensor-picker">
+                            <div class="agronomy-picker-head">
+                                <div>
+                                    <strong>Variables relacionadas</strong>
+                                    <small>Selecciona mínimo dos variables. Pueden pertenecer a sensores diferentes.</small>
+                                </div>
+                                <input id="agronomy-sensor-search" type="search" placeholder="Buscar sensor, zona, producto o variable…">
                             </div>
-                            <div class="agronomy-variable-grid">
-                                ${renderMetrics(payload.metrics || [])}
+                            <div id="agronomy-sensor-catalog" class="agronomy-sensor-catalog">
+                                ${renderSensorCatalog(payload.sensor_catalog || [], payload.sensor_id, payload.can_edit)}
                             </div>
+                        </div>
+
+                        <div class="agronomy-selection-summary">
+                            <span>Variables seleccionadas</span>
+                            <strong id="agronomy-selected-count">0</strong>
+                            <small id="agronomy-selected-sensors">0 sensores involucrados</small>
                         </div>
 
                         <div class="agronomy-form-grid">
@@ -212,7 +326,7 @@
                             </label>
                             <label class="full">
                                 <span>Interpretación / instrucción experta</span>
-                                <textarea name="expert_guidance" rows="4" maxlength="2500" placeholder="Ej. Evaluar temperatura junto con humedad antes de recomendar ventilación…" ${payload.can_edit ? "" : "disabled"}></textarea>
+                                <textarea name="expert_guidance" rows="4" maxlength="2500" placeholder="Ej. Evaluar clima, humedad del sustrato y EC antes de recomendar una acción…" ${payload.can_edit ? "" : "disabled"}></textarea>
                             </label>
                         </div>
 
@@ -229,7 +343,7 @@
                     <div class="agronomy-section-title">
                         <span>Modelo operativo</span>
                         <h3>Relaciones guardadas</h3>
-                        <p>Estas relaciones quedan en OSIRIS y podrán alimentar análisis, recomendaciones y automatización.</p>
+                        <p>Cada etiqueta conserva el sensor de origen de la variable.</p>
                     </div>
                     <div id="agronomy-saved-list" class="agronomy-saved-list">
                         ${renderRelationships(payload.relationships || [], payload.can_edit)}
@@ -249,6 +363,21 @@
         node.hidden = false;
     };
 
+    const updateSelectionSummary = () => {
+        const checked = [
+            ...document.querySelectorAll('input[name="agronomy_variable"]:checked'),
+        ];
+        const sensors = new Set(
+            checked.map((input) => String(input.value).split("::", 1)[0]),
+        );
+        const count = document.getElementById("agronomy-selected-count");
+        const sensorCount = document.getElementById("agronomy-selected-sensors");
+        if (count) count.textContent = String(checked.length);
+        if (sensorCount) {
+            sensorCount.textContent = `${sensors.size} sensor${sensors.size === 1 ? "" : "es"} involucrado${sensors.size === 1 ? "" : "s"}`;
+        }
+    };
+
     const applySuggestion = (payload, index) => {
         const suggestion = payload.suggestions?.[index];
         const form = document.getElementById("agronomy-form");
@@ -261,8 +390,24 @@
         const wanted = new Set(suggestion.variable_keys || []);
         form.querySelectorAll('input[name="agronomy_variable"]').forEach((input) => {
             input.checked = wanted.has(input.value);
+            if (input.checked) input.closest("details")?.setAttribute("open", "");
         });
+        updateSelectionSummary();
         form.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+
+    const installSensorSearch = () => {
+        const search = document.getElementById("agronomy-sensor-search");
+        const cards = [...document.querySelectorAll(".agronomy-sensor-card")];
+        if (!search || !cards.length) return;
+        search.addEventListener("input", () => {
+            const query = search.value.trim().toLocaleLowerCase("es");
+            cards.forEach((card) => {
+                const haystack = String(card.dataset.sensorSearch || "").toLocaleLowerCase("es");
+                card.hidden = Boolean(query) && !haystack.includes(query);
+                if (query && !card.hidden) card.open = true;
+            });
+        });
     };
 
     const loadPayload = async () => {
@@ -290,7 +435,9 @@
 
     const installInteractions = (payload) => {
         document.querySelectorAll("[data-suggestion]").forEach((button) => {
-            button.addEventListener("click", () => applySuggestion(payload, Number(button.dataset.suggestion)));
+            button.addEventListener("click", () =>
+                applySuggestion(payload, Number(button.dataset.suggestion)),
+            );
         });
 
         document.querySelectorAll(".agronomy-delete").forEach((button) => {
@@ -305,15 +452,24 @@
             });
         });
 
+        document.querySelectorAll('input[name="agronomy_variable"]').forEach((input) => {
+            input.addEventListener("change", updateSelectionSummary);
+        });
+        installSensorSearch();
+        updateSelectionSummary();
+
         const form = document.getElementById("agronomy-form");
         if (!form || form.dataset.readonly === "1") return;
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
-            const selectedVariables = [...form.querySelectorAll('input[name="agronomy_variable"]:checked')].map(
-                (input) => input.value,
-            );
+            const selectedVariables = [
+                ...form.querySelectorAll('input[name="agronomy_variable"]:checked'),
+            ].map((input) => input.value);
             if (selectedVariables.length < 2) {
-                showMessage("Selecciona al menos dos variables para construir una relación.", true);
+                showMessage(
+                    "Selecciona al menos dos variables. Pueden ser de sensores distintos.",
+                    true,
+                );
                 return;
             }
 
@@ -328,9 +484,11 @@
             try {
                 const response = await fetch(endpoint, { method: "POST", body: data });
                 const result = await response.json();
-                if (!response.ok) throw new Error(result.error || "No fue posible guardar la relación.");
+                if (!response.ok) {
+                    throw new Error(result.error || "No fue posible guardar la relación.");
+                }
                 await loadPayload();
-                showMessage("Relación agronómica guardada correctamente.");
+                showMessage("Relación multi-sensor guardada correctamente.");
             } catch (error) {
                 button.disabled = false;
                 showMessage(error.message, true);
@@ -344,7 +502,9 @@
         createPanel();
         loadPayload().catch((error) => {
             const body = document.getElementById("agronomy-body");
-            if (body) body.innerHTML = `<div class="agronomy-error">${escapeHtml(error.message)}</div>`;
+            if (body) {
+                body.innerHTML = `<div class="agronomy-error">${escapeHtml(error.message)}</div>`;
+            }
         });
     };
 
