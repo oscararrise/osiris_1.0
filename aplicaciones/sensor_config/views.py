@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db.models import Exists, OuterRef, Prefetch, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from aplicaciones.core.decorators import module_access_required
 
@@ -36,6 +38,17 @@ def _current_placement_initial(placement: SensorPlacement | None) -> dict[str, o
     }
 
 
+def _return_after_sensor_action(request, fallback_name: str, **kwargs):
+    next_url = str(request.POST.get("next") or "").strip()
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect(fallback_name, **kwargs)
+
+
 @module_access_required("sensor_configuration")
 def sensor_configuration(request):
     client = request.client
@@ -47,7 +60,15 @@ def sensor_configuration(request):
         has_current_placement=Exists(current_placement_exists)
     )
 
-    total = base_queryset.filter(is_active=True).count()
+    source_active = base_queryset.filter(is_active=True).count()
+    dashboard_visible = base_queryset.filter(
+        is_active=True,
+        dashboard_enabled=True,
+    ).count()
+    dashboard_hidden = base_queryset.filter(
+        is_active=True,
+        dashboard_enabled=False,
+    ).count()
     configured = base_queryset.filter(is_active=True, has_current_placement=True).count()
     inactive = base_queryset.filter(is_active=False).count()
 
@@ -60,7 +81,11 @@ def sensor_configuration(request):
             | Q(external_sensor_id__icontains=search)
             | Q(sensor_detail__icontains=search)
         )
-    if status == "configured":
+    if status == "visible":
+        sensors = sensors.filter(is_active=True, dashboard_enabled=True)
+    elif status == "hidden":
+        sensors = sensors.filter(is_active=True, dashboard_enabled=False)
+    elif status == "configured":
         sensors = sensors.filter(is_active=True, has_current_placement=True)
     elif status == "unconfigured":
         sensors = sensors.filter(is_active=True, has_current_placement=False)
@@ -84,13 +109,45 @@ def sensor_configuration(request):
             "search": search,
             "status": status,
             "stats": {
-                "total": total,
+                "source_active": source_active,
+                "dashboard_visible": dashboard_visible,
+                "dashboard_hidden": dashboard_hidden,
                 "configured": configured,
-                "unconfigured": max(total - configured, 0),
+                "unconfigured": max(source_active - configured, 0),
                 "inactive": inactive,
             },
         },
     )
+
+
+@require_POST
+@module_access_required("sensor_configuration")
+def toggle_sensor_dashboard(request, sensor_pk: int):
+    sensor = get_object_or_404(ClientSensor, pk=sensor_pk, client=request.client)
+    enable = request.POST.get("enabled") == "1"
+
+    if enable and not sensor.is_active:
+        messages.warning(
+            request,
+            "Este sensor está inactivo en la fuente externa y no puede mostrarse en el dashboard.",
+        )
+    elif sensor.dashboard_enabled != enable:
+        sensor.dashboard_enabled = enable
+        sensor.save(update_fields=("dashboard_enabled", "updated_at"))
+        if enable:
+            messages.success(
+                request,
+                f"{sensor.sensor_name or sensor.external_sensor_id} ahora aparece en el dashboard.",
+            )
+        else:
+            messages.success(
+                request,
+                f"{sensor.sensor_name or sensor.external_sensor_id} se ocultó del dashboard.",
+            )
+    else:
+        messages.info(request, "El sensor ya tenía ese estado en el dashboard.")
+
+    return _return_after_sensor_action(request, "sensor_configuration")
 
 
 @module_access_required("sensor_configuration")
