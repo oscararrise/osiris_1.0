@@ -15,6 +15,7 @@ from .adapters.base import AdapterError
 from .models import SensorAutomationPolicy
 from .services import build_dashboard
 from .vladimir_overview import build_vladimir_overview
+from .vladimir_visibility import apply_vladimir_sensor_visibility
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +109,10 @@ def dashboard(request):
 
         if request.client.slug == "vladimir":
             template_name = "dashboard/vladimir.html"
-            context["vladimir_overview"] = build_vladimir_overview(
+            overview = build_vladimir_overview(request.client, context)
+            context["vladimir_overview"] = apply_vladimir_sensor_visibility(
                 request.client,
+                overview,
                 context,
             )
 
