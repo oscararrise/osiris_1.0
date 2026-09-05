@@ -103,3 +103,67 @@ class SensorAutomationPolicy(models.Model):
 
     def __str__(self) -> str:
         return f"{self.client} · {self.sensor_name or self.sensor_id}"
+
+
+class AgronomicVariableRelationship(models.Model):
+    """OSIRIS-owned relationship between several sensor variables and a crop goal."""
+
+    class RelationshipType(models.TextChoices):
+        CLIMATE = "climate", "Clima y transpiración"
+        ROOT_ZONE = "root_zone", "Zona radicular / fertirriego"
+        PHOTOSYNTHESIS = "photosynthesis", "Fotosíntesis y crecimiento"
+        DISEASE_RISK = "disease_risk", "Riesgo sanitario"
+        CUSTOM = "custom", "Personalizada"
+
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name="agronomic_variable_relationships",
+        verbose_name="cliente",
+    )
+    sensor_id = models.CharField("sensor externo", max_length=160)
+    sensor_name = models.CharField("nombre del sensor", max_length=200, blank=True)
+    crop_name = models.CharField("cultivo", max_length=160)
+    name = models.CharField("nombre de la relación", max_length=200)
+    relationship_type = models.CharField(
+        "tipo de relación",
+        max_length=32,
+        choices=RelationshipType.choices,
+        default=RelationshipType.CUSTOM,
+    )
+    variable_ids = models.JSONField("IDs de variables", default=list)
+    variable_names = models.JSONField("nombres de variables", default=list)
+    agronomic_goal = models.CharField(
+        "objetivo agronómico",
+        max_length=500,
+        blank=True,
+    )
+    expert_guidance = models.TextField(
+        "interpretación agronómica",
+        max_length=2500,
+        blank=True,
+    )
+    is_enabled = models.BooleanField("activa", default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_agronomic_relationships",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("client", "sensor_id", "name"),
+                name="unique_agronomic_relationship_name_per_sensor",
+            )
+        ]
+        ordering = ("client__name", "crop_name", "sensor_name", "name")
+        verbose_name = "relación agronómica de variables"
+        verbose_name_plural = "relaciones agronómicas de variables"
+
+    def __str__(self) -> str:
+        return f"{self.client} · {self.crop_name} · {self.name}"
