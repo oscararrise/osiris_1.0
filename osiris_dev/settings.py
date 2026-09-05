@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "aplicaciones.core",
     "aplicaciones.dashboard",
+    "aplicaciones.sensor_config",
     "aplicaciones.automatizacion",
 ]
 
