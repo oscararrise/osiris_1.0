@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Iterable
+from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
