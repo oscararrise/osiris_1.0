@@ -2,10 +2,27 @@ from __future__ import annotations
 
 from django import forms
 
-from .models import Zone
+from .models import ClientSensor, Zone
 
 
 class SensorLocationForm(forms.Form):
+    activity_type = forms.ChoiceField(
+        label="Actividad",
+        required=False,
+        choices=(("", "Sin definir"), *ClientSensor.ActivityType.choices),
+    )
+    product_name = forms.CharField(
+        label="Producto / especie",
+        max_length=160,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Ej. Arándano, Fresa, Tomate, Gallinas",
+                "autocomplete": "off",
+                "list": "product-options",
+            }
+        ),
+    )
     facility_type = forms.ChoiceField(
         label="Tipo de ubicación principal",
         choices=(
