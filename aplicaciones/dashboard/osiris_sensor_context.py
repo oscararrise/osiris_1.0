@@ -58,6 +58,22 @@ def build_osiris_sensor_context(
         elif placement is not None:
             location_label = placement.city or placement.department
 
+        latitude = (
+            float(placement.latitude)
+            if placement is not None and placement.latitude is not None
+            else None
+        )
+        longitude = (
+            float(placement.longitude)
+            if placement is not None and placement.longitude is not None
+            else None
+        )
+        altitude_m = (
+            float(placement.altitude_m)
+            if placement is not None and placement.altitude_m is not None
+            else None
+        )
+
         item = {
             "sensor_pk": sensor.pk,
             "sensor_id": sensor.external_sensor_id,
@@ -72,15 +88,11 @@ def build_osiris_sensor_context(
             "location_label": location_label,
             "city": placement.city if placement is not None else "",
             "department": placement.department if placement is not None else "",
-            "latitude": float(placement.latitude) if placement and placement.latitude is not None else None,
-            "longitude": float(placement.longitude) if placement and placement.longitude is not None else None,
-            "altitude_m": float(placement.altitude_m) if placement and placement.altitude_m is not None else None,
+            "latitude": latitude,
+            "longitude": longitude,
+            "altitude_m": altitude_m,
             "has_location": placement is not None,
-            "has_coordinates": bool(
-                placement is not None
-                and placement.latitude is not None
-                and placement.longitude is not None
-            ),
+            "has_coordinates": latitude is not None and longitude is not None,
         }
 
         if sensor.external_sensor_id == selected_sensor_id:
