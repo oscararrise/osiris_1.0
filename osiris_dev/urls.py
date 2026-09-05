@@ -12,6 +12,7 @@ admin.site.index_title = "Clientes, usuarios y módulos"
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("aplicaciones.core.urls")),
+    path("sensor-config/", include("aplicaciones.sensor_config.urls")),
     path("s2", sensor_dashboard, name="s2"),
     path("s1", module_access_required("monitoring")(legacy_views.s1), name="s1"),
     path("control", module_access_required("control")(legacy_views.s3), name="s3"),
