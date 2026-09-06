@@ -1,0 +1,81 @@
+.satellite-status.is-error {
+    background: #fde9e9;
+    color: #983d3d;
+}
+
+.satellite-imagery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-top: 1rem;
+}
+
+.satellite-image-product {
+    overflow: hidden;
+    border: 1px solid #dfe9e4;
+    border-radius: 14px;
+    background: #f8fbf9;
+}
+
+.satellite-image-product-header {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border-bottom: 1px solid #e8efeb;
+    background: white;
+}
+
+.satellite-scene-image {
+    display: block;
+    width: 100%;
+    min-height: 210px;
+    max-height: 360px;
+    object-fit: cover;
+    background: #eef3f0;
+}
+
+.satellite-image-empty {
+    display: flex;
+    min-height: 210px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 1rem;
+    color: #607169;
+    background:
+        linear-gradient(135deg, rgba(77, 103, 91, 0.08), transparent 55%),
+        #f2f6f4;
+    text-align: center;
+}
+
+.satellite-image-empty.is-ndvi {
+    background:
+        linear-gradient(135deg, rgba(23, 117, 88, 0.12), transparent 55%),
+        #f2f8f5;
+}
+
+.satellite-image-empty span {
+    font-weight: 750;
+}
+
+.satellite-image-empty small {
+    color: #7b8a83;
+}
+
+.satellite-imagery-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    margin-top: 0.9rem;
+}
+
+@media (max-width: 720px) {
+    .satellite-imagery-grid {
+        grid-template-columns: 1fr;
+    }
+}
