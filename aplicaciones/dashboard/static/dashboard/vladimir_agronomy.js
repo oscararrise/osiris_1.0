@@ -59,7 +59,7 @@
     const metricMeta = (metric) => {
         const probe = Number(metric.probe_no || 0) ? `Sonda ${metric.probe_no}` : "";
         const unit = metric.unit || "";
-        return [probe, unit].filter(Boolean).join(" · ") || "Variable Aranet";
+        return [probe, unit].filter(Boolean).join(" · ") || "Variable disponible";
     };
 
     const coordinates = (sensor) => {
@@ -203,6 +203,7 @@
                 </div>
             `;
         }
+
         return relationships
             .map((item) => {
                 const variables = (item.variable_details || []).length
@@ -219,8 +220,9 @@
                     : (item.variable_names || [])
                           .map((name) => `<span>${escapeHtml(name)}</span>`)
                           .join("");
+                const detailUrl = `/s2/agronomy/relationships/${encodeURIComponent(item.id)}/`;
                 return `
-                    <article class="agronomy-saved-card">
+                    <article class="agronomy-saved-card" data-relationship-id="${escapeHtml(item.id)}">
                         <div class="agronomy-saved-top">
                             <div>
                                 <span>${escapeHtml(item.relationship_type_label)}</span>
@@ -232,11 +234,20 @@
                         </div>
                         <div class="agronomy-variable-list">${variables}</div>
                         ${item.agronomic_goal ? `<p>${escapeHtml(item.agronomic_goal)}</p>` : ""}
-                        ${
-                            canEdit
-                                ? `<button type="button" class="agronomy-delete" data-relationship-id="${item.id}">Eliminar relación</button>`
-                                : ""
-                        }
+                        <div class="agronomy-saved-actions">
+                            <a
+                                class="button button-primary agronomy-open-relationship"
+                                href="${detailUrl}"
+                                aria-label="Abrir análisis, gráficos, registros y alertas de ${escapeHtml(item.name)}"
+                            >
+                                Abrir relación <span aria-hidden="true">→</span>
+                            </a>
+                            ${
+                                canEdit
+                                    ? `<button type="button" class="agronomy-delete" data-relationship-id="${item.id}">Eliminar relación</button>`
+                                    : ""
+                            }
+                        </div>
                     </article>
                 `;
             })
@@ -284,7 +295,7 @@
                         <div class="agronomy-form-grid">
                             <label>
                                 <span>Cultivo</span>
-                                <input name="crop_name" maxlength="160" value="${escapeHtml(payload.crop_name || "Astromelia")}" ${payload.can_edit ? "" : "disabled"}>
+                                <input name="crop_name" maxlength="160" value="${escapeHtml(payload.crop_name || "")}" placeholder="Ej. Tomate" ${payload.can_edit ? "" : "disabled"}>
                             </label>
                             <label>
                                 <span>Tipo de relación</span>
@@ -343,7 +354,7 @@
                     <div class="agronomy-section-title">
                         <span>Modelo operativo</span>
                         <h3>Relaciones guardadas</h3>
-                        <p>Cada etiqueta conserva el sensor de origen de la variable.</p>
+                        <p>Abre una relación para analizar sus variables, registros sincronizados y alertas.</p>
                     </div>
                     <div id="agronomy-saved-list" class="agronomy-saved-list">
                         ${renderRelationships(payload.relationships || [], payload.can_edit)}
