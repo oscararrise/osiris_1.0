@@ -212,10 +212,10 @@ class SatelliteJob(models.Model):
         verbose_name = "trabajo satelital"
         verbose_name_plural = "trabajos satelitales"
 
+    def __str__(self) -> str:
+        return f"{self.field} · {self.job_type} · {self.status}"
+
     def clean(self) -> None:
         super().clean()
         if self.scene_id and self.field_id and self.scene.field_id != self.field_id:
             raise ValidationError({"scene": "La escena debe pertenecer al mismo lote del trabajo."})
-
-    def __str__(self) -> str:
-        return f"{self.field} · {self.job_type} · {self.status}"
