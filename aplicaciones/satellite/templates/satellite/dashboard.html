@@ -4,7 +4,7 @@
 {% block title %}Monitoreo Satelital | OSIRIS{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'satellite/satellite.css' %}?v=20260905-2">
+<link rel="stylesheet" href="{% static 'satellite/satellite.css' %}?v=20260905-3">
 {% endblock %}
 
 {% block content %}
@@ -86,18 +86,29 @@
                                     {% endwith %}
                                 </td>
                                 <td>
-                                    {% if can_manage_fields and field.eosda_field_id %}
-                                        <form method="post" action="{% url 'satellite:search_field_scenes' field.id %}">
-                                            {% csrf_token %}
-                                            <button type="submit" class="satellite-action-button">
-                                                Buscar escenas
-                                            </button>
-                                        </form>
-                                    {% elif not field.eosda_field_id %}
-                                        <span class="satellite-muted">Sincroniza primero</span>
-                                    {% else %}
-                                        <span class="satellite-muted">Solo consulta</span>
-                                    {% endif %}
+                                    <div class="satellite-actions">
+                                        {% if field.satellite_scenes %}
+                                            <a
+                                                class="satellite-action-button is-primary"
+                                                href="{% url 'satellite:field_scenes' field.id %}"
+                                            >
+                                                Ver escenas ({{ field.satellite_scenes|length }})
+                                            </a>
+                                        {% endif %}
+
+                                        {% if can_manage_fields and field.eosda_field_id %}
+                                            <form method="post" action="{% url 'satellite:search_field_scenes' field.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="satellite-action-button">
+                                                    Buscar escenas
+                                                </button>
+                                            </form>
+                                        {% elif not field.eosda_field_id %}
+                                            <span class="satellite-muted">Sincroniza primero</span>
+                                        {% elif not field.satellite_scenes %}
+                                            <span class="satellite-muted">Solo consulta</span>
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}
