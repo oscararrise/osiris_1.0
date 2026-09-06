@@ -2,7 +2,11 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from aplicaciones.core.models import Client
-from aplicaciones.satellite.models import SatelliteField, SatelliteJob, SatelliteScene
+from aplicaciones.satellite.models import (
+    SatelliteField,
+    SatelliteJob,
+    SatelliteScene,
+)
 
 
 VALID_POLYGON = {
