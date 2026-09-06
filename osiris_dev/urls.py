@@ -15,6 +15,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("aplicaciones.core.urls")),
     path("sensor-config/", include("aplicaciones.sensor_config.urls")),
+    path("satellite/", include("aplicaciones.satellite.urls")),
     path("s2/context", sensor_context, name="sensor_context"),
     path("s2/agronomy", agronomy_relationships, name="agronomy_relationships"),
     path("s2", sensor_dashboard, name="s2"),
