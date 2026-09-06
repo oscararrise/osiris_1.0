@@ -143,21 +143,63 @@ def _find_https_url(value: Any) -> str:
 
 
 def check_visual_task(client: EOSDAClient, task_id: str) -> EOSDAImageryStatus:
-    response = client.request_json("GET", f"{IMAGERY_ENDPOINT}/{task_id}")
-    if not isinstance(response, dict):
+    """Check one imagery task without following EOSDA's result redirect.
+
+    EOSDA may answer a finished visual task with HTTP 303 and a Location header.
+    We intentionally do not follow that redirect with the authenticated HTTP client,
+    so the x-api-key header is never forwarded to the image host.
+    """
+
+    response = client.request(
+        "GET",
+        f"{IMAGERY_ENDPOINT}/{task_id}",
+        accepted_status_codes={303},
+    )
+
+    if response.status_code == 303:
+        raw_location = response.headers.get("location", "").strip()
+        if not raw_location:
+            raise EOSDARequestError(
+                "EOSDA returned an imagery redirect without a Location header.",
+                status_code=303,
+            )
+
+        image_url = str(response.url.join(raw_location))
+        parsed = urlparse(image_url)
+        if parsed.scheme != "https" or not parsed.netloc:
+            raise EOSDARequestError(
+                "EOSDA returned an invalid imagery redirect URL.",
+                status_code=303,
+            )
+
+        return EOSDAImageryStatus(
+            status="finished",
+            payload={"status": "finished", "redirect": True},
+            image_url=image_url,
+        )
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise EOSDARequestError(
+            "EOSDA returned an invalid imagery status response.",
+            status_code=response.status_code,
+        ) from exc
+
+    if not isinstance(payload, dict):
         raise EOSDARequestError("EOSDA returned an invalid imagery status response.")
 
-    status = str(response.get("status") or "").strip().lower()
+    status = str(payload.get("status") or "").strip().lower()
     if not status:
-        if response.get("errors"):
+        if payload.get("errors"):
             status = "failed"
-        elif response.get("result"):
+        elif payload.get("result"):
             status = "finished"
         else:
             status = "started"
 
     return EOSDAImageryStatus(
         status=status,
-        payload=response,
-        image_url=_find_https_url(response),
+        payload=payload,
+        image_url=_find_https_url(payload),
     )
