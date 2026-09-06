@@ -4,7 +4,7 @@
 {% block title %}Escenas Satelitales | OSIRIS{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'satellite/satellite.css' %}?v=20260905-3">
+<link rel="stylesheet" href="{% static 'satellite/satellite.css' %}?v=20260905-4">
 {% endblock %}
 
 {% block content %}
@@ -15,7 +15,7 @@
         <h1>{{ field.name }}</h1>
         <p>
             {{ scene_count }} escena{{ scene_count|pluralize }} guardada{{ scene_count|pluralize }} para este lote.
-            Las imágenes visuales se generarán en la siguiente fase mediante EOSDA Imagery.
+            Puedes generar Color Natural y NDVI directamente con EOSDA Imagery.
         </p>
     </div>
     <div class="satellite-detail-summary">
@@ -52,9 +52,10 @@
         <span>Ordenado de más reciente a más antigua</span>
     </div>
 
-    {% if scenes %}
+    {% if scene_cards %}
         <div class="satellite-scene-grid">
-            {% for scene in scenes %}
+            {% for card in scene_cards %}
+                {% with scene=card.scene natural=card.imagery.natural_color ndvi=card.imagery.ndvi %}
                 <article class="satellite-scene-card">
                     <div class="satellite-scene-card-header">
                         <div>
@@ -93,12 +94,87 @@
                         </div>
                     </dl>
 
-                    <div class="satellite-imagery-placeholder">
-                        <strong>Imagen satelital</strong>
-                        <span>Aún no generada</span>
-                        <p>El siguiente paso será solicitar Natural Color y NDVI para esta escena.</p>
+                    <div class="satellite-imagery-grid">
+                        <section class="satellite-image-product">
+                            <div class="satellite-image-product-header">
+                                <strong>Color natural</strong>
+                                {% if natural.ready %}
+                                    <span class="satellite-status is-ok">Lista</span>
+                                {% elif natural.waiting %}
+                                    <span class="satellite-status is-pending">Procesando</span>
+                                {% elif natural.failed %}
+                                    <span class="satellite-status is-error">Error</span>
+                                {% else %}
+                                    <span class="satellite-muted">Sin generar</span>
+                                {% endif %}
+                            </div>
+                            {% if natural.ready %}
+                                <a href="{{ natural.asset.url }}" target="_blank" rel="noopener">
+                                    <img
+                                        class="satellite-scene-image"
+                                        src="{{ natural.asset.url }}"
+                                        alt="Color natural Sentinel-2 del {{ scene.captured_at|date:'d/m/Y' }}"
+                                        loading="lazy"
+                                    >
+                                </a>
+                            {% else %}
+                                <div class="satellite-image-empty">
+                                    <span>RGB Sentinel-2</span>
+                                    <small>B04 · B03 · B02</small>
+                                </div>
+                            {% endif %}
+                        </section>
+
+                        <section class="satellite-image-product">
+                            <div class="satellite-image-product-header">
+                                <strong>NDVI</strong>
+                                {% if ndvi.ready %}
+                                    <span class="satellite-status is-ok">Lista</span>
+                                {% elif ndvi.waiting %}
+                                    <span class="satellite-status is-pending">Procesando</span>
+                                {% elif ndvi.failed %}
+                                    <span class="satellite-status is-error">Error</span>
+                                {% else %}
+                                    <span class="satellite-muted">Sin generar</span>
+                                {% endif %}
+                            </div>
+                            {% if ndvi.ready %}
+                                <a href="{{ ndvi.asset.url }}" target="_blank" rel="noopener">
+                                    <img
+                                        class="satellite-scene-image"
+                                        src="{{ ndvi.asset.url }}"
+                                        alt="NDVI Sentinel-2 del {{ scene.captured_at|date:'d/m/Y' }}"
+                                        loading="lazy"
+                                    >
+                                </a>
+                            {% else %}
+                                <div class="satellite-image-empty is-ndvi">
+                                    <span>Índice de vegetación</span>
+                                    <small>NDVI</small>
+                                </div>
+                            {% endif %}
+                        </section>
                     </div>
+
+                    {% if can_manage_imagery %}
+                        <div class="satellite-imagery-actions">
+                            {% if natural.ready and ndvi.ready %}
+                                <span class="satellite-muted">Imágenes disponibles</span>
+                            {% elif natural.waiting or ndvi.waiting %}
+                                <form method="post" action="{% url 'satellite:refresh_scene_images' scene.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="satellite-action-button">Actualizar imágenes</button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="{% url 'satellite:request_scene_images' scene.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="satellite-action-button">Generar Color Natural + NDVI</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% endif %}
                 </article>
+                {% endwith %}
             {% endfor %}
         </div>
     {% else %}
