@@ -47,6 +47,7 @@ class LegacySatelliteModuleVisibilityTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Monitoreo Satelital")
         self.assertContains(response, reverse("satellite:dashboard"))
+        self.assertNotContains(response, "Análisis NDVI")
 
     def test_legacy_dashboard_hides_satellite_when_disabled(self):
         ClientModule.objects.create(
@@ -60,3 +61,25 @@ class LegacySatelliteModuleVisibilityTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Monitoreo Satelital")
+        self.assertNotContains(response, "Análisis NDVI")
+
+    def test_legacy_nvid_url_redirects_to_satellite_when_enabled(self):
+        ClientModule.objects.create(
+            client=self.client_model,
+            module=self.satellite_module,
+            is_enabled=True,
+            minimum_access_level=AccessLevel.VIEWER,
+        )
+
+        response = self.client.get(reverse("nvid"))
+
+        self.assertRedirects(
+            response,
+            reverse("satellite:dashboard"),
+            fetch_redirect_response=False,
+        )
+
+    def test_legacy_ndvi_platform_module_is_inactive(self):
+        ndvi_module = PlatformModule.objects.get(code="ndvi")
+
+        self.assertFalse(ndvi_module.is_active)
