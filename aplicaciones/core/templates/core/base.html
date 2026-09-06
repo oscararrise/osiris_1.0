@@ -9,8 +9,9 @@
     <link rel="stylesheet" href="{% static 'dashboard/platform.css' %}">
     {% if current_client.slug == 'vladimir' %}
         <link rel="stylesheet" href="{% static 'dashboard/vladimir_automation.css' %}?v=20260824-automation-1">
-        <link rel="stylesheet" href="{% static 'dashboard/vladimir_agronomy.css' %}?v=20260905-1">
+        <link rel="stylesheet" href="{% static 'dashboard/vladimir_agronomy.css' %}?v=20260906-3">
         <link rel="stylesheet" href="{% static 'dashboard/vladimir_agronomy_multisensor.css' %}?v=20260905-1">
+        <link rel="stylesheet" href="{% static 'dashboard/vladimir_agronomy_relationship_actions.css' %}?v=20260906-1">
     {% endif %}
     {% block extra_head %}{% endblock %}
 </head>
@@ -49,8 +50,7 @@
     {% if current_client.slug == 'vladimir' %}
         <script src="{% static 'dashboard/vladimir_automation.js' %}?v=20260824-automation-1" defer></script>
         <script src="{% static 'dashboard/vladimir_context.js' %}?v=20260905-1" defer></script>
-        <script src="{% static 'dashboard/vladimir_agronomy.js' %}?v=20260905-2" defer></script>
-        <script src="{% static 'dashboard/vladimir_relationship_links.js' %}?v=20260906-2" defer></script>
+        <script src="{% static 'dashboard/vladimir_agronomy.js' %}?v=20260906-3" defer></script>
     {% endif %}
     {% block scripts %}{% endblock %}
 </body>
