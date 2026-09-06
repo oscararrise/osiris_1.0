@@ -21,7 +21,10 @@ from aplicaciones.satellite.eosda.imagery import (
 )
 from aplicaciones.satellite.models import SatelliteField, SatelliteJob, SatelliteScene
 from aplicaciones.satellite.services.imagery import (
+    VIEW_CONTEXT,
+    VIEW_DETAIL,
     build_context_geometry,
+    build_detail_geometry,
     build_overlay_points,
     imagery_state,
     refresh_scene_imagery,
@@ -66,6 +69,16 @@ class FakeEOSDAClient:
         return httpx.Response(200, json=payload, request=request)
 
 
+def _lon_span(geometry):
+    ring = geometry["coordinates"][0]
+    return max(point[0] for point in ring) - min(point[0] for point in ring)
+
+
+def _lat_span(geometry):
+    ring = geometry["coordinates"][0]
+    return max(point[1] for point in ring) - min(point[1] for point in ring)
+
+
 class EOSDAImageryTests(TestCase):
     def setUp(self):
         self.client_model = Client.objects.create(name="Cliente A", slug="cliente-a")
@@ -106,19 +119,22 @@ class EOSDAImageryTests(TestCase):
 
     def test_context_geometry_is_larger_than_tiny_field(self):
         context = build_context_geometry(POLYGON)
-        field_ring = POLYGON["coordinates"][0]
-        context_ring = context["coordinates"][0]
 
-        field_lon_span = max(p[0] for p in field_ring) - min(p[0] for p in field_ring)
-        field_lat_span = max(p[1] for p in field_ring) - min(p[1] for p in field_ring)
-        context_lon_span = max(p[0] for p in context_ring) - min(p[0] for p in context_ring)
-        context_lat_span = max(p[1] for p in context_ring) - min(p[1] for p in context_ring)
-
-        self.assertGreater(context_lon_span, field_lon_span * 5)
-        self.assertGreater(context_lat_span, field_lat_span * 5)
+        self.assertGreater(_lon_span(context), _lon_span(POLYGON) * 5)
+        self.assertGreater(_lat_span(context), _lat_span(POLYGON) * 5)
         self.assertTrue(build_overlay_points(POLYGON, context))
 
-    def test_request_scene_imagery_uses_context_window(self):
+    def test_detail_geometry_is_closer_than_context_but_keeps_margin(self):
+        context = build_context_geometry(POLYGON)
+        detail = build_detail_geometry(POLYGON)
+
+        self.assertGreater(_lon_span(detail), _lon_span(POLYGON))
+        self.assertGreater(_lat_span(detail), _lat_span(POLYGON))
+        self.assertLess(_lon_span(detail), _lon_span(context))
+        self.assertLess(_lat_span(detail), _lat_span(context))
+        self.assertTrue(build_overlay_points(POLYGON, detail))
+
+    def test_request_scene_imagery_uses_context_window_by_default(self):
         eosda = FakeEOSDAClient(
             [
                 {"status": "created", "task_id": "natural-task"},
@@ -130,42 +146,82 @@ class EOSDAImageryTests(TestCase):
 
         self.assertEqual(len(jobs), 2)
         self.assertEqual(SatelliteJob.objects.filter(scene=self.scene).count(), 2)
-        self.assertEqual(
-            set(
-                SatelliteJob.objects.filter(scene=self.scene).values_list(
-                    "provider_task_id", flat=True
-                )
-            ),
-            {"natural-task", "ndvi-task"},
-        )
         self.assertEqual(eosda.calls[0][0:2], ("POST", "/api/gdw/api"))
         sent_geometry = eosda.calls[0][2]["params"]["geometry"]
-        self.assertNotEqual(sent_geometry, POLYGON)
-        self.assertEqual(jobs[0].request_payload["context_geometry"], sent_geometry)
+        self.assertEqual(jobs[0].request_payload["view_mode"], VIEW_CONTEXT)
+        self.assertEqual(jobs[0].request_payload["view_geometry"], sent_geometry)
         self.assertTrue(jobs[0].request_payload["overlay_points"])
 
-    def test_force_regeneration_keeps_old_asset_while_new_job_runs(self):
+    def test_request_detail_uses_closer_window_and_finer_output(self):
+        eosda = FakeEOSDAClient(
+            [
+                {"status": "created", "task_id": "detail-natural-task"},
+                {"status": "created", "task_id": "detail-ndvi-task"},
+            ]
+        )
+
+        jobs = request_scene_imagery(
+            self.scene,
+            eosda_client=eosda,
+            view_mode=VIEW_DETAIL,
+        )
+        sent_payload = eosda.calls[0][2]["params"]
+
+        self.assertEqual(len(jobs), 2)
+        self.assertEqual(jobs[0].request_payload["view_mode"], VIEW_DETAIL)
+        self.assertEqual(sent_payload["geometry"], build_detail_geometry(POLYGON))
+        self.assertEqual(sent_payload["px_size"], 1)
+        self.assertLess(
+            _lon_span(sent_payload["geometry"]),
+            _lon_span(build_context_geometry(POLYGON)),
+        )
+
+    def test_legacy_single_assets_are_exposed_as_context(self):
         self.scene.assets = {
-            PRODUCT_NATURAL_COLOR: {"url": "https://example.test/old-natural.png"},
-            PRODUCT_NDVI: {"url": "https://example.test/old-ndvi.png"},
+            PRODUCT_NATURAL_COLOR: {"url": "https://example.test/legacy-natural.png"},
+            PRODUCT_NDVI: {"url": "https://example.test/legacy-ndvi.png"},
+        }
+        self.scene.save(update_fields=("assets", "updated_at"))
+
+        state = imagery_state(self.scene)
+
+        self.assertTrue(state[PRODUCT_NATURAL_COLOR][VIEW_CONTEXT]["ready"])
+        self.assertFalse(state[PRODUCT_NATURAL_COLOR][VIEW_DETAIL]["has_asset"])
+
+    def test_force_detail_regeneration_keeps_old_detail_asset_while_job_runs(self):
+        self.scene.assets = {
+            PRODUCT_NATURAL_COLOR: {
+                VIEW_CONTEXT: {"url": "https://example.test/context-natural.png"},
+                VIEW_DETAIL: {"url": "https://example.test/detail-natural.png"},
+            },
+            PRODUCT_NDVI: {
+                VIEW_CONTEXT: {"url": "https://example.test/context-ndvi.png"},
+                VIEW_DETAIL: {"url": "https://example.test/detail-ndvi.png"},
+            },
         }
         self.scene.save(update_fields=("assets", "updated_at"))
         eosda = FakeEOSDAClient(
             [
-                {"status": "created", "task_id": "new-natural-task"},
-                {"status": "created", "task_id": "new-ndvi-task"},
+                {"status": "created", "task_id": "new-detail-natural-task"},
+                {"status": "created", "task_id": "new-detail-ndvi-task"},
             ]
         )
 
-        jobs = request_scene_imagery(self.scene, eosda_client=eosda, force=True)
+        jobs = request_scene_imagery(
+            self.scene,
+            eosda_client=eosda,
+            view_mode=VIEW_DETAIL,
+            force=True,
+        )
         state = imagery_state(self.scene)
 
         self.assertEqual(len(jobs), 2)
-        self.assertTrue(state[PRODUCT_NATURAL_COLOR]["has_asset"])
-        self.assertTrue(state[PRODUCT_NATURAL_COLOR]["waiting"])
-        self.assertFalse(state[PRODUCT_NATURAL_COLOR]["ready"])
+        self.assertTrue(state[PRODUCT_NATURAL_COLOR][VIEW_CONTEXT]["ready"])
+        self.assertTrue(state[PRODUCT_NATURAL_COLOR][VIEW_DETAIL]["has_asset"])
+        self.assertTrue(state[PRODUCT_NATURAL_COLOR][VIEW_DETAIL]["waiting"])
+        self.assertFalse(state[PRODUCT_NATURAL_COLOR][VIEW_DETAIL]["ready"])
 
-    def test_refresh_persists_ready_asset_urls_and_overlay(self):
+    def test_refresh_persists_context_assets_in_variant_structure(self):
         eosda = FakeEOSDAClient(
             [
                 {"status": "created", "task_id": "natural-task"},
@@ -185,17 +241,13 @@ class EOSDAImageryTests(TestCase):
         refresh_scene_imagery(self.scene, eosda_client=eosda)
         self.scene.refresh_from_db()
 
-        self.assertEqual(
-            self.scene.assets[PRODUCT_NATURAL_COLOR]["url"],
-            "https://example.test/natural.png",
-        )
-        self.assertEqual(
-            self.scene.assets[PRODUCT_NDVI]["url"],
-            "https://example.test/ndvi.png",
-        )
-        self.assertTrue(self.scene.assets[PRODUCT_NATURAL_COLOR]["overlay_points"])
-        self.assertTrue(self.scene.assets[PRODUCT_NDVI]["context_geometry"])
-        self.assertTrue(imagery_state(self.scene)[PRODUCT_NDVI]["ready"])
+        natural = self.scene.assets[PRODUCT_NATURAL_COLOR][VIEW_CONTEXT]
+        ndvi = self.scene.assets[PRODUCT_NDVI][VIEW_CONTEXT]
+        self.assertEqual(natural["url"], "https://example.test/natural.png")
+        self.assertEqual(ndvi["url"], "https://example.test/ndvi.png")
+        self.assertTrue(natural["overlay_points"])
+        self.assertTrue(ndvi["view_geometry"])
+        self.assertTrue(imagery_state(self.scene)[PRODUCT_NDVI][VIEW_CONTEXT]["ready"])
         self.assertEqual(
             SatelliteJob.objects.filter(
                 scene=self.scene,
@@ -274,7 +326,7 @@ class ImageryViewSecurityTests(TestCase):
         )
 
     @patch("aplicaciones.satellite.views.request_scene_imagery", return_value=[])
-    def test_operator_can_request_images_for_own_scene(self, request_images):
+    def test_operator_can_request_context_for_own_scene(self, request_images):
         self.client.force_login(self.operator)
 
         response = self.client.post(
@@ -282,19 +334,55 @@ class ImageryViewSecurityTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
-        request_images.assert_called_once_with(self.scene_a)
+        request_images.assert_called_once_with(
+            self.scene_a,
+            view_mode=VIEW_CONTEXT,
+            force=False,
+        )
 
     @patch("aplicaciones.satellite.views.request_scene_imagery", return_value=[])
-    def test_operator_can_regenerate_context_for_own_scene(self, request_images):
+    def test_operator_can_request_detail_for_own_scene(self, request_images):
         self.client.force_login(self.operator)
 
         response = self.client.post(
             reverse("satellite:request_scene_images", args=[self.scene_a.pk]),
-            {"regenerate": "1"},
+            {"view_mode": VIEW_DETAIL},
         )
 
         self.assertEqual(response.status_code, 302)
-        request_images.assert_called_once_with(self.scene_a, force=True)
+        request_images.assert_called_once_with(
+            self.scene_a,
+            view_mode=VIEW_DETAIL,
+            force=False,
+        )
+
+    @patch("aplicaciones.satellite.views.request_scene_imagery", return_value=[])
+    def test_operator_can_regenerate_detail_for_own_scene(self, request_images):
+        self.client.force_login(self.operator)
+
+        response = self.client.post(
+            reverse("satellite:request_scene_images", args=[self.scene_a.pk]),
+            {"view_mode": VIEW_DETAIL, "regenerate": "1"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        request_images.assert_called_once_with(
+            self.scene_a,
+            view_mode=VIEW_DETAIL,
+            force=True,
+        )
+
+    @patch("aplicaciones.satellite.views.request_scene_imagery")
+    def test_invalid_view_mode_does_not_call_provider(self, request_images):
+        self.client.force_login(self.operator)
+
+        response = self.client.post(
+            reverse("satellite:request_scene_images", args=[self.scene_a.pk]),
+            {"view_mode": "invalid"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        request_images.assert_not_called()
 
     @patch("aplicaciones.satellite.views.request_scene_imagery")
     def test_operator_cannot_request_images_for_another_client(self, request_images):
