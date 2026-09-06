@@ -1,7 +1,6 @@
-from datetime import UTC, datetime
-
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.utils import timezone
 
 from aplicaciones.core.models import Client
 
@@ -52,7 +51,7 @@ class SatelliteFieldTests(TestCase):
         scene = SatelliteScene.objects.create(
             field=field_b,
             view_id="scene-1",
-            captured_at=datetime(2026, 9, 5, 12, 0, tzinfo=UTC),
+            captured_at=timezone.now(),
         )
         job = SatelliteJob(
             field=field_a,
