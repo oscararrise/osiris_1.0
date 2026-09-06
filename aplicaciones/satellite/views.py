@@ -100,6 +100,35 @@ def dashboard(request):
     )
 
 
+@module_access_required("satellite")
+def field_scenes(request, field_id: int):
+    """Show persisted Sentinel-2 scenes for one field owned by the current client."""
+
+    field = get_object_or_404(
+        SatelliteField.objects.prefetch_related(
+            Prefetch(
+                "scenes",
+                queryset=SatelliteScene.objects.order_by("-captured_at"),
+                to_attr="satellite_scenes",
+            )
+        ),
+        pk=field_id,
+        client=request.client,
+        is_active=True,
+    )
+    scenes = field.satellite_scenes
+
+    return render(
+        request,
+        "satellite/field_scenes.html",
+        {
+            "field": field,
+            "scenes": scenes,
+            "scene_count": len(scenes),
+        },
+    )
+
+
 @require_POST
 @module_access_required("satellite")
 def search_field_scenes(request, field_id: int):
