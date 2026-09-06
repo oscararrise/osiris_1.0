@@ -4,7 +4,7 @@
 {% block title %}Monitoreo Satelital | OSIRIS{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'satellite/satellite.css' %}?v=20260905-1">
+<link rel="stylesheet" href="{% static 'satellite/satellite.css' %}?v=20260905-2">
 {% endblock %}
 
 {% block content %}
@@ -12,7 +12,7 @@
     <div>
         <p class="eyebrow">Analítica geoespacial</p>
         <h1>Monitoreo Satelital</h1>
-        <p>Administra los lotes de {{ current_client.name }}, conserva su perímetro geográfico y prepara cada área para análisis con EOSDA.</p>
+        <p>Administra los lotes de {{ current_client.name }}, conserva su perímetro geográfico y consulta escenas Sentinel-2 disponibles mediante EOSDA.</p>
     </div>
     <div class="satellite-hero-badge">
         <span>{{ stats.registered }}</span>
@@ -46,7 +46,8 @@
                             <th>Cultivo</th>
                             <th>Área</th>
                             <th>EOSDA</th>
-                            <th>Coordenadas</th>
+                            <th>Última escena</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -55,6 +56,7 @@
                                 <td>
                                     <strong>{{ field.name }}</strong>
                                     {% if field.sowing_date %}<small>Siembra: {{ field.sowing_date|date:'d/m/Y' }}</small>{% endif %}
+                                    <small>{{ field.geometry.coordinates.0|length }} puntos</small>
                                 </td>
                                 <td>{{ field.crop_type|default:'—' }}</td>
                                 <td>{% if field.area_ha %}{{ field.area_ha|floatformat:2 }} ha{% else %}—{% endif %}</td>
@@ -66,7 +68,37 @@
                                         <span class="satellite-status is-pending">Pendiente</span>
                                     {% endif %}
                                 </td>
-                                <td><code>{{ field.geometry.coordinates.0|length }} puntos</code></td>
+                                <td>
+                                    {% with latest_scene=field.satellite_scenes.0 %}
+                                        {% if latest_scene %}
+                                            <strong>{{ latest_scene.captured_at|date:'d/m/Y' }}</strong>
+                                            <small>Sentinel-2</small>
+                                            <small>
+                                                {% if latest_scene.cloud_cover != None %}
+                                                    Nubosidad {{ latest_scene.cloud_cover|floatformat:1 }}%
+                                                {% else %}
+                                                    Nubosidad —
+                                                {% endif %}
+                                            </small>
+                                        {% else %}
+                                            <span class="satellite-muted">Sin consultar</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% if can_manage_fields and field.eosda_field_id %}
+                                        <form method="post" action="{% url 'satellite:search_field_scenes' field.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="satellite-action-button">
+                                                Buscar escenas
+                                            </button>
+                                        </form>
+                                    {% elif not field.eosda_field_id %}
+                                        <span class="satellite-muted">Sincroniza primero</span>
+                                    {% else %}
+                                        <span class="satellite-muted">Solo consulta</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>
