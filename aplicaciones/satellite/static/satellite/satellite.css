@@ -1,4 +1,5 @@
-.satellite-hero {
+.satellite-hero,
+.satellite-detail-hero {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -11,17 +12,20 @@
 }
 
 .satellite-hero h1,
+.satellite-detail-hero h1,
 .satellite-section-header h2,
 .satellite-create-panel h2 {
     margin: 0;
 }
 
-.satellite-hero p:not(.eyebrow) {
+.satellite-hero p:not(.eyebrow),
+.satellite-detail-hero p:not(.eyebrow) {
     max-width: 760px;
     margin-bottom: 0;
 }
 
-.satellite-hero-badge {
+.satellite-hero-badge,
+.satellite-detail-summary {
     min-width: 150px;
     padding: 1.2rem 1.4rem;
     border-radius: 18px;
@@ -31,13 +35,24 @@
 }
 
 .satellite-hero-badge span,
-.satellite-hero-badge small {
+.satellite-hero-badge small,
+.satellite-detail-summary span,
+.satellite-detail-summary small {
     display: block;
 }
 
-.satellite-hero-badge span {
+.satellite-hero-badge span,
+.satellite-detail-summary span {
     font-size: 2rem;
     font-weight: 800;
+}
+
+.satellite-back-link {
+    display: inline-block;
+    margin-bottom: 1rem;
+    color: var(--client-primary);
+    font-size: 0.88rem;
+    font-weight: 700;
 }
 
 .satellite-stats {
@@ -77,7 +92,8 @@
 }
 
 .satellite-fields-panel,
-.satellite-create-panel {
+.satellite-create-panel,
+.satellite-scenes-panel {
     padding: 1.4rem;
 }
 
@@ -151,6 +167,12 @@
     font-size: 0.82rem;
 }
 
+.satellite-actions {
+    display: grid;
+    gap: 0.45rem;
+    justify-items: start;
+}
+
 .satellite-action-button {
     display: inline-flex;
     align-items: center;
@@ -165,8 +187,14 @@
     font: inherit;
     font-size: 0.8rem;
     font-weight: 750;
+    text-decoration: none;
     white-space: nowrap;
     transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.satellite-action-button.is-primary {
+    background: var(--client-primary);
+    color: white;
 }
 
 .satellite-action-button:hover,
@@ -174,6 +202,98 @@
     background: var(--client-primary);
     color: white;
     transform: translateY(-1px);
+}
+
+.satellite-scene-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.satellite-scene-card {
+    padding: 1.2rem;
+    border: 1px solid #dde7e2;
+    border-radius: 18px;
+    background: white;
+}
+
+.satellite-scene-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.satellite-scene-card h3 {
+    margin: 0.2rem 0 0;
+    font-size: 1.25rem;
+}
+
+.satellite-scene-provider {
+    color: var(--client-primary);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.satellite-cloud-badge {
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    background: #eef5f1;
+    color: #425a4f;
+    font-size: 0.76rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.satellite-scene-meta {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.satellite-scene-meta div {
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid #edf2ef;
+}
+
+.satellite-scene-meta dt {
+    color: #718078;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.satellite-scene-meta dd {
+    margin: 0.2rem 0 0;
+    overflow-wrap: anywhere;
+}
+
+.satellite-imagery-placeholder {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px dashed #cfdcd5;
+    border-radius: 14px;
+    background: #f7faf8;
+}
+
+.satellite-imagery-placeholder strong,
+.satellite-imagery-placeholder span {
+    display: block;
+}
+
+.satellite-imagery-placeholder span {
+    margin-top: 0.2rem;
+    color: #718078;
+    font-size: 0.82rem;
+}
+
+.satellite-imagery-placeholder p {
+    margin: 0.6rem 0 0;
+    color: #61736a;
+    font-size: 0.82rem;
 }
 
 .satellite-empty {
@@ -274,13 +394,15 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .satellite-layout {
+    .satellite-layout,
+    .satellite-scene-grid {
         grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 620px) {
-    .satellite-hero {
+    .satellite-hero,
+    .satellite-detail-hero {
         align-items: stretch;
         flex-direction: column;
     }
