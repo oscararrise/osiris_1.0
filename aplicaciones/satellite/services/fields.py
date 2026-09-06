@@ -20,6 +20,12 @@ def register_field_with_eosda(
     The local field is intentionally saved first. If EOSDA is unavailable, the
     client/lot relationship and polygon remain safely stored in OSIRIS and can be
     retried later.
+
+    Local crop labels are intentionally not sent during field creation. EOSDA
+    accepts only provider-defined crop types while OSIRIS keeps ``crop_type`` as
+    client-owned free text. Crop-period metadata will be synchronized separately
+    after mapping it to an EOSDA-supported value, so an arbitrary local label can
+    never block the geographic field registration.
     """
 
     if field.pk is None:
@@ -37,8 +43,6 @@ def register_field_with_eosda(
             name=field.name,
             geometry=field.geometry,
             group=field.client.slug,
-            crop_type=field.crop_type,
-            sowing_date=field.sowing_date,
         )
     finally:
         if owns_client:
