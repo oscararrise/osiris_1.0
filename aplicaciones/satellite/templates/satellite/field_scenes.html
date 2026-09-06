@@ -5,7 +5,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'satellite/satellite.css' %}?v=20260905-4">
-<link rel="stylesheet" href="{% static 'satellite/satellite_imagery.css' %}?v=20260905-1">
+<link rel="stylesheet" href="{% static 'satellite/satellite_imagery.css' %}?v=20260906-2">
 {% endblock %}
 
 {% block content %}
@@ -16,7 +16,7 @@
         <h1>{{ field.name }}</h1>
         <p>
             {{ scene_count }} escena{{ scene_count|pluralize }} guardada{{ scene_count|pluralize }} para este lote.
-            Puedes generar Color Natural y NDVI directamente con EOSDA Imagery.
+            Las nuevas imágenes se generan con contexto alrededor del perímetro para facilitar su lectura.
         </p>
     </div>
     <div class="satellite-detail-summary">
@@ -99,24 +99,37 @@
                         <section class="satellite-image-product">
                             <div class="satellite-image-product-header">
                                 <strong>Color natural</strong>
-                                {% if natural.ready %}
+                                {% if natural.waiting %}
+                                    <span class="satellite-status is-pending">Regenerando</span>
+                                {% elif natural.ready %}
                                     <span class="satellite-status is-ok">Lista</span>
-                                {% elif natural.waiting %}
-                                    <span class="satellite-status is-pending">Procesando</span>
                                 {% elif natural.failed %}
                                     <span class="satellite-status is-error">Error</span>
                                 {% else %}
                                     <span class="satellite-muted">Sin generar</span>
                                 {% endif %}
                             </div>
-                            {% if natural.ready %}
+                            {% if natural.has_asset %}
                                 <a href="{{ natural.asset.url }}" target="_blank" rel="noopener">
-                                    <img
-                                        class="satellite-scene-image"
-                                        src="{{ natural.asset.url }}"
-                                        alt="Color natural Sentinel-2 del {{ scene.captured_at|date:'d/m/Y' }}"
-                                        loading="lazy"
-                                    >
+                                    <div class="satellite-image-frame">
+                                        <img
+                                            class="satellite-scene-image"
+                                            src="{{ natural.asset.url }}"
+                                            alt="Color natural Sentinel-2 del {{ scene.captured_at|date:'d/m/Y' }}"
+                                            loading="lazy"
+                                        >
+                                        {% if natural.asset.overlay_points %}
+                                            <svg
+                                                class="satellite-field-overlay"
+                                                viewBox="0 0 100 100"
+                                                preserveAspectRatio="none"
+                                                aria-hidden="true"
+                                            >
+                                                <polygon points="{{ natural.asset.overlay_points }}"></polygon>
+                                            </svg>
+                                            <span class="satellite-field-label">Lote</span>
+                                        {% endif %}
+                                    </div>
                                 </a>
                             {% else %}
                                 <div class="satellite-image-empty">
@@ -129,24 +142,37 @@
                         <section class="satellite-image-product">
                             <div class="satellite-image-product-header">
                                 <strong>NDVI</strong>
-                                {% if ndvi.ready %}
+                                {% if ndvi.waiting %}
+                                    <span class="satellite-status is-pending">Regenerando</span>
+                                {% elif ndvi.ready %}
                                     <span class="satellite-status is-ok">Lista</span>
-                                {% elif ndvi.waiting %}
-                                    <span class="satellite-status is-pending">Procesando</span>
                                 {% elif ndvi.failed %}
                                     <span class="satellite-status is-error">Error</span>
                                 {% else %}
                                     <span class="satellite-muted">Sin generar</span>
                                 {% endif %}
                             </div>
-                            {% if ndvi.ready %}
+                            {% if ndvi.has_asset %}
                                 <a href="{{ ndvi.asset.url }}" target="_blank" rel="noopener">
-                                    <img
-                                        class="satellite-scene-image"
-                                        src="{{ ndvi.asset.url }}"
-                                        alt="NDVI Sentinel-2 del {{ scene.captured_at|date:'d/m/Y' }}"
-                                        loading="lazy"
-                                    >
+                                    <div class="satellite-image-frame">
+                                        <img
+                                            class="satellite-scene-image"
+                                            src="{{ ndvi.asset.url }}"
+                                            alt="NDVI Sentinel-2 del {{ scene.captured_at|date:'d/m/Y' }}"
+                                            loading="lazy"
+                                        >
+                                        {% if ndvi.asset.overlay_points %}
+                                            <svg
+                                                class="satellite-field-overlay"
+                                                viewBox="0 0 100 100"
+                                                preserveAspectRatio="none"
+                                                aria-hidden="true"
+                                            >
+                                                <polygon points="{{ ndvi.asset.overlay_points }}"></polygon>
+                                            </svg>
+                                            <span class="satellite-field-label">Lote</span>
+                                        {% endif %}
+                                    </div>
                                 </a>
                             {% else %}
                                 <div class="satellite-image-empty is-ndvi">
@@ -159,12 +185,18 @@
 
                     {% if can_manage_imagery %}
                         <div class="satellite-imagery-actions">
-                            {% if natural.ready and ndvi.ready %}
-                                <span class="satellite-muted">Imágenes disponibles</span>
-                            {% elif natural.waiting or ndvi.waiting %}
+                            {% if natural.waiting or ndvi.waiting %}
                                 <form method="post" action="{% url 'satellite:refresh_scene_images' scene.id %}">
                                     {% csrf_token %}
                                     <button type="submit" class="satellite-action-button">Actualizar imágenes</button>
+                                </form>
+                            {% elif natural.ready and ndvi.ready %}
+                                <form method="post" action="{% url 'satellite:request_scene_images' scene.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="regenerate" value="1">
+                                    <button type="submit" class="satellite-action-button">
+                                        Regenerar vista alejada
+                                    </button>
                                 </form>
                             {% else %}
                                 <form method="post" action="{% url 'satellite:request_scene_images' scene.id %}">
