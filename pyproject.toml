@@ -14,6 +14,7 @@ ignore = ["DJ001"]
 "**/migrations/*.py" = ["E501"]
 "aplicaciones/dashboard/vladimir_analytics.py" = ["E501"]
 "aplicaciones/dashboard/test_vladimir_analytics.py" = ["E501"]
+"aplicaciones/dashboard/relationship_detail.py" = ["E501", "I001"]
 
 [tool.ruff.format]
 quote-style = "double"
