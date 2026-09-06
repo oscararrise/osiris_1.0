@@ -1,0 +1,111 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Escenas Satelitales | OSIRIS{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'satellite/satellite.css' %}?v=20260905-3">
+{% endblock %}
+
+{% block content %}
+<section class="satellite-detail-hero">
+    <div>
+        <a class="satellite-back-link" href="{% url 'satellite:dashboard' %}">← Volver a Monitoreo Satelital</a>
+        <p class="eyebrow">Historial Sentinel-2</p>
+        <h1>{{ field.name }}</h1>
+        <p>
+            {{ scene_count }} escena{{ scene_count|pluralize }} guardada{{ scene_count|pluralize }} para este lote.
+            Las imágenes visuales se generarán en la siguiente fase mediante EOSDA Imagery.
+        </p>
+    </div>
+    <div class="satellite-detail-summary">
+        <span>{{ scene_count }}</span>
+        <small>escenas disponibles</small>
+    </div>
+</section>
+
+<section class="satellite-stats" aria-label="Resumen del lote">
+    <article>
+        <span>Área</span>
+        <strong>{% if field.area_ha %}{{ field.area_ha|floatformat:2 }} ha{% else %}—{% endif %}</strong>
+    </article>
+    <article>
+        <span>Cultivo</span>
+        <strong>{{ field.crop_type|default:'—' }}</strong>
+    </article>
+    <article>
+        <span>EOSDA field ID</span>
+        <strong>{{ field.eosda_field_id|default:'—' }}</strong>
+    </article>
+    <article>
+        <span>Perímetro</span>
+        <strong>{{ field.geometry.coordinates.0|length }} puntos</strong>
+    </article>
+</section>
+
+<section class="panel satellite-scenes-panel">
+    <div class="satellite-section-header">
+        <div>
+            <p class="eyebrow">Escenas encontradas</p>
+            <h2>Historial satelital</h2>
+        </div>
+        <span>Ordenado de más reciente a más antigua</span>
+    </div>
+
+    {% if scenes %}
+        <div class="satellite-scene-grid">
+            {% for scene in scenes %}
+                <article class="satellite-scene-card">
+                    <div class="satellite-scene-card-header">
+                        <div>
+                            <span class="satellite-scene-provider">Sentinel-2</span>
+                            <h3>{{ scene.captured_at|date:'d/m/Y' }}</h3>
+                        </div>
+                        {% if scene.cloud_cover != None %}
+                            <span class="satellite-cloud-badge">{{ scene.cloud_cover|floatformat:1 }}% nubes</span>
+                        {% else %}
+                            <span class="satellite-cloud-badge">Nubes —</span>
+                        {% endif %}
+                    </div>
+
+                    <dl class="satellite-scene-meta">
+                        <div>
+                            <dt>Scene ID</dt>
+                            <dd><code>{{ scene.metadata.sceneID|default:'—' }}</code></dd>
+                        </div>
+                        <div>
+                            <dt>View ID</dt>
+                            <dd><code>{{ scene.view_id }}</code></dd>
+                        </div>
+                        <div>
+                            <dt>Dataset</dt>
+                            <dd>{{ scene.dataset }}</dd>
+                        </div>
+                        <div>
+                            <dt>Cobertura del lote</dt>
+                            <dd>
+                                {% if scene.metadata.dataCoveragePercentage != None %}
+                                    {{ scene.metadata.dataCoveragePercentage|floatformat:1 }}%
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </dl>
+
+                    <div class="satellite-imagery-placeholder">
+                        <strong>Imagen satelital</strong>
+                        <span>Aún no generada</span>
+                        <p>El siguiente paso será solicitar Natural Color y NDVI para esta escena.</p>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="satellite-empty">
+            <strong>No hay escenas guardadas todavía.</strong>
+            <p>Vuelve al módulo y usa “Buscar escenas” para consultar Sentinel-2.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
