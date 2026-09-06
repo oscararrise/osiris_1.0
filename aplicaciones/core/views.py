@@ -31,8 +31,10 @@ def operations(request):
         and data_source.adapter_key == ClientDataSource.Adapter.TELEMETRY
     ):
         from aplicaciones.automatizacion import views as legacy_views
+        from aplicaciones.satellite.legacy import augment_legacy_home_response
 
-        return legacy_views.inicio(request)
+        response = legacy_views.inicio(request)
+        return augment_legacy_home_response(request, response)
 
     return render(
         request,
