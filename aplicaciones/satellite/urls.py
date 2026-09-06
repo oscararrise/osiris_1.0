@@ -16,4 +16,14 @@ urlpatterns = [
         views.search_field_scenes,
         name="search_field_scenes",
     ),
+    path(
+        "scenes/<int:scene_id>/images/request/",
+        views.request_scene_images,
+        name="request_scene_images",
+    ),
+    path(
+        "scenes/<int:scene_id>/images/refresh/",
+        views.refresh_scene_images,
+        name="refresh_scene_images",
+    ),
 ]
