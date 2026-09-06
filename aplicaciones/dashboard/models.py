@@ -167,3 +167,92 @@ class AgronomicVariableRelationship(models.Model):
 
     def __str__(self) -> str:
         return f"{self.client} · {self.crop_name} · {self.name}"
+
+
+class AgronomicRelationshipAlert(models.Model):
+    """Two-variable alert rule attached to an agronomic relationship."""
+
+    class Logic(models.TextChoices):
+        AND = "and", "Y (AND)"
+        OR = "or", "O (OR)"
+
+    class Operator(models.TextChoices):
+        GREATER_THAN = "gt", "Mayor que"
+        GREATER_EQUAL = "gte", "Mayor o igual que"
+        LESS_THAN = "lt", "Menor que"
+        LESS_EQUAL = "lte", "Menor o igual que"
+
+    class Severity(models.TextChoices):
+        LOW = "low", "Baja"
+        MEDIUM = "medium", "Media"
+        HIGH = "high", "Alta"
+        CRITICAL = "critical", "Crítica"
+
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name="agronomic_relationship_alerts",
+        verbose_name="cliente",
+    )
+    relationship = models.ForeignKey(
+        AgronomicVariableRelationship,
+        on_delete=models.CASCADE,
+        related_name="alerts",
+        verbose_name="relación agronómica",
+    )
+    name = models.CharField("nombre", max_length=200)
+    variable_a_key = models.CharField("variable A", max_length=320)
+    operator_a = models.CharField(
+        "operador A",
+        max_length=8,
+        choices=Operator.choices,
+        default=Operator.GREATER_THAN,
+    )
+    threshold_a = models.FloatField("umbral A")
+    variable_b_key = models.CharField("variable B", max_length=320)
+    operator_b = models.CharField(
+        "operador B",
+        max_length=8,
+        choices=Operator.choices,
+        default=Operator.GREATER_THAN,
+    )
+    threshold_b = models.FloatField("umbral B")
+    logic = models.CharField("lógica", max_length=8, choices=Logic.choices, default=Logic.AND)
+    duration_minutes = models.PositiveIntegerField("duración mínima (min)", default=10)
+    cooldown_minutes = models.PositiveIntegerField("cooldown (min)", default=30)
+    severity = models.CharField(
+        "severidad",
+        max_length=12,
+        choices=Severity.choices,
+        default=Severity.MEDIUM,
+    )
+    email_enabled = models.BooleanField("notificar por email", default=False)
+    email_recipients = models.CharField("destinatarios email", max_length=500, blank=True)
+    whatsapp_enabled = models.BooleanField("notificar por WhatsApp", default=False)
+    whatsapp_recipients = models.CharField(
+        "destinatarios WhatsApp", max_length=500, blank=True
+    )
+    is_enabled = models.BooleanField("activa", default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_agronomic_relationship_alerts",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("relationship", "name"),
+                name="unique_alert_name_per_agronomic_relationship",
+            )
+        ]
+        ordering = ("relationship__name", "-is_enabled", "name")
+        verbose_name = "alerta de relación agronómica"
+        verbose_name_plural = "alertas de relaciones agronómicas"
+
+    def __str__(self) -> str:
+        return f"{self.relationship} · {self.name}"
