@@ -6,4 +6,9 @@ app_name = "satellite"
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path(
+        "fields/<int:field_id>/search-scenes/",
+        views.search_field_scenes,
+        name="search_field_scenes",
+    ),
 ]
