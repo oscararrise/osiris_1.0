@@ -125,8 +125,14 @@ class SceneSearchViewTests(TestCase):
         user_model = get_user_model()
         self.client_a = Client.objects.create(name="Cliente A", slug="cliente-a")
         self.client_b = Client.objects.create(name="Cliente B", slug="cliente-b")
-        self.operator = user_model.objects.create_user("scene-operator", password="test-password-123")
-        self.viewer = user_model.objects.create_user("scene-viewer", password="test-password-123")
+        self.operator = user_model.objects.create_user(
+            "scene-operator",
+            password="test-password-123",
+        )
+        self.viewer = user_model.objects.create_user(
+            "scene-viewer",
+            password="test-password-123",
+        )
         ClientMembership.objects.create(
             user=self.operator,
             client=self.client_a,
