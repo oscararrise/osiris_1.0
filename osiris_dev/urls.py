@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 from aplicaciones.automatizacion import views as legacy_views
 from aplicaciones.core.decorators import module_access_required
@@ -40,7 +41,16 @@ urlpatterns = [
         module_access_required("reports")(legacy_views.reported),
         name="reported",
     ),
-    path("nvid", module_access_required("ndvi")(legacy_views.nvid), name="nvid"),
+    path(
+        "nvid",
+        module_access_required("satellite")(
+            RedirectView.as_view(
+                pattern_name="satellite:dashboard",
+                permanent=False,
+            )
+        ),
+        name="nvid",
+    ),
     path("drones", module_access_required("drones")(legacy_views.drones), name="drones"),
     path(
         "actualizar_control_data/",
