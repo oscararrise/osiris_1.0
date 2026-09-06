@@ -15,6 +15,8 @@ from aplicaciones.satellite.eosda.client import EOSDAError
 from aplicaciones.satellite.models import SatelliteField, SatelliteScene
 from aplicaciones.satellite.services.fields import register_field_with_eosda
 from aplicaciones.satellite.services.imagery import (
+    VIEW_CONTEXT,
+    VIEW_DETAIL,
     imagery_state,
     refresh_scene_imagery,
     request_scene_imagery,
@@ -162,20 +164,27 @@ def request_scene_images(request, scene_id: int):
         field__client=request.client,
         field__is_active=True,
     )
+    view_mode = request.POST.get("view_mode", VIEW_CONTEXT)
+    if view_mode not in {VIEW_CONTEXT, VIEW_DETAIL}:
+        messages.error(request, "El tipo de vista satelital solicitado no es válido.")
+        return redirect("satellite:field_scenes", field_id=scene.field_id)
+
     regenerate = request.POST.get("regenerate") == "1"
     try:
-        if regenerate:
-            jobs = request_scene_imagery(scene, force=True)
-        else:
-            jobs = request_scene_imagery(scene)
+        jobs = request_scene_imagery(
+            scene,
+            view_mode=view_mode,
+            force=regenerate,
+        )
     except EOSDAError:
         messages.error(request, "EOSDA no pudo crear las tareas de imágenes.")
     else:
-        action = "regeneración con contexto" if regenerate else "generación"
+        view_label = "detalle" if view_mode == VIEW_DETAIL else "contexto"
+        action = "regeneración" if regenerate else "generación"
         messages.success(
             request,
             (
-                f"Se enviaron {len(jobs)} tarea(s) de {action} a EOSDA. "
+                f"Se enviaron {len(jobs)} tarea(s) de {action} de vista {view_label} a EOSDA. "
                 "Usa Actualizar imágenes para consultar el resultado."
             ),
         )
@@ -204,25 +213,32 @@ def refresh_scene_images(request, scene_id: int):
     else:
         scene.refresh_from_db(fields=("assets",))
         state = imagery_state(scene)
-        ready_count = sum(1 for item in state.values() if item["ready"])
-        waiting_count = sum(1 for item in state.values() if item["waiting"])
-        if ready_count == len(state):
-            messages.success(request, "Color Natural y NDVI ya están disponibles.")
-        elif waiting_count:
+        variants = [
+            item[view_mode]
+            for item in state.values()
+            for view_mode in (VIEW_CONTEXT, VIEW_DETAIL)
+        ]
+        waiting_count = sum(1 for item in variants if item["waiting"])
+        detail_ready = all(item[VIEW_DETAIL]["ready"] for item in state.values())
+        context_ready = all(item[VIEW_CONTEXT]["ready"] for item in state.values())
+
+        if waiting_count:
             messages.info(
                 request,
-                "EOSDA sigue procesando la nueva vista contextual. Intenta actualizar de nuevo.",
+                "EOSDA sigue procesando imágenes. Intenta actualizar de nuevo en unos segundos.",
             )
-        elif ready_count:
-            messages.info(
+        elif detail_ready:
+            messages.success(
                 request,
-                f"{ready_count} de {len(state)} imágenes están listas.",
+                "La vista de detalle de Color Natural y NDVI ya está disponible.",
+            )
+        elif context_ready:
+            messages.success(
+                request,
+                "Las imágenes de contexto están disponibles. Ya puedes generar la vista detalle.",
             )
         else:
-            messages.info(
-                request,
-                "EOSDA sigue procesando las imágenes. Intenta actualizar de nuevo.",
-            )
+            messages.info(request, "El estado de las imágenes fue actualizado.")
     return redirect("satellite:field_scenes", field_id=scene.field_id)
 
 
