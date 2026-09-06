@@ -92,7 +92,8 @@ class SceneDetailViewTests(TestCase):
         self.assertContains(response, "8,3% nubes")
         self.assertContains(response, "S2A_scene_cliente_a")
         self.assertContains(response, self.scene_a.view_id)
-        self.assertContains(response, "Imagen satelital")
+        self.assertContains(response, "Color natural")
+        self.assertContains(response, "NDVI")
         self.assertNotContains(response, "S2B_scene_secreta")
 
     def test_viewer_cannot_open_another_client_field_scene_history(self):
