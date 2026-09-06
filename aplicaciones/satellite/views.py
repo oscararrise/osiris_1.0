@@ -162,15 +162,20 @@ def request_scene_images(request, scene_id: int):
         field__client=request.client,
         field__is_active=True,
     )
+    regenerate = request.POST.get("regenerate") == "1"
     try:
-        jobs = request_scene_imagery(scene)
+        if regenerate:
+            jobs = request_scene_imagery(scene, force=True)
+        else:
+            jobs = request_scene_imagery(scene)
     except EOSDAError:
         messages.error(request, "EOSDA no pudo crear las tareas de imágenes.")
     else:
+        action = "regeneración con contexto" if regenerate else "generación"
         messages.success(
             request,
             (
-                f"Se enviaron {len(jobs)} tarea(s) de imagen a EOSDA. "
+                f"Se enviaron {len(jobs)} tarea(s) de {action} a EOSDA. "
                 "Usa Actualizar imágenes para consultar el resultado."
             ),
         )
@@ -200,12 +205,18 @@ def refresh_scene_images(request, scene_id: int):
         scene.refresh_from_db(fields=("assets",))
         state = imagery_state(scene)
         ready_count = sum(1 for item in state.values() if item["ready"])
+        waiting_count = sum(1 for item in state.values() if item["waiting"])
         if ready_count == len(state):
-            messages.success(request, "Natural Color y NDVI ya están disponibles.")
+            messages.success(request, "Color Natural y NDVI ya están disponibles.")
+        elif waiting_count:
+            messages.info(
+                request,
+                "EOSDA sigue procesando la nueva vista contextual. Intenta actualizar de nuevo.",
+            )
         elif ready_count:
             messages.info(
                 request,
-                f"{ready_count} de {len(state)} imágenes están listas; EOSDA sigue procesando.",
+                f"{ready_count} de {len(state)} imágenes están listas.",
             )
         else:
             messages.info(
