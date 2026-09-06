@@ -1,0 +1,36 @@
+<div
+    class="col-md-6 col-xl-4 module-item"
+    data-category="monitoreo"
+    data-name="monitoreo satelital eosda satelite ndvi ndmi ndre imagenes lotes cultivo"
+>
+    <article class="module-card featured">
+        <span class="featured-badge">EOSDA</span>
+
+        <div class="module-icon blue">
+            <i class="fa-solid fa-satellite"></i>
+        </div>
+
+        <h3 class="module-title">
+            {{ module.name }}
+        </h3>
+
+        <p class="module-description">
+            {{ module.description }}
+        </p>
+
+        <div class="module-footer">
+            <span class="module-category">
+                {{ module.category|upper }}
+            </span>
+
+            <a
+                id="btn-satellite"
+                href="{% url module.route_name %}"
+                class="module-link"
+            >
+                Ingresar
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+    </article>
+</div>
