@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from unittest.mock import patch
 
+import httpx
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -47,6 +48,20 @@ class FakeEOSDAClient:
     def request_json(self, method, path, *, params=None, json=None):
         self.calls.append((method, path, json))
         return self.responses.pop(0)
+
+    def request(
+        self,
+        method,
+        path,
+        *,
+        params=None,
+        json=None,
+        accepted_status_codes=None,
+    ):
+        self.calls.append((method, path, json))
+        payload = self.responses.pop(0)
+        request = httpx.Request(method, f"https://api-connect.eos.com{path}")
+        return httpx.Response(200, json=payload, request=request)
 
 
 class EOSDAImageryTests(TestCase):
