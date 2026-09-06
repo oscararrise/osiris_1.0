@@ -146,6 +146,36 @@
     color: #8a6418;
 }
 
+.satellite-muted {
+    color: #718078;
+    font-size: 0.82rem;
+}
+
+.satellite-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0.48rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--client-primary) 32%, #cddbd4);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--client-primary) 7%, white);
+    color: var(--client-primary);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 750;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.satellite-action-button:hover,
+.satellite-action-button:focus-visible {
+    background: var(--client-primary);
+    color: white;
+    transform: translateY(-1px);
+}
+
 .satellite-empty {
     padding: 2.5rem 1rem;
     text-align: center;
