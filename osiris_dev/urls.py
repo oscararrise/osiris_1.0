@@ -7,6 +7,11 @@ from aplicaciones.core.decorators import module_access_required
 from aplicaciones.core.views import sensor_dashboard
 from aplicaciones.dashboard.agronomy_api import agronomy_relationships
 from aplicaciones.dashboard.context_api import sensor_context
+from aplicaciones.dashboard.relationship_detail import (
+    agronomy_relationship_alerts,
+    agronomy_relationship_detail,
+    agronomy_relationship_detail_data,
+)
 
 admin.site.site_header = "Administración OSIRIS"
 admin.site.site_title = "OSIRIS"
@@ -19,6 +24,21 @@ urlpatterns = [
     path("satellite/", include("aplicaciones.satellite.urls")),
     path("s2/context", sensor_context, name="sensor_context"),
     path("s2/agronomy", agronomy_relationships, name="agronomy_relationships"),
+    path(
+        "s2/agronomy/relationships/<int:relationship_id>/",
+        agronomy_relationship_detail,
+        name="agronomy_relationship_detail",
+    ),
+    path(
+        "s2/agronomy/relationships/<int:relationship_id>/data",
+        agronomy_relationship_detail_data,
+        name="agronomy_relationship_detail_data",
+    ),
+    path(
+        "s2/agronomy/relationships/<int:relationship_id>/alerts",
+        agronomy_relationship_alerts,
+        name="agronomy_relationship_alerts",
+    ),
     path("s2", sensor_dashboard, name="s2"),
     path("s1", module_access_required("monitoring")(legacy_views.s1), name="s1"),
     path("control", module_access_required("control")(legacy_views.s3), name="s3"),
