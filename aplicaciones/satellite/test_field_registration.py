@@ -80,3 +80,6 @@ class EOSDAFieldManagementTests(TestCase):
         self.assertIsNotNone(field.last_sync_at)
         request_payload = eosda.calls[0][2]
         self.assertEqual(request_payload["properties"]["group"], client.slug)
+        self.assertNotIn("years_data", request_payload["properties"])
+        self.assertEqual(field.crop_type, "Maíz")
+        self.assertEqual(field.sowing_date, date(2026, 8, 15))
