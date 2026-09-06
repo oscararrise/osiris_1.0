@@ -21,6 +21,8 @@ from aplicaciones.satellite.eosda.imagery import (
 )
 from aplicaciones.satellite.models import SatelliteField, SatelliteJob, SatelliteScene
 from aplicaciones.satellite.services.imagery import (
+    build_context_geometry,
+    build_overlay_points,
     imagery_state,
     refresh_scene_imagery,
     request_scene_imagery,
@@ -102,7 +104,21 @@ class EOSDAImageryTests(TestCase):
         self.assertEqual(natural["params"]["format"], "png")
         self.assertEqual(ndvi["params"]["bm_type"], "NDVI")
 
-    def test_request_scene_imagery_creates_two_provider_jobs(self):
+    def test_context_geometry_is_larger_than_tiny_field(self):
+        context = build_context_geometry(POLYGON)
+        field_ring = POLYGON["coordinates"][0]
+        context_ring = context["coordinates"][0]
+
+        field_lon_span = max(p[0] for p in field_ring) - min(p[0] for p in field_ring)
+        field_lat_span = max(p[1] for p in field_ring) - min(p[1] for p in field_ring)
+        context_lon_span = max(p[0] for p in context_ring) - min(p[0] for p in context_ring)
+        context_lat_span = max(p[1] for p in context_ring) - min(p[1] for p in context_ring)
+
+        self.assertGreater(context_lon_span, field_lon_span * 5)
+        self.assertGreater(context_lat_span, field_lat_span * 5)
+        self.assertTrue(build_overlay_points(POLYGON, context))
+
+    def test_request_scene_imagery_uses_context_window(self):
         eosda = FakeEOSDAClient(
             [
                 {"status": "created", "task_id": "natural-task"},
@@ -123,8 +139,33 @@ class EOSDAImageryTests(TestCase):
             {"natural-task", "ndvi-task"},
         )
         self.assertEqual(eosda.calls[0][0:2], ("POST", "/api/gdw/api"))
+        sent_geometry = eosda.calls[0][2]["params"]["geometry"]
+        self.assertNotEqual(sent_geometry, POLYGON)
+        self.assertEqual(jobs[0].request_payload["context_geometry"], sent_geometry)
+        self.assertTrue(jobs[0].request_payload["overlay_points"])
 
-    def test_refresh_persists_ready_asset_urls(self):
+    def test_force_regeneration_keeps_old_asset_while_new_job_runs(self):
+        self.scene.assets = {
+            PRODUCT_NATURAL_COLOR: {"url": "https://example.test/old-natural.png"},
+            PRODUCT_NDVI: {"url": "https://example.test/old-ndvi.png"},
+        }
+        self.scene.save(update_fields=("assets", "updated_at"))
+        eosda = FakeEOSDAClient(
+            [
+                {"status": "created", "task_id": "new-natural-task"},
+                {"status": "created", "task_id": "new-ndvi-task"},
+            ]
+        )
+
+        jobs = request_scene_imagery(self.scene, eosda_client=eosda, force=True)
+        state = imagery_state(self.scene)
+
+        self.assertEqual(len(jobs), 2)
+        self.assertTrue(state[PRODUCT_NATURAL_COLOR]["has_asset"])
+        self.assertTrue(state[PRODUCT_NATURAL_COLOR]["waiting"])
+        self.assertFalse(state[PRODUCT_NATURAL_COLOR]["ready"])
+
+    def test_refresh_persists_ready_asset_urls_and_overlay(self):
         eosda = FakeEOSDAClient(
             [
                 {"status": "created", "task_id": "natural-task"},
@@ -152,6 +193,8 @@ class EOSDAImageryTests(TestCase):
             self.scene.assets[PRODUCT_NDVI]["url"],
             "https://example.test/ndvi.png",
         )
+        self.assertTrue(self.scene.assets[PRODUCT_NATURAL_COLOR]["overlay_points"])
+        self.assertTrue(self.scene.assets[PRODUCT_NDVI]["context_geometry"])
         self.assertTrue(imagery_state(self.scene)[PRODUCT_NDVI]["ready"])
         self.assertEqual(
             SatelliteJob.objects.filter(
@@ -240,6 +283,18 @@ class ImageryViewSecurityTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         request_images.assert_called_once_with(self.scene_a)
+
+    @patch("aplicaciones.satellite.views.request_scene_imagery", return_value=[])
+    def test_operator_can_regenerate_context_for_own_scene(self, request_images):
+        self.client.force_login(self.operator)
+
+        response = self.client.post(
+            reverse("satellite:request_scene_images", args=[self.scene_a.pk]),
+            {"regenerate": "1"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        request_images.assert_called_once_with(self.scene_a, force=True)
 
     @patch("aplicaciones.satellite.views.request_scene_imagery")
     def test_operator_cannot_request_images_for_another_client(self, request_images):
