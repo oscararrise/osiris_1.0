@@ -208,7 +208,10 @@ def refresh_scene_images(request, scene_id: int):
                 f"{ready_count} de {len(state)} imágenes están listas; EOSDA sigue procesando.",
             )
         else:
-            messages.info(request, "EOSDA sigue procesando las imágenes. Intenta actualizar de nuevo.")
+            messages.info(
+                request,
+                "EOSDA sigue procesando las imágenes. Intenta actualizar de nuevo.",
+            )
     return redirect("satellite:field_scenes", field_id=scene.field_id)
 
 
