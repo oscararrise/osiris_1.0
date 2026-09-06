@@ -64,7 +64,7 @@ class SceneDetailViewTests(TestCase):
             field=self.field_a,
             dataset="sentinel2",
             view_id="S2/18/N/XM/2026/6/23/0",
-            captured_at=datetime(2026, 6, 23, tzinfo=UTC),
+            captured_at=datetime(2026, 6, 23, 12, tzinfo=UTC),
             cloud_cover=8.3,
             metadata={
                 "sceneID": "S2A_scene_cliente_a",
@@ -75,7 +75,7 @@ class SceneDetailViewTests(TestCase):
             field=self.field_b,
             dataset="sentinel2",
             view_id="S2/18/N/XM/2026/6/20/0",
-            captured_at=datetime(2026, 6, 20, tzinfo=UTC),
+            captured_at=datetime(2026, 6, 20, 12, tzinfo=UTC),
             cloud_cover=5.0,
             metadata={"sceneID": "S2B_scene_secreta"},
         )
@@ -89,7 +89,7 @@ class SceneDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Lote A")
         self.assertContains(response, "23/06/2026")
-        self.assertContains(response, "8.3% nubes")
+        self.assertContains(response, "8,3% nubes")
         self.assertContains(response, "S2A_scene_cliente_a")
         self.assertContains(response, self.scene_a.view_id)
         self.assertContains(response, "Imagen satelital")
