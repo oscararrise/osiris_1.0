@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from typing import Any
 
 import httpx
@@ -99,12 +99,14 @@ class EOSDAClient:
         *,
         params: Mapping[str, Any] | None = None,
         json: Any = None,
+        accepted_status_codes: Collection[int] | None = None,
     ) -> httpx.Response:
         """Execute an EOSDA request and raise sanitized integration errors."""
 
         normalized_method = method.upper()
         can_auto_retry = normalized_method in _IDEMPOTENT_METHODS
         max_attempts = 1 + len(_RETRY_DELAYS_SECONDS) if can_auto_retry else 1
+        accepted_statuses = frozenset(accepted_status_codes or ())
 
         for attempt in range(max_attempts):
             try:
@@ -123,7 +125,7 @@ class EOSDAClient:
                     retryable=can_auto_retry,
                 ) from exc
 
-            if 200 <= response.status_code < 300:
+            if 200 <= response.status_code < 300 or response.status_code in accepted_statuses:
                 return response
 
             should_retry_status = response.status_code in _AUTO_RETRY_STATUS_CODES
