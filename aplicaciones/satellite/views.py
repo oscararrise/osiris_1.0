@@ -14,6 +14,11 @@ from aplicaciones.core.models import AccessLevel
 from aplicaciones.satellite.eosda.client import EOSDAError
 from aplicaciones.satellite.models import SatelliteField, SatelliteScene
 from aplicaciones.satellite.services.fields import register_field_with_eosda
+from aplicaciones.satellite.services.imagery import (
+    imagery_state,
+    refresh_scene_imagery,
+    request_scene_imagery,
+)
 from aplicaciones.satellite.services.scenes import sync_sentinel2_scenes
 
 from .forms import SatelliteFieldForm
@@ -104,11 +109,15 @@ def dashboard(request):
 def field_scenes(request, field_id: int):
     """Show persisted Sentinel-2 scenes for one field owned by the current client."""
 
+    membership = membership_for(request.user)
+    if membership is None:
+        raise PermissionDenied
+
     field = get_object_or_404(
         SatelliteField.objects.prefetch_related(
             Prefetch(
                 "scenes",
-                queryset=SatelliteScene.objects.order_by("-captured_at"),
+                queryset=SatelliteScene.objects.order_by("-captured_at").prefetch_related("jobs"),
                 to_attr="satellite_scenes",
             )
         ),
@@ -117,6 +126,13 @@ def field_scenes(request, field_id: int):
         is_active=True,
     )
     scenes = field.satellite_scenes
+    scene_cards = [
+        {
+            "scene": scene,
+            "imagery": imagery_state(scene),
+        }
+        for scene in scenes
+    ]
 
     return render(
         request,
@@ -124,9 +140,76 @@ def field_scenes(request, field_id: int):
         {
             "field": field,
             "scenes": scenes,
+            "scene_cards": scene_cards,
             "scene_count": len(scenes),
+            "can_manage_imagery": membership.access_level >= AccessLevel.OPERATOR,
         },
     )
+
+
+@require_POST
+@module_access_required("satellite")
+def request_scene_images(request, scene_id: int):
+    """Submit Natural Color and NDVI imagery tasks for one tenant-owned scene."""
+
+    membership = membership_for(request.user)
+    if membership is None or membership.access_level < AccessLevel.OPERATOR:
+        raise PermissionDenied
+
+    scene = get_object_or_404(
+        SatelliteScene.objects.select_related("field"),
+        pk=scene_id,
+        field__client=request.client,
+        field__is_active=True,
+    )
+    try:
+        jobs = request_scene_imagery(scene)
+    except EOSDAError:
+        messages.error(request, "EOSDA no pudo crear las tareas de imágenes.")
+    else:
+        messages.success(
+            request,
+            (
+                f"Se enviaron {len(jobs)} tarea(s) de imagen a EOSDA. "
+                "Usa Actualizar imágenes para consultar el resultado."
+            ),
+        )
+    return redirect("satellite:field_scenes", field_id=scene.field_id)
+
+
+@require_POST
+@module_access_required("satellite")
+def refresh_scene_images(request, scene_id: int):
+    """Poll active imagery tasks for one tenant-owned scene."""
+
+    membership = membership_for(request.user)
+    if membership is None or membership.access_level < AccessLevel.OPERATOR:
+        raise PermissionDenied
+
+    scene = get_object_or_404(
+        SatelliteScene.objects.select_related("field"),
+        pk=scene_id,
+        field__client=request.client,
+        field__is_active=True,
+    )
+    try:
+        refresh_scene_imagery(scene)
+    except EOSDAError:
+        messages.error(request, "EOSDA no pudo consultar el estado de las imágenes.")
+    else:
+        scene.refresh_from_db(fields=("assets",))
+        state = imagery_state(scene)
+        ready_count = sum(1 for item in state.values() if item["ready"])
+        if ready_count == len(state):
+            messages.success(request, "Natural Color y NDVI ya están disponibles.")
+        elif ready_count:
+            messages.info(
+                request,
+                f"{ready_count} de {len(state)} imágenes están listas; EOSDA sigue procesando.",
+            )
+        else:
+            messages.info(request, "EOSDA sigue procesando las imágenes. Intenta actualizar de nuevo.")
+    return redirect("satellite:field_scenes", field_id=scene.field_id)
 
 
 @require_POST
