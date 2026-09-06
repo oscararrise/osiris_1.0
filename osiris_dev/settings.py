@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "aplicaciones.core",
     "aplicaciones.dashboard",
     "aplicaciones.sensor_config",
+    "aplicaciones.satellite",
     "aplicaciones.automatizacion",
 ]
 
