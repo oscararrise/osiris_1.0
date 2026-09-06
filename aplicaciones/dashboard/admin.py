@@ -1,6 +1,10 @@
 from django.contrib import admin
 
-from .models import AgronomicVariableRelationship, SensorAutomationPolicy
+from .models import (
+    AgronomicRelationshipAlert,
+    AgronomicVariableRelationship,
+    SensorAutomationPolicy,
+)
 
 
 @admin.register(SensorAutomationPolicy)
@@ -45,5 +49,29 @@ class AgronomicVariableRelationshipAdmin(admin.ModelAdmin):
         "sensor_name",
         "name",
         "agronomic_goal",
+    )
+    readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(AgronomicRelationshipAlert)
+class AgronomicRelationshipAlertAdmin(admin.ModelAdmin):
+    list_display = (
+        "client",
+        "relationship",
+        "name",
+        "logic",
+        "severity",
+        "duration_minutes",
+        "is_enabled",
+        "updated_at",
+    )
+    list_filter = ("client", "logic", "severity", "is_enabled")
+    search_fields = (
+        "name",
+        "relationship__name",
+        "variable_a_key",
+        "variable_b_key",
+        "email_recipients",
+        "whatsapp_recipients",
     )
     readonly_fields = ("created_at", "updated_at")
