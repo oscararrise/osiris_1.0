@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from aplicaciones.core.models import Client
+
 from aplicaciones.satellite import models as satellite_models
 
 
