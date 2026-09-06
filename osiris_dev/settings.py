@@ -226,6 +226,17 @@ DASHBOARD_CACHE_TTL = int(os.getenv("OSIRIS_DASHBOARD_CACHE_TTL", "120"))
 DASHBOARD_MAX_POINTS = int(os.getenv("OSIRIS_DASHBOARD_MAX_POINTS", "720"))
 DASHBOARD_MAX_TABLE_ROWS = int(os.getenv("OSIRIS_DASHBOARD_MAX_TABLE_ROWS", "100"))
 
+EOSDA_API_KEY = os.getenv("EOSDA_API_KEY", "").strip()
+EOSDA_BASE_URL = os.getenv("EOSDA_BASE_URL", "https://api-connect.eos.com").strip().rstrip("/")
+try:
+    EOSDA_TIMEOUT_SECONDS = float(os.getenv("EOSDA_TIMEOUT_SECONDS", "15"))
+except ValueError as exc:
+    raise ImproperlyConfigured("EOSDA_TIMEOUT_SECONDS must be numeric") from exc
+if EOSDA_TIMEOUT_SECONDS <= 0:
+    raise ImproperlyConfigured("EOSDA_TIMEOUT_SECONDS must be greater than zero")
+if ENVIRONMENT == "production" and not EOSDA_BASE_URL.startswith("https://"):
+    raise ImproperlyConfigured("EOSDA_BASE_URL must use HTTPS in production")
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
