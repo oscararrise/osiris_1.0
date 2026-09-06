@@ -52,8 +52,11 @@ def dashboard(request):
                 except EOSDAError:
                     messages.warning(
                         request,
-                        "El lote se guardó en la plataforma, pero EOSDA no pudo registrarlo todavía. "
-                        "Las coordenadas no se perdieron y podremos reintentar la sincronización.",
+                        (
+                            "El lote se guardó en la plataforma, pero EOSDA no pudo "
+                            "registrarlo todavía. Las coordenadas no se perdieron y "
+                            "podremos reintentar la sincronización."
+                        ),
                     )
                 else:
                     messages.success(
