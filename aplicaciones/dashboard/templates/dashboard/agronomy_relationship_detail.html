@@ -5,6 +5,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'dashboard/agronomy_relationship_detail.css' %}?v=20260906-1">
+<link rel="stylesheet" href="{% static 'dashboard/agronomy_relationship_detail_v2.css' %}?v=20260906-1">
 {% endblock %}
 
 {% block content %}
@@ -23,8 +24,13 @@
             <h1>{{ relationship.name }}</h1>
             <p>{{ relationship.crop_name }} · {{ relationship.get_relationship_type_display }}</p>
         </div>
-        <div class="relationship-state {% if relationship.is_enabled %}active{% else %}paused{% endif %}">
-            {% if relationship.is_enabled %}ACTIVA{% else %}PAUSADA{% endif %}
+        <div class="relationship-header-actions">
+            {% if can_edit_relationship %}
+            <a class="relationship-alert-anchor" href="#relationship-alert-editor">+ Crear alerta</a>
+            {% endif %}
+            <div class="relationship-state {% if relationship.is_enabled %}active{% else %}paused{% endif %}">
+                {% if relationship.is_enabled %}ACTIVA{% else %}PAUSADA{% endif %}
+            </div>
         </div>
     </header>
 
@@ -50,6 +56,25 @@
     <div id="relationship-error" class="relationship-error" hidden></div>
 
     <div id="relationship-content" hidden>
+        <section class="relationship-analysis-audit">
+            <article class="relationship-audit-block">
+                <header>
+                    <span>VARIABLES REALES</span>
+                    <h2>Qué está analizando esta relación</h2>
+                </header>
+                <div id="relationship-variable-audit" class="relationship-variable-audit"></div>
+            </article>
+
+            <article class="relationship-audit-block">
+                <header>
+                    <span>CAPACIDADES DISPONIBLES</span>
+                    <h2>Qué análisis se pueden calcular</h2>
+                </header>
+                <div id="relationship-capabilities" class="relationship-capabilities"></div>
+                <div id="relationship-correlation-summary" class="relationship-correlation-summary"></div>
+            </article>
+        </section>
+
         <section class="relationship-kpis" id="relationship-kpis"></section>
 
         <section class="relationship-panel relationship-main-chart-panel">
@@ -67,74 +92,59 @@
             <div class="relationship-legend" id="relationship-legend"></div>
         </section>
 
-        <section class="relationship-analysis-grid" id="relationship-derived-section" hidden>
+        <section class="relationship-pair-grid" id="relationship-pair-section" hidden>
             <article class="relationship-panel">
                 <header>
                     <div>
-                        <span>RELACIÓN CLIMÁTICA</span>
-                        <h2>Temperatura vs humedad</h2>
-                        <p>Cada punto representa ambas variables dentro del mismo intervalo temporal.</p>
+                        <span>RELACIÓN ENTRE VARIABLES</span>
+                        <h2 id="relationship-scatter-title">Variable A vs Variable B</h2>
+                        <p id="relationship-scatter-copy"></p>
                     </div>
                 </header>
                 <div class="relationship-chart-wrap compact">
-                    <canvas id="relationship-scatter-chart" aria-label="Temperatura versus humedad"></canvas>
+                    <canvas id="relationship-scatter-chart" aria-label="Dispersión entre variables sincronizadas"></canvas>
                 </div>
             </article>
 
-            <article class="relationship-panel">
+            <article class="relationship-panel" id="relationship-vpd-panel" hidden>
                 <header>
                     <div>
                         <span>VARIABLE DERIVADA</span>
                         <h2>Déficit de presión de vapor (VPD)</h2>
-                        <p>Calculado automáticamente a partir de temperatura ambiente y humedad relativa.</p>
+                        <p>Se habilita únicamente cuando la relación contiene temperatura ambiente y humedad relativa reales.</p>
                     </div>
                 </header>
                 <div class="relationship-chart-wrap compact">
                     <canvas id="relationship-vpd-chart" aria-label="Evolución del VPD"></canvas>
                 </div>
+                <p class="relationship-vpd-explainer">El VPD se calcula con las dos variables sincronizadas. No se infiere humedad a partir del nombre de la relación ni de otras métricas.</p>
             </article>
         </section>
 
-        <section class="relationship-panel">
-            <header class="relationship-table-header">
-                <div>
-                    <span>TELEMETRÍA ALINEADA</span>
-                    <h2>Últimos registros</h2>
-                    <p>Las lecturas de sensores distintos se agrupan por intervalos para compararlas correctamente.</p>
-                </div>
-                <strong id="relationship-last-update">—</strong>
-            </header>
-            <div class="relationship-table-wrap">
-                <table class="relationship-table">
-                    <thead id="relationship-table-head"></thead>
-                    <tbody id="relationship-table-body"></tbody>
-                </table>
-            </div>
-        </section>
-
-        <section class="relationship-alert-layout">
+        <section class="relationship-alert-layout" id="relationship-alerts">
             <article class="relationship-panel relationship-alert-list-panel">
                 <header>
                     <div>
                         <span>REGLAS MULTIVARIABLE</span>
                         <h2>Alertas de esta relación</h2>
-                        <p>La vista previa evalúa las condiciones sobre el periodo actualmente cargado.</p>
+                        <p>La evaluación exige que las dos lecturas sean recientes y temporalmente compatibles.</p>
                     </div>
                 </header>
                 <div id="relationship-alert-list"></div>
             </article>
 
             {% if can_edit_relationship %}
-            <article class="relationship-panel relationship-alert-editor">
+            <article class="relationship-panel relationship-alert-editor" id="relationship-alert-editor">
                 <header>
                     <div>
                         <span>NUEVA ALERTA</span>
                         <h2>Combina dos variables</h2>
-                        <p>Usa duración mínima para evitar disparos por lecturas aisladas.</p>
+                        <p>Define una condición agronómica sostenida, no un disparo por una lectura aislada.</p>
                     </div>
                 </header>
                 <form id="relationship-alert-form">
                     {% csrf_token %}
+                    <div id="relationship-alert-variable-warning" hidden>Necesitas al menos dos variables disponibles para crear una alerta.</div>
                     <label class="full">
                         <span>Nombre de la alerta</span>
                         <input name="name" maxlength="200" required placeholder="Ej. Riesgo de ambiente caliente y húmedo">
@@ -182,10 +192,27 @@
             </article>
             {% endif %}
         </section>
+
+        <section class="relationship-panel">
+            <header class="relationship-table-header">
+                <div>
+                    <span>TELEMETRÍA ALINEADA</span>
+                    <h2>Últimos registros</h2>
+                    <p>Las lecturas de sensores distintos se agrupan por intervalos para compararlas correctamente.</p>
+                </div>
+                <strong id="relationship-last-update">—</strong>
+            </header>
+            <div class="relationship-table-wrap">
+                <table class="relationship-table">
+                    <thead id="relationship-table-head"></thead>
+                    <tbody id="relationship-table-body"></tbody>
+                </table>
+            </div>
+        </section>
     </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'dashboard/agronomy_relationship_detail.js' %}?v=20260906-1" defer></script>
+<script src="{% static 'dashboard/agronomy_relationship_detail_v2.js' %}?v=20260906-1" defer></script>
 {% endblock %}
