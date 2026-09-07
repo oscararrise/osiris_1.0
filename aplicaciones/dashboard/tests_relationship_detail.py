@@ -221,5 +221,6 @@ class RelationshipDiagnosticsTests(SimpleTestCase):
         )
 
         self.assertFalse(evaluation["data_fresh"])
+        self.assertFalse(evaluation["synchronized"])
         self.assertFalse(evaluation["triggered_preview"])
-        self.assertIn("desactualizada", evaluation["stale_reason"])
+        self.assertIn("ventana temporal", evaluation["stale_reason"])
