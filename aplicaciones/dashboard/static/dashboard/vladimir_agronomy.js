@@ -72,32 +72,6 @@
         [sensor.city, sensor.department].filter(Boolean).join(" · ") ||
         "Sin ubicación configurada";
 
-    const renderSuggestions = (suggestions) => {
-        if (!suggestions.length) {
-            return `
-                <div class="agronomy-suggestion-empty">
-                    <strong>No hay una combinación automática completa todavía.</strong>
-                    <p>Puedes crear una relación personalizada combinando variables de cualquier sensor.</p>
-                </div>
-            `;
-        }
-        return suggestions
-            .map(
-                (item, index) => `
-                    <button class="agronomy-suggestion" type="button" data-suggestion="${index}">
-                        <span class="agronomy-suggestion-number">0${index + 1}</span>
-                        <div>
-                            <strong>${escapeHtml(item.name)}</strong>
-                            <p>${escapeHtml(item.agronomic_goal)}</p>
-                            <small>${item.variable_keys.length} variables · pueden provenir de sensores distintos</small>
-                        </div>
-                        <i>→</i>
-                    </button>
-                `,
-            )
-            .join("");
-    };
-
     const renderSensorMetrics = (sensor, canEdit) => {
         if (sensor.metrics_error) {
             return `<div class="agronomy-sensor-error">${escapeHtml(sensor.metrics_error)}</div>`;
@@ -278,15 +252,6 @@
 
             <div class="agronomy-grid">
                 <section class="agronomy-editor">
-                    <div class="agronomy-section-title">
-                        <span>Recomendaciones</span>
-                        <h3>Relaciones sugeridas con toda la red de sensores</h3>
-                        <p>Las sugerencias ahora pueden tomar variables de sensores diferentes.</p>
-                    </div>
-                    <div class="agronomy-suggestions" id="agronomy-suggestions">
-                        ${renderSuggestions(payload.suggestions || [])}
-                    </div>
-
                     <form id="agronomy-form" class="agronomy-form" ${payload.can_edit ? "" : "data-readonly='1'"}>
                         <div class="agronomy-section-title compact">
                             <span>Configurador</span>
@@ -389,24 +354,6 @@
         }
     };
 
-    const applySuggestion = (payload, index) => {
-        const suggestion = payload.suggestions?.[index];
-        const form = document.getElementById("agronomy-form");
-        if (!suggestion || !form || form.dataset.readonly === "1") return;
-
-        form.elements.name.value = suggestion.name || "";
-        form.elements.relationship_type.value = suggestion.relationship_type || "custom";
-        form.elements.agronomic_goal.value = suggestion.agronomic_goal || "";
-        form.elements.expert_guidance.value = suggestion.expert_guidance || "";
-        const wanted = new Set(suggestion.variable_keys || []);
-        form.querySelectorAll('input[name="agronomy_variable"]').forEach((input) => {
-            input.checked = wanted.has(input.value);
-            if (input.checked) input.closest("details")?.setAttribute("open", "");
-        });
-        updateSelectionSummary();
-        form.scrollIntoView({ behavior: "smooth", block: "center" });
-    };
-
     const installSensorSearch = () => {
         const search = document.getElementById("agronomy-sensor-search");
         const cards = [...document.querySelectorAll(".agronomy-sensor-card")];
@@ -445,12 +392,6 @@
     };
 
     const installInteractions = (payload) => {
-        document.querySelectorAll("[data-suggestion]").forEach((button) => {
-            button.addEventListener("click", () =>
-                applySuggestion(payload, Number(button.dataset.suggestion)),
-            );
-        });
-
         document.querySelectorAll(".agronomy-delete").forEach((button) => {
             button.addEventListener("click", async () => {
                 button.disabled = true;
