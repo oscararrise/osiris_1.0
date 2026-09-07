@@ -1,0 +1,538 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Aranet Monitoring | {{ current_client.name }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'dashboard/vladimir.css' %}?v=20260824-automation-2">
+{% endblock %}
+
+{% block content %}
+{% if dashboard_error %}
+<section class="aranet-empty">
+    <span>!</span>
+    <h1>No fue posible cargar Aranet</h1>
+    <p>{{ dashboard_error }}</p>
+</section>
+{% elif not sensors or not vladimir_overview %}
+<section class="aranet-empty">
+    <span>○</span>
+    <h1>Sin sensores disponibles</h1>
+    <p>La fuente está conectada, pero todavía no contiene sensores activos.</p>
+</section>
+{% else %}
+
+<section class="aranet-header">
+    <div>
+        <div class="aranet-eyebrow">
+            <span class="aranet-live"><i></i> ARANET CONNECTED</span>
+            <span>{{ current_client.name }}</span>
+        </div>
+        <h1>Monitoreo de sensores</h1>
+        <p>
+            Estado actual, lecturas, tendencias, alertas y automatización inteligente
+            sobre los datos obtenidos desde la integración con Aranet.
+        </p>
+    </div>
+    <div class="aranet-header-meta">
+        <span>Fuente</span>
+        <strong>{{ source.name }}</strong>
+        <small>{{ vladimir_overview.health.total }} sensores activos</small>
+    </div>
+</section>
+
+<form class="aranet-controls" method="get" id="dashboard-filters">
+    <label>
+        <span>Sensor</span>
+        <select name="sensor" id="sensor-select">
+            {% for sensor in sensors %}
+            <option value="{{ sensor.id }}"
+                {% if sensor.id|stringformat:'s' == selected_sensor_id %}selected{% endif %}>
+                {{ sensor.name }}{% if sensor.code %} · {{ sensor.code }}{% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label>
+        <span>Variable</span>
+        <select name="metric" id="metric-select">
+            {% for metric in metrics %}
+            <option value="{{ metric.id }}"
+                data-probe="{{ metric.probe_no }}"
+                {% if metric.id|stringformat:'s' == selected_metric_id and metric.probe_no == selected_probe_no %}selected{% endif %}>
+                {{ metric.name }}{% if metric.probe_no %} · Sonda {{ metric.probe_no }}{% endif %}
+            </option>
+            {% empty %}
+            <option value="">Sin variables</option>
+            {% endfor %}
+        </select>
+    </label>
+    <input type="hidden" name="probe" id="probe-input" value="{{ selected_probe_no|default:0 }}">
+
+    <label>
+        <span>Periodo</span>
+        <select name="range" id="range-select">
+            {% for key, range in ranges.items %}
+            <option value="{{ key }}" {% if key == selected_range %}selected{% endif %}>
+                {{ range.0 }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <button type="submit">Actualizar</button>
+</form>
+
+<section class="aranet-kpis">
+    <article>
+        <span>Sensores</span>
+        <strong>{{ vladimir_overview.health.total }}</strong>
+        <small>activos en Aranet</small>
+    </article>
+    <article>
+        <span>Reportando</span>
+        <strong>{{ vladimir_overview.health.online }}</strong>
+        <small>{{ vladimir_overview.health.reporting_pct|floatformat:0 }}% de la flota</small>
+    </article>
+    <article>
+        <span>Con retraso</span>
+        <strong>{{ vladimir_overview.health.delayed }}</strong>
+        <small>telemetría fuera de ventana</small>
+    </article>
+    <article>
+        <span>Sin telemetría</span>
+        <strong>{{ vladimir_overview.health.offline }}</strong>
+        <small>requieren revisión</small>
+    </article>
+    <article>
+        <span>Reglas Aranet</span>
+        <strong>{{ vladimir_overview.counts.alarm_rules|default:0 }}</strong>
+        <small>configuradas en PostgreSQL</small>
+    </article>
+    <article>
+        <span>Alertas activas</span>
+        <strong>{{ vladimir_overview.active_alarm_count }}</strong>
+        <small>eventos activos en Aranet</small>
+    </article>
+</section>
+
+<section class="aranet-main-grid">
+    <article class="aranet-panel aranet-trend-panel">
+        <header class="aranet-panel-head">
+            <div>
+                <p class="aranet-kicker">Tendencia</p>
+                <h2>{{ selected_metric.name|default:'Variable del sensor' }}</h2>
+                <p>
+                    {{ selected_sensor.name }} · {{ selected_range|upper }}
+                    {% if selected_metric.unit %} · {{ selected_metric.unit }}{% endif %}
+                </p>
+            </div>
+            <div class="aranet-stat-row">
+                <span>
+                    Promedio
+                    <strong>
+                        {% if statistics.average != None %}
+                            {{ statistics.average|floatformat:2 }}
+                        {% else %}—{% endif %}
+                    </strong>
+                </span>
+                <span>
+                    Mínimo
+                    <strong>
+                        {% if statistics.minimum != None %}
+                            {{ statistics.minimum|floatformat:2 }}
+                        {% else %}—{% endif %}
+                    </strong>
+                </span>
+                <span>
+                    Máximo
+                    <strong>
+                        {% if statistics.maximum != None %}
+                            {{ statistics.maximum|floatformat:2 }}
+                        {% else %}—{% endif %}
+                    </strong>
+                </span>
+            </div>
+        </header>
+        {% if series %}
+        <div class="aranet-chart-wrap">
+            <canvas id="sensor-trend-chart"></canvas>
+            <div id="sensor-trend-tooltip" class="aranet-tooltip" hidden></div>
+        </div>
+        <footer class="aranet-chart-foot">
+            <span><i class="line"></i>Promedio por intervalo</span>
+            <span><i class="band"></i>Rango mínimo–máximo</span>
+            <strong>{{ statistics.samples|default:0 }} muestras</strong>
+        </footer>
+        {% else %}
+        <div class="aranet-no-data">No hay datos para esta variable en el periodo seleccionado.</div>
+        {% endif %}
+    </article>
+
+    <aside class="aranet-panel aranet-sensor-card">
+        {% with detail=vladimir_overview.selected_sensor %}
+        <div class="aranet-sensor-top">
+            <div class="aranet-sensor-icon"><i></i></div>
+            <div>
+                <p class="aranet-kicker">Sensor seleccionado</p>
+                <h2>{{ detail.name|default:selected_sensor.name }}</h2>
+                <small>{{ detail.code|default:selected_sensor.code|default:selected_sensor.id }}</small>
+            </div>
+            <span class="aranet-health-pill {{ detail.health_status }}">
+                {{ detail.health_label|default:'Activo' }}
+            </span>
+        </div>
+
+        <dl class="aranet-sensor-facts">
+            <div><dt>Tipo</dt><dd>{{ detail.type_name|default:selected_sensor.type_name }}</dd></div>
+            <div>
+                <dt>Última telemetría</dt>
+                <dd>{% if detail.last_seen_at %}{{ detail.last_seen_at|date:'d M Y · H:i' }}{% else %}Sin dato{% endif %}</dd>
+            </div>
+            <div><dt>RSSI</dt><dd>{% if detail.rssi_dbm != None %}{{ detail.rssi_dbm|floatformat:0 }} dBm{% else %}—{% endif %}</dd></div>
+            <div><dt>Batería</dt><dd>{% if detail.battery_value != None %}{{ detail.battery_value|floatformat:0 }} {{ detail.battery_unit }}{% else %}—{% endif %}</dd></div>
+            <div><dt>Ubicación</dt><dd>{{ detail.location|default:detail.asset_name|default:'Sin asignar' }}</dd></div>
+            <div><dt>Measurement point</dt><dd>{{ detail.measurement_point_name|default:'—' }}</dd></div>
+            <div><dt>Base station</dt><dd>{{ detail.base_station_name|default:'—' }}</dd></div>
+            <div><dt>Métricas</dt><dd>{{ detail.metric_count|default:metrics|length }}</dd></div>
+        </dl>
+
+        <div class="automation-summary {% if automation_policy and automation_policy.is_enabled %}enabled{% endif %}">
+            <div class="automation-summary-head">
+                <div>
+                    <p class="aranet-kicker">OSIRIS AI Automation</p>
+                    <strong>
+                        {% if automation_policy %}
+                            {{ automation_policy.get_automation_level_display }}
+                        {% else %}
+                            Sin configurar
+                        {% endif %}
+                    </strong>
+                </div>
+                <span class="automation-state">
+                    {% if automation_policy and automation_policy.is_enabled %}ON{% else %}DEMO{% endif %}
+                </span>
+            </div>
+            <p>
+                {% if automation_policy %}
+                    {% if automation_policy.email_enabled %}Email activo · {% endif %}
+                    {% if automation_policy.whatsapp_enabled %}WhatsApp activo · {% endif %}
+                    {% if automation_policy.requires_confirmation %}requiere confirmación humana{% else %}sin confirmación obligatoria{% endif %}
+                {% else %}
+                    Define cómo debe reaccionar OSIRIS cuando Aranet o una regla inteligente detecte una condición.
+                {% endif %}
+            </p>
+            <button class="automation-open" type="button" data-open-automation>
+                Configurar automatización
+            </button>
+        </div>
+        {% endwith %}
+    </aside>
+</section>
+
+<section class="aranet-section">
+    <div class="aranet-section-head">
+        <div>
+            <p class="aranet-kicker">Lecturas actuales</p>
+            <h2>Variables del sensor</h2>
+            <p>Último valor recibido para cada métrica disponible.</p>
+        </div>
+        <span>{{ latest_values|length }} lecturas</span>
+    </div>
+
+    <div class="aranet-readings-grid">
+        {% for reading in latest_values %}
+        <a class="aranet-reading-card {% if reading.id|stringformat:'s' == selected_metric_id and reading.probe_no == selected_probe_no %}selected{% endif %}"
+            href="?sensor={{ selected_sensor_id }}&metric={{ reading.id }}&probe={{ reading.probe_no }}&range={{ selected_range }}">
+            <span>{{ reading.name }}{% if reading.probe_no %} · S{{ reading.probe_no }}{% endif %}</span>
+            <div><strong>{{ reading.value|floatformat:reading.precision_digits }}</strong><small>{{ reading.unit }}</small></div>
+            <time>{% if reading.measured_at %}{{ reading.measured_at|timesince }} atrás{% else %}Sin fecha{% endif %}</time>
+        </a>
+        {% empty %}
+        <div class="aranet-no-data">No hay lecturas recientes para este sensor.</div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="aranet-analysis-grid">
+    <article class="aranet-panel aranet-insights-panel">
+        <header class="aranet-panel-head compact">
+            <div>
+                <p class="aranet-kicker">Análisis</p>
+                <h2>Qué está pasando ahora</h2>
+                <p>Lectura descriptiva del estado actual y de la variable seleccionada.</p>
+            </div>
+        </header>
+        <div class="aranet-insights">
+            {% for insight in vladimir_overview.insights %}
+            <article class="{{ insight.tone }}"><i></i><div><strong>{{ insight.title }}</strong><p>{{ insight.text }}</p></div></article>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="aranet-panel">
+        <header class="aranet-panel-head compact">
+            <div><p class="aranet-kicker">Flota</p><h2>Estado de sensores</h2><p>Recencia de telemetría.</p></div>
+        </header>
+        <div class="aranet-donut-box">
+            <canvas id="fleet-health-chart" width="220" height="220"></canvas>
+            <div><strong>{{ vladimir_overview.health.reporting_pct|floatformat:0 }}%</strong><span>reportando</span></div>
+        </div>
+        <div class="aranet-health-legend">
+            <span><i class="online"></i>Reportando <strong>{{ vladimir_overview.health.online }}</strong></span>
+            <span><i class="delayed"></i>Retraso <strong>{{ vladimir_overview.health.delayed }}</strong></span>
+            <span><i class="offline"></i>Sin telemetría <strong>{{ vladimir_overview.health.offline }}</strong></span>
+        </div>
+    </article>
+
+    <article class="aranet-panel">
+        <header class="aranet-panel-head compact">
+            <div><p class="aranet-kicker">Cobertura</p><h2>Tipos de sensor</h2><p>Distribución del inventario activo.</p></div>
+        </header>
+        <div class="aranet-small-chart"><canvas id="sensor-types-chart"></canvas></div>
+    </article>
+</section>
+
+<section class="aranet-two-grid">
+    <article class="aranet-panel">
+        <header class="aranet-panel-head compact">
+            <div><p class="aranet-kicker">Variables disponibles</p><h2>Cobertura de métricas</h2><p>Cuántos sensores reportan cada variable.</p></div>
+        </header>
+        <div class="aranet-metric-chart"><canvas id="metric-coverage-chart"></canvas></div>
+    </article>
+
+    <article class="aranet-panel aranet-connectivity-panel">
+        <header class="aranet-panel-head compact">
+            <div><p class="aranet-kicker">Conectividad</p><h2>Señal y batería</h2><p>Resumen de disponibilidad de datos de hardware.</p></div>
+        </header>
+        <div class="aranet-connectivity-kpis">
+            <div><span>RSSI promedio</span><strong>{% if vladimir_overview.health.average_rssi != None %}{{ vladimir_overview.health.average_rssi|floatformat:0 }} dBm{% else %}—{% endif %}</strong></div>
+            <div><span>Sensores con RSSI</span><strong>{{ vladimir_overview.health.rssi_coverage }}</strong></div>
+            <div><span>Con batería</span><strong>{{ vladimir_overview.health.battery_coverage }}</strong></div>
+        </div>
+        <div class="aranet-low-battery">
+            <span>Baterías más bajas reportadas</span>
+            {% for sensor in vladimir_overview.health.battery_sensors %}
+            <div><strong>{{ sensor.name }}</strong><span>{{ sensor.battery_value|floatformat:0 }} {{ sensor.battery_unit }}</span></div>
+            {% empty %}<p>Sin datos de batería disponibles.</p>{% endfor %}
+        </div>
+    </article>
+</section>
+
+<section class="aranet-alert-automation-grid">
+    <article class="aranet-panel aranet-rules-panel">
+        <header class="aranet-panel-head compact">
+            <div>
+                <p class="aranet-kicker">Aranet PostgreSQL</p>
+                <h2>Reglas de alerta configuradas</h2>
+                <p>Reglas sincronizadas desde <code>aranet.alarm_rule</code>.</p>
+            </div>
+            <span class="rule-count">{{ vladimir_overview.counts.alarm_rules|default:0 }}</span>
+        </header>
+        <div class="aranet-rule-list">
+            {% for rule in vladimir_overview.configured_alarm_rules|slice:':8' %}
+            <article>
+                <div class="rule-icon">R</div>
+                <div class="rule-copy">
+                    <strong>{{ rule.name }}</strong>
+                    <p>{{ rule.metric_name }}</p>
+                    {% if rule.notes %}<small>{{ rule.notes }}</small>{% endif %}
+                </div>
+                <div class="rule-events">
+                    <strong>{{ rule.active_event_count }}</strong>
+                    <span>activas</span>
+                    <small>{{ rule.event_count }} eventos</small>
+                </div>
+            </article>
+            {% empty %}
+            <div class="aranet-no-data">No hay reglas activas sincronizadas desde Aranet.</div>
+            {% endfor %}
+        </div>
+    </article>
+
+    <article class="aranet-panel aranet-selected-alerts-panel">
+        <header class="aranet-panel-head compact">
+            <div>
+                <p class="aranet-kicker">Sensor seleccionado</p>
+                <h2>Alertas activas</h2>
+                <p>{{ selected_sensor.name }}</p>
+            </div>
+            <span class="rule-count">{{ vladimir_overview.selected_sensor_alarms|length }}</span>
+        </header>
+        <div class="selected-alert-list">
+            {% for alarm in vladimir_overview.selected_sensor_alarms %}
+            <article>
+                <i></i>
+                <div>
+                    <strong>{{ alarm.rule_name }}</strong>
+                    <p>{{ alarm.metric_name }}</p>
+                    <small>
+                        {% if alarm.threshold_value != None %}
+                            Umbral {{ alarm.threshold_direction|default:'' }} {{ alarm.threshold_value|floatformat:2 }} {{ alarm.unit }}
+                        {% endif %}
+                        {% if alarm.worst_value != None %} · peor valor {{ alarm.worst_value|floatformat:2 }}{% endif %}
+                    </small>
+                </div>
+                <span>Sev. {{ alarm.severity|default:'—' }}</span>
+            </article>
+            {% empty %}
+            <div class="automation-empty-state">
+                <span>✓</span>
+                <strong>Sin alertas activas para este sensor</strong>
+                <p>Las reglas de Aranet siguen disponibles arriba aunque no exista un evento activo ahora.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+
+<section class="aranet-section">
+    <div class="aranet-section-head">
+        <div><p class="aranet-kicker">Inventario</p><h2>Todos los sensores</h2><p>Vista rápida del estado y ubicación de la flota Aranet.</p></div>
+        <input id="sensor-search" class="aranet-search" type="search" placeholder="Buscar sensor...">
+    </div>
+
+    <div class="aranet-table-wrap">
+        <table class="aranet-table">
+            <thead><tr><th>Sensor</th><th>Estado</th><th>Ubicación</th><th>Base station</th><th>Última telemetría</th><th>RSSI</th><th>Batería</th><th></th></tr></thead>
+            <tbody>
+                {% for sensor in vladimir_overview.sensors %}
+                <tr class="sensor-row" data-search="{{ sensor.name }} {{ sensor.code }} {{ sensor.type_name }} {{ sensor.location }} {{ sensor.asset_name }} {{ sensor.base_station_name }}">
+                    <td><strong>{{ sensor.name }}</strong><small>{{ sensor.code|default:sensor.id }} · {{ sensor.type_name }}</small></td>
+                    <td><span class="aranet-health-pill {{ sensor.health_status }}">{{ sensor.health_label }}</span></td>
+                    <td>{{ sensor.location|default:sensor.asset_name|default:'—' }}</td>
+                    <td>{{ sensor.base_station_name|default:'—' }}</td>
+                    <td>{% if sensor.last_seen_at %}{{ sensor.last_seen_at|date:'d M · H:i' }}{% else %}—{% endif %}</td>
+                    <td>{% if sensor.rssi_dbm != None %}{{ sensor.rssi_dbm|floatformat:0 }} dBm{% else %}—{% endif %}</td>
+                    <td>{% if sensor.battery_value != None %}{{ sensor.battery_value|floatformat:0 }} {{ sensor.battery_unit }}{% else %}—{% endif %}</td>
+                    <td><a href="?sensor={{ sensor.id }}&configure=1">Abrir</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section id="automation-modal" class="automation-modal {% if open_automation_modal %}open{% endif %}" aria-hidden="{% if open_automation_modal %}false{% else %}true{% endif %}">
+    <button class="automation-backdrop" type="button" data-close-automation aria-label="Cerrar"></button>
+    <div class="automation-dialog" role="dialog" aria-modal="true" aria-labelledby="automation-title">
+        <header class="automation-dialog-head">
+            <div>
+                <div class="automation-demo-badge"><i></i> AI AUTOMATION · DEMO</div>
+                <h2 id="automation-title">Configurar respuesta inteligente</h2>
+                <p>{{ selected_sensor.name }} · define cuándo alertar y cuánto puede automatizar OSIRIS.</p>
+            </div>
+            <button type="button" class="automation-close" data-close-automation>×</button>
+        </header>
+
+        <form method="post" class="automation-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save_automation">
+            <input type="hidden" name="sensor" value="{{ selected_sensor_id }}">
+            <input type="hidden" name="metric" value="{{ selected_metric_id }}">
+            <input type="hidden" name="probe" value="{{ selected_probe_no }}">
+            <input type="hidden" name="range" value="{{ selected_range }}">
+
+            <div class="automation-demo-note">
+                <strong>Configuración demostrativa</strong>
+                <span>Se guarda en OSIRIS, pero por ahora no envía mensajes ni ejecuta actuadores reales.</span>
+            </div>
+
+            <section class="automation-step">
+                <div class="automation-step-number">1</div>
+                <div class="automation-step-body">
+                    <div class="automation-step-title">
+                        <div><h3>Condición que dispara la automatización</h3><p>Puede complementar las reglas existentes de Aranet.</p></div>
+                        <label class="toggle-line"><input type="checkbox" name="is_enabled" {% if not automation_policy or automation_policy.is_enabled %}checked{% endif %}><span></span>Activa</label>
+                    </div>
+                    <div class="automation-condition-grid">
+                        <label>
+                            <span>Variable</span>
+                            <select name="automation_metric">
+                                <option value="">Usar solo alertas Aranet</option>
+                                {% for metric in metrics %}
+                                <option value="{{ metric.id }}" {% if automation_policy and automation_policy.metric_id == metric.id|stringformat:'s' %}selected{% elif not automation_policy and metric.id|stringformat:'s' == selected_metric_id %}selected{% endif %}>{{ metric.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>
+                            <span>Condición</span>
+                            <select name="operator">
+                                {% for value, label in automation_operators %}
+                                <option value="{{ value }}" {% if automation_policy and automation_policy.operator == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>
+                            <span>Umbral</span>
+                            <input type="number" step="any" name="threshold_value" placeholder="Ej. 30" value="{% if automation_policy.threshold_value != None %}{{ automation_policy.threshold_value }}{% endif %}">
+                        </label>
+                        <label>
+                            <span>Cooldown</span>
+                            <div class="input-suffix"><input type="number" min="1" max="10080" name="cooldown_minutes" value="{{ automation_policy.cooldown_minutes|default:30 }}"><small>min</small></div>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="automation-step">
+                <div class="automation-step-number">2</div>
+                <div class="automation-step-body">
+                    <div class="automation-step-title"><div><h3>Canales de notificación</h3><p>El cliente elige cómo quiere recibir el evento.</p></div></div>
+                    <div class="automation-channel-grid">
+                        <article>
+                            <label class="channel-toggle"><input id="email-enabled" type="checkbox" name="email_enabled" {% if automation_policy.email_enabled %}checked{% endif %}><span class="channel-icon">@</span><div><strong>Email</strong><small>Notificación y resumen del evento</small></div><i></i></label>
+                            <input id="email-recipients" type="text" name="email_recipients" placeholder="operaciones@empresa.com" value="{{ automation_policy.email_recipients|default:'' }}">
+                        </article>
+                        <article>
+                            <label class="channel-toggle"><input id="whatsapp-enabled" type="checkbox" name="whatsapp_enabled" {% if automation_policy.whatsapp_enabled %}checked{% endif %}><span class="channel-icon">W</span><div><strong>WhatsApp</strong><small>Alerta inmediata al responsable</small></div><i></i></label>
+                            <input id="whatsapp-recipients" type="text" name="whatsapp_recipients" placeholder="+57 300 000 0000" value="{{ automation_policy.whatsapp_recipients|default:'' }}">
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="automation-step">
+                <div class="automation-step-number">3</div>
+                <div class="automation-step-body">
+                    <div class="automation-step-title"><div><h3>Nivel de autonomía de la IA</h3><p>El cliente controla hasta dónde puede llegar OSIRIS.</p></div></div>
+                    <div class="automation-levels">
+                        <label><input type="radio" name="automation_level" value="monitor" {% if automation_policy and automation_policy.automation_level == 'monitor' %}checked{% endif %}><span><b>0</b><strong>Monitorear</strong><small>Solo registra y muestra el evento.</small></span></label>
+                        <label><input type="radio" name="automation_level" value="notify" {% if automation_policy and automation_policy.automation_level == 'notify' %}checked{% endif %}><span><b>1</b><strong>Notificar</strong><small>Envía la alerta por los canales elegidos.</small></span></label>
+                        <label><input type="radio" name="automation_level" value="recommend" {% if not automation_policy or automation_policy.automation_level == 'recommend' %}checked{% endif %}><span><b>2</b><strong>Recomendar</strong><small>La IA analiza y propone qué hacer.</small></span></label>
+                        <label><input type="radio" name="automation_level" value="supervised" {% if automation_policy and automation_policy.automation_level == 'supervised' %}checked{% endif %}><span><b>3</b><strong>Supervisado</strong><small>La IA prepara la acción para aprobación.</small></span></label>
+                        <label><input type="radio" name="automation_level" value="autonomous" {% if automation_policy and automation_policy.automation_level == 'autonomous' %}checked{% endif %}><span><b>4</b><strong>Autónomo</strong><small>Puede ejecutar integraciones habilitadas.</small></span></label>
+                    </div>
+
+                    <label class="confirmation-card">
+                        <input type="checkbox" name="requires_confirmation" {% if not automation_policy or automation_policy.requires_confirmation %}checked{% endif %}>
+                        <span class="confirmation-switch"></span>
+                        <div><strong>Solicitar confirmación humana antes de ejecutar</strong><small>Esta regla prevalece sobre el nivel de autonomía seleccionado.</small></div>
+                    </label>
+
+                    <label class="automation-instruction">
+                        <span>Instrucción / contexto para la IA</span>
+                        <textarea name="ai_instruction" rows="3" placeholder="Ej. Si la temperatura supera el límite, revisar tendencia de humedad antes de recomendar ventilación. Nunca ejecutar una acción si el sensor lleva más de 30 minutos sin reportar.">{{ automation_policy.ai_instruction|default:'' }}</textarea>
+                    </label>
+                </div>
+            </section>
+
+            <footer class="automation-actions">
+                <button type="button" class="automation-secondary" data-close-automation>Cancelar</button>
+                <button type="submit" class="automation-primary">Guardar configuración demo</button>
+            </footer>
+        </form>
+    </div>
+</section>
+
+{{ series|json_script:'sensor-series-data' }}
+{{ vladimir_overview.health|json_script:'fleet-health-data' }}
+{{ vladimir_overview.sensor_types|json_script:'sensor-types-data' }}
+{{ vladimir_overview.metric_coverage|json_script:'metric-coverage-data' }}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'dashboard/vladimir.js' %}?v=20260824-automation-2" defer></script>
+{% endblock %}

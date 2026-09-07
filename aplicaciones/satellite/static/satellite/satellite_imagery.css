@@ -1,0 +1,281 @@
+.satellite-status.is-error {
+    background: #fde9e9;
+    color: #983d3d;
+}
+
+.satellite-imagery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-top: 1rem;
+}
+
+.satellite-image-product {
+    overflow: hidden;
+    border: 1px solid #dfe9e4;
+    border-radius: 14px;
+    background: #f8fbf9;
+}
+
+.satellite-image-product-header {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border-bottom: 1px solid #e8efeb;
+    background: white;
+}
+
+.satellite-view-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.55rem;
+    background: #f4f8f6;
+    border-bottom: 1px solid #e5ede9;
+}
+
+.satellite-view-switch-button {
+    min-height: 34px;
+    border: 1px solid #d6e3dd;
+    border-radius: 9px;
+    background: white;
+    color: #52675e;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.satellite-view-switch-button:hover,
+.satellite-view-switch-button:focus-visible {
+    border-color: var(--client-primary, #176247);
+    outline: none;
+}
+
+.satellite-view-switch-button.is-active {
+    border-color: var(--client-primary, #176247);
+    background: var(--client-primary, #176247);
+    color: white;
+}
+
+.satellite-view-panel[hidden] {
+    display: none;
+}
+
+.satellite-image-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #eef3f0;
+}
+
+.satellite-scene-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.satellite-field-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.satellite-field-overlay polygon {
+    fill: rgba(255, 255, 255, 0.08);
+    stroke: #ffffff;
+    stroke-width: 1.2;
+    vector-effect: non-scaling-stroke;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+}
+
+.satellite-field-label {
+    position: absolute;
+    top: 0.7rem;
+    left: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.68);
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 800;
+    pointer-events: none;
+}
+
+.satellite-fullscreen-button {
+    position: absolute;
+    right: 0.7rem;
+    bottom: 0.7rem;
+    z-index: 3;
+    min-height: 34px;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    border-radius: 9px;
+    background: rgba(12, 34, 26, 0.82);
+    color: white;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+}
+
+.satellite-fullscreen-button:hover,
+.satellite-fullscreen-button:focus-visible {
+    background: rgba(12, 34, 26, 0.96);
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+.satellite-view-caption {
+    min-height: 46px;
+    margin: 0;
+    padding: 0.65rem 0.75rem;
+    border-top: 1px solid #e7efeb;
+    color: #6a7b73;
+    background: white;
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+
+.satellite-image-empty {
+    display: flex;
+    min-height: 270px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 1rem;
+    color: #607169;
+    background:
+        linear-gradient(135deg, rgba(77, 103, 91, 0.08), transparent 55%),
+        #f2f6f4;
+    text-align: center;
+}
+
+.satellite-image-empty.is-ndvi {
+    background:
+        linear-gradient(135deg, rgba(23, 117, 88, 0.12), transparent 55%),
+        #f2f8f5;
+}
+
+.satellite-image-empty span {
+    font-weight: 750;
+}
+
+.satellite-image-empty small {
+    color: #7b8a83;
+}
+
+.satellite-imagery-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    margin-top: 0.9rem;
+}
+
+.satellite-action-button.is-secondary {
+    border-color: #c8d8d1;
+    background: white;
+    color: var(--client-primary, #176247);
+}
+
+.satellite-action-button.is-secondary:hover,
+.satellite-action-button.is-secondary:focus-visible {
+    border-color: var(--client-primary, #176247);
+    background: #f3f8f5;
+}
+
+.satellite-image-dialog {
+    width: min(94vw, 1180px);
+    max-width: 1180px;
+    padding: 0;
+    border: 0;
+    border-radius: 18px;
+    background: white;
+    box-shadow: 0 28px 80px rgba(9, 31, 22, 0.34);
+}
+
+.satellite-image-dialog::backdrop {
+    background: rgba(6, 20, 15, 0.78);
+    backdrop-filter: blur(4px);
+}
+
+.satellite-dialog-shell {
+    padding: 1rem;
+}
+
+.satellite-dialog-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.satellite-dialog-header h2 {
+    margin: 0;
+}
+
+.satellite-dialog-header p {
+    margin: 0.2rem 0 0;
+    color: #718078;
+}
+
+.satellite-dialog-close {
+    width: 42px;
+    height: 42px;
+    border: 1px solid #d7e3dd;
+    border-radius: 50%;
+    background: white;
+    color: #17392c;
+    font-size: 1.55rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.satellite-dialog-image-frame {
+    position: relative;
+    width: 100%;
+    max-height: 76vh;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #0c1d16;
+}
+
+.satellite-dialog-image-frame img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.satellite-dialog-image-frame .satellite-field-overlay {
+    inset: 0;
+}
+
+.satellite-dialog-note {
+    margin: 0.8rem 0 0;
+    color: #6c7b74;
+    font-size: 0.82rem;
+}
+
+@media (max-width: 720px) {
+    .satellite-imagery-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .satellite-dialog-shell {
+        padding: 0.75rem;
+    }
+}

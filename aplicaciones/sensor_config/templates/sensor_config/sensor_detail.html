@@ -1,0 +1,293 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ sensor.sensor_name|default:sensor.external_sensor_id }} | Configuración de sensores{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'sensor_config/sensor_config.css' %}?v=20260905-2">
+<link rel="stylesheet" href="{% static 'sensor_config/productive_context.css' %}?v=20260905-1">
+{% endblock %}
+
+{% block content %}
+<div class="detail-topline">
+    <a class="config-back-link" href="{% url 'sensor_configuration' %}">← Volver al inventario</a>
+    <span class="detail-context">Configuración / Sensor</span>
+</div>
+
+<section class="sensor-detail-hero">
+    <div class="detail-sensor-identity">
+        <div class="detail-sensor-avatar">{{ sensor.sensor_name|default:sensor.external_sensor_id|slice:':1'|upper }}</div>
+        <div>
+            <div class="config-hero-kicker"><span></span> Dispositivo sincronizado</div>
+            <h1>{{ sensor.sensor_name|default:sensor.external_sensor_id }}</h1>
+            <p>{{ sensor.sensor_detail|default:'Sensor sincronizado desde la fuente externa.' }}</p>
+            <div class="detail-id-line"><span>Sensor ID</span><code>{{ sensor.external_sensor_id }}</code></div>
+        </div>
+    </div>
+    <div class="detail-dashboard-control">
+        <div class="dashboard-control-copy">
+            <small>Participación operativa</small>
+            <strong>{% if sensor.is_dashboard_visible %}Visible en dashboard{% elif sensor.is_active %}Oculto del dashboard{% else %}Inactivo en fuente{% endif %}</strong>
+            <p>{% if sensor.is_active %}Este control solo cambia la experiencia dentro de OSIRIS.{% else %}Aranet reporta este dispositivo como inactivo.{% endif %}</p>
+        </div>
+        {% if sensor.is_active %}
+            <form method="post" action="{% url 'sensor_configuration_toggle' sensor.pk %}" class="detail-toggle-form">
+                {% csrf_token %}
+                <input type="hidden" name="enabled" value="{% if sensor.dashboard_enabled %}0{% else %}1{% endif %}">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="detail-dashboard-button {% if sensor.dashboard_enabled %}is-on{% else %}is-off{% endif %}" type="submit">
+                    <span class="toggle-track"><i></i></span>
+                    <span>{% if sensor.dashboard_enabled %}Desactivar del dashboard{% else %}Activar en dashboard{% endif %}</span>
+                </button>
+            </form>
+        {% endif %}
+    </div>
+</section>
+
+<section class="sensor-meta-grid detail-meta-grid">
+    <article class="sensor-meta-card productive-meta-card">
+        <span>Contexto productivo</span>
+        <strong>{{ sensor.get_activity_type_display|default:'Sin definir' }}</strong>
+        <small>{{ sensor.product_name|default:'Producto / especie pendiente' }}</small>
+    </article>
+    <article class="sensor-meta-card">
+        <span>Estado Aranet</span>
+        <strong class="meta-state {% if sensor.is_active %}good{% else %}muted{% endif %}"><i></i>{% if sensor.is_active %}Activo{% else %}Inactivo{% endif %}</strong>
+        <small>Estado desde fuente externa</small>
+    </article>
+    <article class="sensor-meta-card">
+        <span>Ubicación</span>
+        <strong>{% if current %}Configurada{% else %}Pendiente{% endif %}</strong>
+        <small>{% if current and current.zone %}{{ current.zone.full_name }}{% else %}Sin contexto físico{% endif %}</small>
+    </article>
+    <article class="sensor-meta-card">
+        <span>Dashboard</span>
+        <strong>{% if sensor.is_dashboard_visible %}Visible{% else %}Oculto{% endif %}</strong>
+        <small>Controlado por OSIRIS</small>
+    </article>
+</section>
+
+<div class="config-detail-grid premium-detail-grid">
+    <section class="panel config-panel location-editor-panel">
+        <div class="editor-heading">
+            <div class="editor-heading-icon"><span></span></div>
+            <div>
+                <p class="eyebrow">Contexto operativo</p>
+                <h2>Configuración del sensor</h2>
+                <p>Describe qué está monitoreando y dónde está instalado. Este contexto alimentará reportes, alertas y análisis específicos.</p>
+            </div>
+        </div>
+
+        <form method="post" class="sensor-location-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="config-form-errors">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <section class="form-section-card productive-context-card">
+                <div class="form-section-title">
+                    <span class="section-number">01</span>
+                    <div><strong>Actividad y producción</strong><small>Qué operación representa este sensor y qué producto o especie está monitoreando.</small></div>
+                </div>
+                <div class="config-form-grid two-columns">
+                    <div class="config-form-field">
+                        <label for="{{ form.activity_type.id_for_label }}">{{ form.activity_type.label }}</label>
+                        {{ form.activity_type }}
+                        <small>Ej. Cultivo, Avicultura o cadena de frío.</small>
+                        {{ form.activity_type.errors }}
+                    </div>
+                    <div class="config-form-field">
+                        <label for="{{ form.product_name.id_for_label }}">{{ form.product_name.label }}</label>
+                        {{ form.product_name }}
+                        <small>Ej. Arándano, Fresa, Tomate o Gallinas.</small>
+                        {{ form.product_name.errors }}
+                    </div>
+                </div>
+                <div class="productive-examples">
+                    <span><strong>Cultivo</strong> · Arándano</span>
+                    <span><strong>Cultivo</strong> · Fresa</span>
+                    <span><strong>Avicultura</strong> · Gallinas</span>
+                </div>
+            </section>
+
+            <section class="form-section-card">
+                <div class="form-section-title">
+                    <span class="section-number">02</span>
+                    <div><strong>Estructura operativa</strong><small>Finca, invernadero y zona donde vive este sensor.</small></div>
+                </div>
+                <div class="config-form-grid two-columns">
+                    <div class="config-form-field">
+                        <label for="{{ form.facility_type.id_for_label }}">{{ form.facility_type.label }}</label>
+                        {{ form.facility_type }}
+                        {{ form.facility_type.errors }}
+                    </div>
+                    <div class="config-form-field">
+                        <label for="{{ form.facility_name.id_for_label }}">{{ form.facility_name.label }}</label>
+                        {{ form.facility_name }}
+                        <small>Si no existe, OSIRIS la crea automáticamente.</small>
+                        {{ form.facility_name.errors }}
+                    </div>
+                    <div class="config-form-field full-width">
+                        <label for="{{ form.zone_name.id_for_label }}">{{ form.zone_name.label }}</label>
+                        {{ form.zone_name }}
+                        <small>Ej. Sector A1, Cuarto frío 2 o Cama 5. Déjalo vacío si el sensor pertenece directamente a la finca o invernadero.</small>
+                        {{ form.zone_name.errors }}
+                    </div>
+                </div>
+            </section>
+
+            <section class="form-section-card">
+                <div class="form-section-title">
+                    <span class="section-number">03</span>
+                    <div><strong>Referencia geográfica</strong><small>Datos legibles para operación, soporte y reportes.</small></div>
+                </div>
+                <div class="config-form-grid two-columns">
+                    <div class="config-form-field">
+                        <label for="{{ form.city.id_for_label }}">{{ form.city.label }}</label>
+                        {{ form.city }}
+                        {{ form.city.errors }}
+                    </div>
+                    <div class="config-form-field">
+                        <label for="{{ form.department.id_for_label }}">{{ form.department.label }}</label>
+                        {{ form.department }}
+                        {{ form.department.errors }}
+                    </div>
+                </div>
+            </section>
+
+            <section class="form-section-card coordinates-card">
+                <div class="form-section-title">
+                    <span class="section-number">04</span>
+                    <div><strong>Coordenadas precisas</strong><small>Opcionales. Latitud y longitud deben registrarse juntas.</small></div>
+                </div>
+                <div class="config-form-grid three-columns">
+                    <div class="config-form-field">
+                        <label for="{{ form.latitude.id_for_label }}">{{ form.latitude.label }}</label>
+                        {{ form.latitude }}
+                        {{ form.latitude.errors }}
+                    </div>
+                    <div class="config-form-field">
+                        <label for="{{ form.longitude.id_for_label }}">{{ form.longitude.label }}</label>
+                        {{ form.longitude }}
+                        {{ form.longitude.errors }}
+                    </div>
+                    <div class="config-form-field">
+                        <label for="{{ form.altitude_m.id_for_label }}">{{ form.altitude_m.label }}</label>
+                        {{ form.altitude_m }}
+                        {{ form.altitude_m.errors }}
+                    </div>
+                    <div class="config-form-field full-width">
+                        <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                        {{ form.notes.errors }}
+                    </div>
+                </div>
+            </section>
+
+            <datalist id="product-options">
+                {% for product_name in product_names %}<option value="{{ product_name }}">{% endfor %}
+            </datalist>
+            <datalist id="facility-options">
+                {% for facility in facilities %}<option value="{{ facility.name }}">{% endfor %}
+            </datalist>
+            <datalist id="zone-options">
+                {% for zone_name in zone_names %}<option value="{{ zone_name }}">{% endfor %}
+            </datalist>
+
+            <div class="config-form-actions premium-actions">
+                <div class="save-hint"><span>✓</span> Los cambios quedan guardados en la base central de OSIRIS.</div>
+                <div class="action-buttons">
+                    <a class="button config-button-secondary" href="{% url 'sensor_configuration' %}">Cancelar</a>
+                    <button class="button button-primary save-location-button" type="submit">Guardar configuración</button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <aside class="config-side-column premium-side-column">
+        <section class="panel config-panel productive-summary-card">
+            <div class="productive-summary-label">CONTEXTO PRODUCTIVO</div>
+            <div class="productive-summary-icon">P</div>
+            <strong>{{ sensor.get_activity_type_display|default:'Sin actividad definida' }}</strong>
+            <p>{{ sensor.product_name|default:'Asigna un producto o especie para dar contexto a las lecturas.' }}</p>
+            {% if sensor.activity_type and sensor.product_name %}
+                <span class="productive-ready">✓ Contexto listo para analítica</span>
+            {% else %}
+                <span class="productive-pending">Contexto pendiente</span>
+            {% endif %}
+        </section>
+
+        <section class="panel config-panel current-location-panel summary-card">
+            <div class="summary-card-head">
+                <div>
+                    <p class="eyebrow">Estado actual</p>
+                    <h2>Ubicación vigente</h2>
+                </div>
+                <span class="summary-live-indicator"><i></i> Vigente</span>
+            </div>
+            {% if current %}
+                <div class="current-place-hero">
+                    <div class="current-place-marker"><span></span></div>
+                    <div>
+                        <small>{% if current.farm_or_greenhouse %}Finca / Invernadero{% else %}Ubicación{% endif %}</small>
+                        <strong>{% if current.farm_or_greenhouse %}{{ current.farm_or_greenhouse.name }}{% elif current.zone %}{{ current.zone.name }}{% else %}Ubicación registrada{% endif %}</strong>
+                        {% if current.zone %}<p>{{ current.zone.full_name }}</p>{% endif %}
+                    </div>
+                </div>
+                <dl class="location-summary">
+                    <div><dt>Ciudad</dt><dd>{{ current.city|default:'—' }}</dd></div>
+                    <div><dt>Departamento</dt><dd>{{ current.department|default:'—' }}</dd></div>
+                    <div><dt>Latitud</dt><dd>{% if current.latitude != None %}{{ current.latitude }}{% else %}—{% endif %}</dd></div>
+                    <div><dt>Longitud</dt><dd>{% if current.longitude != None %}{{ current.longitude }}{% else %}—{% endif %}</dd></div>
+                    <div><dt>Altura</dt><dd>{% if current.altitude_m != None %}{{ current.altitude_m }} m{% else %}—{% endif %}</dd></div>
+                </dl>
+            {% else %}
+                <div class="config-empty-state compact no-location-state">
+                    <div class="empty-location-orbit"><span></span></div>
+                    <strong>Aún no sabemos dónde está.</strong>
+                    <p>Completa la configuración para incorporar contexto físico a la telemetría.</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="panel config-panel history-panel summary-card">
+            <div class="summary-card-head">
+                <div>
+                    <p class="eyebrow">Trazabilidad</p>
+                    <h2>Historial de movimientos</h2>
+                </div>
+                <span class="history-count">{{ history|length }}</span>
+            </div>
+            {% if history %}
+                <div class="placement-history timeline-history">
+                    {% for placement in history %}
+                        <article>
+                            <span class="timeline-dot {% if not placement.valid_until %}current{% endif %}"></span>
+                            <div>
+                                <strong>{% if placement.zone %}{{ placement.zone.full_name }}{% else %}Sin zona{% endif %}</strong>
+                                <span>{{ placement.valid_from|date:'d M Y · H:i' }}</span>
+                                {% if placement.valid_until %}
+                                    <small>Hasta {{ placement.valid_until|date:'d M Y · H:i' }}</small>
+                                {% else %}
+                                    <small class="current-marker">Ubicación actual</small>
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="config-empty-state compact"><p>No hay movimientos registrados todavía.</p></div>
+            {% endif %}
+        </section>
+
+        <section class="config-intelligence-note">
+            <div class="intelligence-symbol">AI</div>
+            <div>
+                <strong>Contexto listo para automatización</strong>
+                <p>Actividad, producto y ubicación podrán usarse para alertas y recomendaciones específicas. Una alerta de temperatura para Fresa no tiene por qué usar la misma lógica que una para Gallinas.</p>
+            </div>
+        </section>
+    </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Acceso no autorizado | OSIRIS{% endblock %}
+
+{% block content %}
+<section class="empty-state error-page">
+    <div class="empty-icon">403</div>
+    <h1>No tienes acceso a este módulo</h1>
+    <p>La función no está habilitada para tu cliente o requiere un nivel de acceso diferente.</p>
+    <a class="button button-primary" href="{% url 'inicio' %}">Volver al inicio</a>
+</section>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Centro de operaciones | OSIRIS{% endblock %}
+
+{% block content %}
+<section class="hero compact">
+    <div>
+        <p class="eyebrow">Centro de operaciones</p>
+        <h1>Hola, {{ user.first_name|default:user.username }}</h1>
+        {% if membership %}
+            <p>Estos son los módulos habilitados para <strong>{{ membership.client.name }}</strong>.</p>
+        {% else %}
+            <p>Tu usuario aún no tiene un cliente activo asignado.</p>
+        {% endif %}
+    </div>
+    {% if membership %}<span class="status-pill success">Cuenta activa</span>{% endif %}
+</section>
+
+{% if not membership %}
+    <section class="empty-state">
+        <div class="empty-icon">!</div>
+        <h2>Falta asignar tu organización</h2>
+        <p>Un administrador debe relacionar esta cuenta con un cliente antes de acceder a sus datos.</p>
+    </section>
+{% elif modules %}
+    <section class="module-grid">
+        {% for module in modules %}
+            <a class="module-card" href="{% url module.route_name %}">
+                <span class="module-index">{{ forloop.counter|stringformat:'02d' }}</span>
+                <div>
+                    <small>{{ module.category }}</small>
+                    <h2>{{ module.name }}</h2>
+                    <p>{{ module.description }}</p>
+                </div>
+                <span class="card-arrow">→</span>
+            </a>
+        {% endfor %}
+    </section>
+{% else %}
+    <section class="empty-state">
+        <div class="empty-icon">○</div>
+        <h2>No hay módulos habilitados</h2>
+        <p>Solicita al administrador que habilite las funciones necesarias para tu cuenta.</p>
+    </section>
+{% endif %}
+{% endblock %}

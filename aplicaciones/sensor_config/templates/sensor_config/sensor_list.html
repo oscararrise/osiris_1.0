@@ -1,0 +1,222 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Configuración de sensores | OSIRIS{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'sensor_config/sensor_config.css' %}?v=20260905-2">
+<link rel="stylesheet" href="{% static 'sensor_config/productive_context.css' %}?v=20260905-1">
+{% endblock %}
+
+{% block content %}
+<section class="sensor-config-hero">
+    <div class="config-hero-copy">
+        <div class="config-hero-kicker"><span></span> Configuración inteligente</div>
+        <h1>Centro de sensores</h1>
+        <p>Decide qué dispositivos participan en la operación, organiza su ubicación física y añade el contexto productivo necesario para interpretar correctamente cada lectura.</p>
+        <div class="config-hero-tags" aria-label="Capacidades">
+            <span>Inventario sincronizado</span>
+            <span>Control de visibilidad</span>
+            <span>Contexto geográfico</span>
+            <span>Actividad y producto</span>
+        </div>
+    </div>
+    <div class="config-hero-control">
+        <div class="hero-control-icon"><span></span><i></i></div>
+        <div>
+            <small>Dashboard operativo</small>
+            <strong>{{ stats.dashboard_visible }} sensores visibles</strong>
+            <p>{{ stats.productive_context }} con contexto productivo</p>
+        </div>
+    </div>
+</section>
+
+<section class="config-stats" aria-label="Resumen de sensores">
+    <article class="config-stat accent">
+        <div class="stat-icon source-icon">S</div>
+        <div>
+            <span>Disponibles en Aranet</span>
+            <strong>{{ stats.source_active }}</strong>
+            <small>Fuente externa activa</small>
+        </div>
+    </article>
+    <article class="config-stat success">
+        <div class="stat-icon dashboard-icon">D</div>
+        <div>
+            <span>En dashboard</span>
+            <strong>{{ stats.dashboard_visible }}</strong>
+            <small>Participan en monitoreo</small>
+        </div>
+    </article>
+    <article class="config-stat quiet">
+        <div class="stat-icon hidden-icon">O</div>
+        <div>
+            <span>Ocultos</span>
+            <strong>{{ stats.dashboard_hidden }}</strong>
+            <small>No aparecen en dashboard</small>
+        </div>
+    </article>
+    <article class="config-stat location">
+        <div class="stat-icon location-icon">U</div>
+        <div>
+            <span>Con ubicación</span>
+            <strong>{{ stats.configured }}</strong>
+            <small>{{ stats.unconfigured }} pendientes de ubicar</small>
+        </div>
+    </article>
+</section>
+
+<section class="config-command-bar">
+    <div class="command-copy">
+        <span class="command-dot"></span>
+        <div>
+            <strong>Inventario operativo</strong>
+            <small>Ubicación, actividad y producto viven en OSIRIS; Aranet permanece como fuente de telemetría.</small>
+        </div>
+    </div>
+    <form class="config-filter" method="get">
+        <label class="config-search-field">
+            <span class="sr-only">Buscar sensor</span>
+            <input type="search" name="q" value="{{ search }}" placeholder="Nombre, ID, producto o tipo…">
+        </label>
+        <label>
+            <span class="sr-only">Estado</span>
+            <select name="status" aria-label="Filtrar por estado">
+                <option value="all" {% if status == 'all' %}selected{% endif %}>Todos los activos</option>
+                <option value="visible" {% if status == 'visible' %}selected{% endif %}>En dashboard</option>
+                <option value="hidden" {% if status == 'hidden' %}selected{% endif %}>Ocultos</option>
+                <option value="configured" {% if status == 'configured' %}selected{% endif %}>Con ubicación</option>
+                <option value="unconfigured" {% if status == 'unconfigured' %}selected{% endif %}>Sin ubicación</option>
+                <option value="productive" {% if status == 'productive' %}selected{% endif %}>Con contexto productivo</option>
+                <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactivos en fuente</option>
+            </select>
+        </label>
+        <button class="button button-primary config-filter-button" type="submit">Aplicar</button>
+        {% if search or status != 'all' %}
+            <a class="config-clear-link" href="{% url 'sensor_configuration' %}">Limpiar</a>
+        {% endif %}
+    </form>
+</section>
+
+<section class="panel config-panel sensor-inventory-panel">
+    <div class="inventory-header">
+        <div>
+            <p class="eyebrow">Sensores sincronizados</p>
+            <h2>Dispositivos del cliente</h2>
+        </div>
+        <div class="inventory-count"><strong>{{ sensors|length }}</strong><span>mostrados</span></div>
+    </div>
+
+    {% if sensors %}
+        <div class="config-table-wrap">
+            <table class="config-table sensor-inventory-table">
+                <thead>
+                    <tr>
+                        <th>Dispositivo</th>
+                        <th>Ubicación operativa</th>
+                        <th>Actividad / producto</th>
+                        <th>Fuente</th>
+                        <th>Dashboard</th>
+                        <th class="actions-heading">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sensor in sensors %}
+                        {% with placement=sensor.active_placements.0 %}
+                        <tr class="sensor-row {% if not sensor.dashboard_enabled %}sensor-row-hidden{% endif %}">
+                            <td>
+                                <div class="sensor-identity-cell">
+                                    <div class="sensor-avatar">{{ sensor.sensor_name|default:sensor.external_sensor_id|slice:':1'|upper }}</div>
+                                    <div>
+                                        <strong>{{ sensor.sensor_name|default:sensor.external_sensor_id }}</strong>
+                                        <div class="sensor-secondary-line">
+                                            <code>{{ sensor.external_sensor_id }}</code>
+                                            {% if sensor.sensor_detail %}<span>{{ sensor.sensor_detail }}</span>{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if placement %}
+                                    <div class="location-cell configured">
+                                        <span class="location-pin"></span>
+                                        <div>
+                                            <strong>{{ placement.zone.full_name|default:'Ubicación registrada' }}</strong>
+                                            <small>
+                                                {% if placement.city %}{{ placement.city }}{% endif %}
+                                                {% if placement.city and placement.department %} · {% endif %}
+                                                {% if placement.department %}{{ placement.department }}{% endif %}
+                                            </small>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="location-cell pending">
+                                        <span class="location-pin"></span>
+                                        <div><strong>Sin ubicación</strong><small>Requiere contexto operativo</small></div>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sensor.activity_type or sensor.product_name %}
+                                    <div class="productive-cell configured">
+                                        <span class="productive-cell-icon">P</span>
+                                        <div>
+                                            <strong>{{ sensor.get_activity_type_display|default:'Actividad pendiente' }}</strong>
+                                            <small>{{ sensor.product_name|default:'Producto / especie pendiente' }}</small>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="productive-cell pending">
+                                        <span class="productive-cell-icon">P</span>
+                                        <div><strong>Sin definir</strong><small>Asigna actividad y producto</small></div>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sensor.is_active %}
+                                    <span class="source-state online"><i></i> Activo</span>
+                                {% else %}
+                                    <span class="source-state offline"><i></i> Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sensor.is_active %}
+                                    <form method="post" action="{% url 'sensor_configuration_toggle' sensor.pk %}" class="visibility-toggle-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="enabled" value="{% if sensor.dashboard_enabled %}0{% else %}1{% endif %}">
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                        <button class="dashboard-toggle {% if sensor.dashboard_enabled %}is-on{% else %}is-off{% endif %}" type="submit" aria-label="{% if sensor.dashboard_enabled %}Ocultar{% else %}Mostrar{% endif %} {{ sensor.sensor_name|default:sensor.external_sensor_id }} en dashboard">
+                                            <span class="toggle-track"><i></i></span>
+                                            <span class="toggle-label">{% if sensor.dashboard_enabled %}En dashboard{% else %}Oculto{% endif %}</span>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <span class="dashboard-unavailable">No disponible</span>
+                                {% endif %}
+                            </td>
+                            <td class="config-action-cell">
+                                <a class="sensor-config-action" href="{% url 'sensor_configuration_detail' sensor.pk %}">
+                                    <span>Configurar</span><i>→</i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="config-empty-state rich-empty-state">
+            <div class="empty-radar"><span></span></div>
+            <strong>No encontramos sensores con estos filtros.</strong>
+            <p>Cambia el estado o limpia la búsqueda para volver al inventario completo.</p>
+            <a class="button config-button-secondary" href="{% url 'sensor_configuration' %}">Ver sensores activos</a>
+        </div>
+    {% endif %}
+</section>
+
+<section class="config-footnote">
+    <span class="footnote-mark">i</span>
+    <p><strong>Cómo funciona:</strong> Aranet entrega la telemetría y el estado técnico. OSIRIS añade el contexto operativo: visibilidad, ubicación, actividad y producto, sin escribir en la base externa.</p>
+</section>
+{% endblock %}

@@ -1,44 +1,80 @@
-"""
-URL configuration for osiris_Dev project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() ssfunction: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path
-from osiris_dev.views import bienvenida, modulos, categoria_edad, plantilla1, plantilla_parametros, plantilla_cargador, plantilla_shortcut, plantillahija, plantillahija2
-from aplicaciones.automatizacion.views import get_data_sensor, ia, chat, yolov5, actualizar_control_data,home, login, s1, s2, s3, get_data_sensor, inicio, support, enviar_mail, cercas, reported, nvid, drones
+from django.urls import include, path
+from django.views.generic import RedirectView
 
+from aplicaciones.automatizacion import views as legacy_views
+from aplicaciones.core.decorators import module_access_required
+from aplicaciones.core.views import sensor_dashboard
+from aplicaciones.dashboard.agronomy_api import agronomy_relationships
+from aplicaciones.dashboard.context_api import sensor_context
+from aplicaciones.dashboard.relationship_detail import (
+    agronomy_relationship_alerts,
+    agronomy_relationship_detail,
+    agronomy_relationship_detail_data,
+)
+
+admin.site.site_header = "Administración OSIRIS"
+admin.site.site_title = "OSIRIS"
+admin.site.index_title = "Clientes, usuarios y módulos"
 
 urlpatterns = [
-    path("admin/", admin.site.urls),  
-    path('', home, name='home'),
-    path('salir', home, name='home'),   
-    path('login', login, name='login'), 
-    path("s1", s1, name='s1'),  
-    path("s2", s2, name='s2'),
-    path("inicio", inicio, name='inicio'), 
-    path("control", s3, name='s3'),
-    path("support", support, name='support'),
-    path('enviar_mail', enviar_mail, name='enviar_mail'),
-    path('yolov5', yolov5, name='yolov5'),
-    path('chat', chat, name='chat'),
-    path('ia', ia, name='ia'),
-    path('cercas', cercas, name='cercas'),
-    path('reported', reported, name='reported'),
-    path('nvid', nvid, name='nvid'),
-    path('drones', drones, name='drones'),
-    
-    path('get_data_sensor', get_data_sensor, name='get_data_sensor'),
-    path('actualizar_control_data/', actualizar_control_data, name='actualizar_control_data')  # Agrega nombres a todas tus rutas
+    path("admin/", admin.site.urls),
+    path("", include("aplicaciones.core.urls")),
+    path("sensor-config/", include("aplicaciones.sensor_config.urls")),
+    path("satellite/", include("aplicaciones.satellite.urls")),
+    path("s2/context", sensor_context, name="sensor_context"),
+    path("s2/agronomy", agronomy_relationships, name="agronomy_relationships"),
+    path(
+        "s2/agronomy/relationships/<int:relationship_id>/",
+        agronomy_relationship_detail,
+        name="agronomy_relationship_detail",
+    ),
+    path(
+        "s2/agronomy/relationships/<int:relationship_id>/data",
+        agronomy_relationship_detail_data,
+        name="agronomy_relationship_detail_data",
+    ),
+    path(
+        "s2/agronomy/relationships/<int:relationship_id>/alerts",
+        agronomy_relationship_alerts,
+        name="agronomy_relationship_alerts",
+    ),
+    path("s2", sensor_dashboard, name="s2"),
+    path("s1", module_access_required("monitoring")(legacy_views.s1), name="s1"),
+    path("control", module_access_required("control")(legacy_views.s3), name="s3"),
+    path(
+        "support",
+        module_access_required("support")(legacy_views.support),
+        name="support",
+    ),
+    path(
+        "enviar_mail",
+        module_access_required("support")(legacy_views.enviar_mail),
+        name="enviar_mail",
+    ),
+    path("yolov5", module_access_required("vision")(legacy_views.yolov5), name="yolov5"),
+    path("chat", module_access_required("chat")(legacy_views.chat), name="chat"),
+    path("ia", module_access_required("ai")(legacy_views.ia), name="ia"),
+    path("cercas", module_access_required("fences")(legacy_views.cercas), name="cercas"),
+    path(
+        "reported",
+        module_access_required("reports")(legacy_views.reported),
+        name="reported",
+    ),
+    path(
+        "nvid",
+        module_access_required("satellite")(
+            RedirectView.as_view(
+                pattern_name="satellite:dashboard",
+                permanent=False,
+            )
+        ),
+        name="nvid",
+    ),
+    path("drones", module_access_required("drones")(legacy_views.drones), name="drones"),
+    path(
+        "actualizar_control_data/",
+        module_access_required("control")(legacy_views.actualizar_control_data),
+        name="actualizar_control_data",
+    ),
 ]

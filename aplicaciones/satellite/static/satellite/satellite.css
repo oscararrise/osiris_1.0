@@ -1,0 +1,413 @@
+.satellite-hero,
+.satellite-detail-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 2rem;
+    margin-bottom: 1rem;
+    border-radius: 24px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--client-primary) 12%, white), white 72%);
+    border: 1px solid color-mix(in srgb, var(--client-primary) 18%, #dbe7e1);
+}
+
+.satellite-hero h1,
+.satellite-detail-hero h1,
+.satellite-section-header h2,
+.satellite-create-panel h2 {
+    margin: 0;
+}
+
+.satellite-hero p:not(.eyebrow),
+.satellite-detail-hero p:not(.eyebrow) {
+    max-width: 760px;
+    margin-bottom: 0;
+}
+
+.satellite-hero-badge,
+.satellite-detail-summary {
+    min-width: 150px;
+    padding: 1.2rem 1.4rem;
+    border-radius: 18px;
+    background: var(--client-primary);
+    color: white;
+    text-align: center;
+}
+
+.satellite-hero-badge span,
+.satellite-hero-badge small,
+.satellite-detail-summary span,
+.satellite-detail-summary small {
+    display: block;
+}
+
+.satellite-hero-badge span,
+.satellite-detail-summary span {
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.satellite-back-link {
+    display: inline-block;
+    margin-bottom: 1rem;
+    color: var(--client-primary);
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.satellite-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.satellite-stats article {
+    padding: 1.1rem 1.2rem;
+    border: 1px solid #dde7e2;
+    border-radius: 18px;
+    background: white;
+}
+
+.satellite-stats span,
+.satellite-stats strong {
+    display: block;
+}
+
+.satellite-stats span {
+    color: #64766d;
+    font-size: 0.82rem;
+}
+
+.satellite-stats strong {
+    margin-top: 0.35rem;
+    font-size: 1.4rem;
+}
+
+.satellite-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.8fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.satellite-fields-panel,
+.satellite-create-panel,
+.satellite-scenes-panel {
+    padding: 1.4rem;
+}
+
+.satellite-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.satellite-section-header > span {
+    color: #607169;
+    font-size: 0.85rem;
+}
+
+.satellite-table-wrap {
+    overflow-x: auto;
+}
+
+.satellite-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.satellite-table th,
+.satellite-table td {
+    padding: 0.9rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #edf2ef;
+    vertical-align: top;
+}
+
+.satellite-table th {
+    color: #687970;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.satellite-table td strong,
+.satellite-table td small {
+    display: block;
+}
+
+.satellite-table td small {
+    margin-top: 0.25rem;
+    color: #718078;
+}
+
+.satellite-status {
+    display: inline-block;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.satellite-status.is-ok {
+    background: #e7f6ee;
+    color: #236846;
+}
+
+.satellite-status.is-pending {
+    background: #fff3d7;
+    color: #8a6418;
+}
+
+.satellite-muted {
+    color: #718078;
+    font-size: 0.82rem;
+}
+
+.satellite-actions {
+    display: grid;
+    gap: 0.45rem;
+    justify-items: start;
+}
+
+.satellite-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0.48rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--client-primary) 32%, #cddbd4);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--client-primary) 7%, white);
+    color: var(--client-primary);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 750;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.satellite-action-button.is-primary {
+    background: var(--client-primary);
+    color: white;
+}
+
+.satellite-action-button:hover,
+.satellite-action-button:focus-visible {
+    background: var(--client-primary);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.satellite-scene-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.satellite-scene-card {
+    padding: 1.2rem;
+    border: 1px solid #dde7e2;
+    border-radius: 18px;
+    background: white;
+}
+
+.satellite-scene-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.satellite-scene-card h3 {
+    margin: 0.2rem 0 0;
+    font-size: 1.25rem;
+}
+
+.satellite-scene-provider {
+    color: var(--client-primary);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.satellite-cloud-badge {
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    background: #eef5f1;
+    color: #425a4f;
+    font-size: 0.76rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.satellite-scene-meta {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.satellite-scene-meta div {
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid #edf2ef;
+}
+
+.satellite-scene-meta dt {
+    color: #718078;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.satellite-scene-meta dd {
+    margin: 0.2rem 0 0;
+    overflow-wrap: anywhere;
+}
+
+.satellite-imagery-placeholder {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px dashed #cfdcd5;
+    border-radius: 14px;
+    background: #f7faf8;
+}
+
+.satellite-imagery-placeholder strong,
+.satellite-imagery-placeholder span {
+    display: block;
+}
+
+.satellite-imagery-placeholder span {
+    margin-top: 0.2rem;
+    color: #718078;
+    font-size: 0.82rem;
+}
+
+.satellite-imagery-placeholder p {
+    margin: 0.6rem 0 0;
+    color: #61736a;
+    font-size: 0.82rem;
+}
+
+.satellite-empty {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: #607169;
+}
+
+.satellite-empty strong {
+    display: block;
+    color: #24382f;
+    margin-bottom: 0.4rem;
+}
+
+.satellite-form-intro {
+    color: #61736a;
+}
+
+.satellite-form {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.satellite-form label > span,
+.satellite-form label > small {
+    display: block;
+}
+
+.satellite-form label > span {
+    margin-bottom: 0.35rem;
+    font-weight: 700;
+}
+
+.satellite-form input,
+.satellite-form textarea {
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid #ccd9d2;
+    border-radius: 12px;
+    padding: 0.75rem 0.8rem;
+    font: inherit;
+    background: white;
+}
+
+.satellite-form textarea {
+    resize: vertical;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.satellite-form label > small {
+    margin-top: 0.35rem;
+    color: #718078;
+}
+
+.satellite-form .errorlist {
+    margin: 0.35rem 0 0;
+    padding-left: 1.1rem;
+    color: #a33232;
+    font-size: 0.82rem;
+}
+
+.satellite-form-errors {
+    padding: 0.8rem;
+    border-radius: 12px;
+    background: #fff0f0;
+    color: #8e2d2d;
+}
+
+.satellite-coordinate-help {
+    padding: 0.9rem;
+    border-radius: 14px;
+    background: #f5f8f6;
+    border: 1px solid #e3ebe6;
+}
+
+.satellite-coordinate-help strong,
+.satellite-coordinate-help code {
+    display: block;
+}
+
+.satellite-coordinate-help code {
+    margin-top: 0.3rem;
+}
+
+.satellite-coordinate-help p {
+    margin: 0.6rem 0 0;
+    color: #65776d;
+    font-size: 0.82rem;
+}
+
+.satellite-submit {
+    width: 100%;
+}
+
+@media (max-width: 980px) {
+    .satellite-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .satellite-layout,
+    .satellite-scene-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 620px) {
+    .satellite-hero,
+    .satellite-detail-hero {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .satellite-stats {
+        grid-template-columns: 1fr;
+    }
+}
