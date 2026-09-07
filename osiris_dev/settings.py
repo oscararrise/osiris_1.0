@@ -13,8 +13,18 @@ import re
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load a persistent local environment automatically. Real process environment
+# variables keep precedence because override=False. This makes development stable
+# across shells/reboots while remaining compatible with systemd/container secrets.
+ENV_FILE = Path(os.getenv("OSIRIS_ENV_FILE", str(BASE_DIR / ".env"))).expanduser()
+if not ENV_FILE.is_absolute():
+    ENV_FILE = BASE_DIR / ENV_FILE
+load_dotenv(dotenv_path=ENV_FILE, override=False)
+
 ENVIRONMENT = os.getenv("OSIRIS_ENV", "development").strip().lower()
 
 
@@ -75,7 +85,7 @@ ROOT_URLCONF = "osiris_dev.urls"
 
 TEMPLATES = [
     {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "BACKEND": "django.db.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
@@ -133,6 +143,18 @@ def central_database() -> dict[str, object]:
     }
 
 
+def _read_client_database_file(path_value: str) -> str:
+    config_file = Path(path_value).expanduser()
+    if not config_file.is_absolute():
+        config_file = BASE_DIR / config_file
+    try:
+        return config_file.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ImproperlyConfigured(
+            f"Could not read client database configuration {config_file}: {exc}"
+        ) from exc
+
+
 def load_client_databases() -> dict[str, dict[str, object]]:
     """Load named sensor databases without persisting credentials in Django Admin."""
 
@@ -140,12 +162,13 @@ def load_client_databases() -> dict[str, dict[str, object]]:
     raw_config = os.getenv("OSIRIS_CLIENT_DATABASES_JSON", "").strip()
 
     if config_path:
-        try:
-            raw_config = Path(config_path).read_text(encoding="utf-8")
-        except OSError as exc:
-            raise ImproperlyConfigured(
-                f"Could not read OSIRIS_CLIENT_DATABASES_FILE: {exc}"
-            ) from exc
+        raw_config = _read_client_database_file(config_path)
+    elif not raw_config and ENVIRONMENT != "production":
+        # Development convenience: this file is gitignored and therefore survives
+        # terminal restarts without requiring manual exports on every shell.
+        local_config = BASE_DIR / "config" / "client_databases.json"
+        if local_config.exists():
+            raw_config = _read_client_database_file(str(local_config))
 
     if not raw_config:
         return {}
