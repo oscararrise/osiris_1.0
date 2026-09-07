@@ -19,7 +19,8 @@ def get_adapter(data_source: ClientDataSource) -> SensorDataAdapter:
         raise AdapterConfigurationError("La fuente de datos está desactivada.")
     if data_source.database_alias not in connections.databases:
         raise AdapterConfigurationError(
-            "La conexión del cliente no está declarada en el entorno de ejecución."
+            f"La conexión '{data_source.database_alias}' del cliente no fue cargada. "
+            "Ejecuta `python manage.py diagnose_client_databases` para revisar la configuración."
         )
     adapter_class = ADAPTERS.get(data_source.adapter_key)
     if adapter_class is None:
