@@ -228,10 +228,22 @@
                 scrollWheelZoom: false,
                 zoomControl: true,
             });
-            L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            const satelliteLayer = L.tileLayer(
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                {
+                    attribution: "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
+                    maxZoom: 19,
+                }
+            ).addTo(map);
+            const streetLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 attribution: "&copy; OpenStreetMap contributors",
                 maxZoom: 19,
-            }).addTo(map);
+            });
+            L.control.layers(
+                { "Satélite": satelliteLayer, "Calles": streetLayer },
+                null,
+                { position: "topright", collapsed: false }
+            ).addTo(map);
 
             const markersBySensor = new Map();
             const bounds = [];
