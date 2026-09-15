@@ -228,7 +228,7 @@
                 scrollWheelZoom: false,
                 zoomControl: true,
             });
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 attribution: "&copy; OpenStreetMap contributors",
                 maxZoom: 19,
             }).addTo(map);
