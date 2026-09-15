@@ -1,0 +1,45 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main, master, "agent/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  django:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check .
+      - name: Validate migrations
+        env:
+          OSIRIS_SQLITE_PATH: /tmp/osiris-ci.sqlite3
+        run: python manage.py makemigrations --check --dry-run
+      - name: Run tests
+        env:
+          OSIRIS_SQLITE_PATH: /tmp/osiris-ci.sqlite3
+        run: python manage.py test
+      - name: Validate production settings and static assets
+        env:
+          OSIRIS_ENV: production
+          OSIRIS_SECRET_KEY: ci-only-long-secret-key-not-used-outside-tests-123456
+          OSIRIS_ALLOWED_HOSTS: example.test
+          OSIRIS_CSRF_TRUSTED_ORIGINS: https://example.test
+          OSIRIS_DB_NAME: osiris_ci
+          OSIRIS_DB_USER: osiris_ci
+          OSIRIS_DB_PASSWORD: ci-only
+          OSIRIS_DB_HOST: 127.0.0.1
+        run: |
+          python manage.py check --deploy
+          python manage.py collectstatic --noinput

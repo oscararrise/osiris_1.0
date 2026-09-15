@@ -1,0 +1,41 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acceso | OSIRIS</title>
+    <link rel="stylesheet" href="{% static 'dashboard/platform.css' %}">
+</head>
+<body class="login-page">
+    <main class="login-layout">
+        <section class="login-story">
+            <div class="login-logo"><span>O</span> OSIRIS</div>
+            <div>
+                <p class="eyebrow light">Datos que sí conducen decisiones</p>
+                <h1>Todo tu monitoreo, en un lugar seguro.</h1>
+                <p>Consulta sensores, tendencias y alertas de tu organización. Cada cuenta está aislada y muestra únicamente los módulos y datos autorizados.</p>
+            </div>
+            <p class="login-footnote">Acceso privado para clientes OSIRIS</p>
+        </section>
+        <section class="login-form-panel">
+            <form method="post" class="login-card" novalidate>
+                {% csrf_token %}
+                <p class="eyebrow">Bienvenido</p>
+                <h2>Inicia sesión</h2>
+                <p class="muted">Usa las credenciales asignadas a tu organización.</p>
+                {% if form.non_field_errors %}
+                    <div class="form-error">Usuario o contraseña incorrectos.</div>
+                {% endif %}
+                <label for="id_username">Usuario</label>
+                <input id="id_username" name="username" type="text" autocomplete="username" required autofocus value="{{ form.username.value|default:'' }}">
+                <label for="id_password">Contraseña</label>
+                <input id="id_password" name="password" type="password" autocomplete="current-password" required>
+                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+                <button class="button button-primary button-block" type="submit">Entrar a la plataforma</button>
+                <p class="help-text">¿Problemas para ingresar? Contacta al administrador de OSIRIS.</p>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

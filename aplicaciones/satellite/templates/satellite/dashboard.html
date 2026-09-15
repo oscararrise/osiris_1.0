@@ -1,0 +1,180 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Monitoreo Satelital | OSIRIS{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'satellite/satellite.css' %}?v=20260905-3">
+{% endblock %}
+
+{% block content %}
+<section class="satellite-hero">
+    <div>
+        <p class="eyebrow">Analítica geoespacial</p>
+        <h1>Monitoreo Satelital</h1>
+        <p>Administra los lotes de {{ current_client.name }}, conserva su perímetro geográfico y consulta escenas Sentinel-2 disponibles mediante EOSDA.</p>
+    </div>
+    <div class="satellite-hero-badge">
+        <span>{{ stats.registered }}</span>
+        <small>lotes sincronizados</small>
+    </div>
+</section>
+
+<section class="satellite-stats" aria-label="Resumen de lotes">
+    <article><span>Lotes</span><strong>{{ stats.total }}</strong></article>
+    <article><span>En EOSDA</span><strong>{{ stats.registered }}</strong></article>
+    <article><span>Pendientes</span><strong>{{ stats.pending }}</strong></article>
+    <article><span>Área registrada</span><strong>{% if stats.total_area %}{{ stats.total_area|floatformat:2 }} ha{% else %}—{% endif %}</strong></article>
+</section>
+
+<div class="satellite-layout">
+    <section class="panel satellite-fields-panel">
+        <div class="satellite-section-header">
+            <div>
+                <p class="eyebrow">Inventario geográfico</p>
+                <h2>Lotes del cliente</h2>
+            </div>
+            <span>{{ fields|length }} registrados</span>
+        </div>
+
+        {% if fields %}
+            <div class="satellite-table-wrap">
+                <table class="satellite-table">
+                    <thead>
+                        <tr>
+                            <th>Lote</th>
+                            <th>Cultivo</th>
+                            <th>Área</th>
+                            <th>EOSDA</th>
+                            <th>Última escena</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for field in fields %}
+                            <tr>
+                                <td>
+                                    <strong>{{ field.name }}</strong>
+                                    {% if field.sowing_date %}<small>Siembra: {{ field.sowing_date|date:'d/m/Y' }}</small>{% endif %}
+                                    <small>{{ field.geometry.coordinates.0|length }} puntos</small>
+                                </td>
+                                <td>{{ field.crop_type|default:'—' }}</td>
+                                <td>{% if field.area_ha %}{{ field.area_ha|floatformat:2 }} ha{% else %}—{% endif %}</td>
+                                <td>
+                                    {% if field.eosda_field_id %}
+                                        <span class="satellite-status is-ok">Sincronizado</span>
+                                        <small>ID {{ field.eosda_field_id }}</small>
+                                    {% else %}
+                                        <span class="satellite-status is-pending">Pendiente</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% with latest_scene=field.satellite_scenes.0 %}
+                                        {% if latest_scene %}
+                                            <strong>{{ latest_scene.captured_at|date:'d/m/Y' }}</strong>
+                                            <small>Sentinel-2</small>
+                                            <small>
+                                                {% if latest_scene.cloud_cover != None %}
+                                                    Nubosidad {{ latest_scene.cloud_cover|floatformat:1 }}%
+                                                {% else %}
+                                                    Nubosidad —
+                                                {% endif %}
+                                            </small>
+                                        {% else %}
+                                            <span class="satellite-muted">Sin consultar</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="satellite-actions">
+                                        {% if field.satellite_scenes %}
+                                            <a
+                                                class="satellite-action-button is-primary"
+                                                href="{% url 'satellite:field_scenes' field.id %}"
+                                            >
+                                                Ver escenas ({{ field.satellite_scenes|length }})
+                                            </a>
+                                        {% endif %}
+
+                                        {% if can_manage_fields and field.eosda_field_id %}
+                                            <form method="post" action="{% url 'satellite:search_field_scenes' field.id %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="satellite-action-button">
+                                                    Buscar escenas
+                                                </button>
+                                            </form>
+                                        {% elif not field.eosda_field_id %}
+                                            <span class="satellite-muted">Sincroniza primero</span>
+                                        {% elif not field.satellite_scenes %}
+                                            <span class="satellite-muted">Solo consulta</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="satellite-empty">
+                <strong>Aún no hay lotes configurados.</strong>
+                <p>Agrega el primer perímetro para comenzar a construir el historial satelital del cliente.</p>
+            </div>
+        {% endif %}
+    </section>
+
+    <aside class="panel satellite-create-panel">
+        {% if can_manage_fields %}
+            <p class="eyebrow">Nuevo lote</p>
+            <h2>Registrar perímetro</h2>
+            <p class="satellite-form-intro">El lote quedará asociado automáticamente a <strong>{{ current_client.name }}</strong>.</p>
+
+            <form method="post" class="satellite-form">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="satellite-form-errors">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <label>
+                    <span>{{ form.name.label }}</span>
+                    {{ form.name }}
+                    {{ form.name.errors }}
+                </label>
+
+                <label>
+                    <span>{{ form.crop_type.label }}</span>
+                    {{ form.crop_type }}
+                    {{ form.crop_type.errors }}
+                </label>
+
+                <label>
+                    <span>{{ form.sowing_date.label }}</span>
+                    {{ form.sowing_date }}
+                    {{ form.sowing_date.errors }}
+                </label>
+
+                <label>
+                    <span>{{ form.coordinates.label }}</span>
+                    {{ form.coordinates }}
+                    <small>{{ form.coordinates.help_text }}</small>
+                    {{ form.coordinates.errors }}
+                </label>
+
+                <div class="satellite-coordinate-help">
+                    <strong>Formato</strong>
+                    <code>-74.1000,4.6000</code>
+                    <code>-74.0900,4.6000</code>
+                    <code>-74.0900,4.5900</code>
+                    <p>No necesitas repetir el primer punto al final; OSIRIS cerrará el polígono.</p>
+                </div>
+
+                <button class="button button-primary satellite-submit" type="submit">Crear lote</button>
+            </form>
+        {% else %}
+            <p class="eyebrow">Acceso de consulta</p>
+            <h2>Gestión de lotes</h2>
+            <p>Tu perfil puede consultar los lotes configurados, pero se requiere nivel Operador o Administrador para crear nuevos perímetros.</p>
+        {% endif %}
+    </aside>
+</div>
+{% endblock %}

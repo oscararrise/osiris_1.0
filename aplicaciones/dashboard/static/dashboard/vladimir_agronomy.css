@@ -1,0 +1,621 @@
+.compact-sensor-inventory {
+    max-height: 360px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.compact-sensor-inventory .aranet-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8fbf9;
+    box-shadow: 0 1px 0 #e7eeea;
+}
+
+.agronomy-workbench {
+    margin-top: 28px;
+    overflow: hidden;
+    border: 1px solid rgba(23, 98, 71, .16);
+    border-radius: 26px;
+    background: #fff;
+    box-shadow: 0 20px 50px rgba(18, 56, 44, .07);
+}
+
+.agronomy-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 28px;
+    align-items: center;
+    padding: 30px 32px;
+    color: #fff;
+    background:
+        radial-gradient(circle at 88% 18%, rgba(111, 220, 174, .23), transparent 30%),
+        linear-gradient(135deg, #103d2f, #176247 58%, #1e7456);
+}
+
+.agronomy-kicker {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    margin-bottom: 9px;
+    color: rgba(255, 255, 255, .68);
+    font-size: .67rem;
+    font-weight: 850;
+    letter-spacing: .12em;
+}
+
+.agronomy-kicker i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #8df0c4;
+    box-shadow: 0 0 0 5px rgba(141, 240, 196, .12);
+}
+
+.agronomy-head h2 {
+    margin: 0;
+    font-size: clamp(1.6rem, 2.5vw, 2.5rem);
+    letter-spacing: -.04em;
+}
+
+.agronomy-head p {
+    max-width: 760px;
+    margin: 9px 0 0;
+    color: rgba(255, 255, 255, .72);
+    line-height: 1.55;
+}
+
+.agronomy-head-badge {
+    min-width: 220px;
+    padding: 16px 18px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    border-radius: 17px;
+    background: rgba(255, 255, 255, .08);
+    backdrop-filter: blur(8px);
+}
+
+.agronomy-head-badge span,
+.agronomy-head-badge strong,
+.agronomy-head-badge small {
+    display: block;
+}
+
+.agronomy-head-badge span {
+    color: rgba(255, 255, 255, .55);
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.agronomy-head-badge strong {
+    margin-top: 5px;
+    font-size: 1.05rem;
+}
+
+.agronomy-head-badge small {
+    margin-top: 4px;
+    color: rgba(255, 255, 255, .7);
+}
+
+.agronomy-body {
+    padding: 26px;
+}
+
+.agronomy-loading,
+.agronomy-error {
+    padding: 30px;
+    color: #64766f;
+    text-align: center;
+}
+
+.agronomy-reference {
+    display: grid;
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.4fr);
+    gap: 24px;
+    margin-bottom: 24px;
+    padding: 22px;
+    border: 1px solid #e4ece8;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #fbfdfc, #f3faf6);
+}
+
+.agronomy-reference-copy > span,
+.agronomy-section-title > span {
+    color: var(--client-primary, #176247);
+    font-size: .62rem;
+    font-weight: 850;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+}
+
+.agronomy-reference-copy h3,
+.agronomy-section-title h3 {
+    margin: 6px 0 0;
+    color: #173a2f;
+    font-size: 1rem;
+}
+
+.agronomy-reference-copy p,
+.agronomy-section-title p {
+    margin: 7px 0 0;
+    color: #718079;
+    font-size: .72rem;
+    line-height: 1.55;
+}
+
+.agronomy-reference-points {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.agronomy-reference-points > div {
+    display: flex;
+    gap: 10px;
+    padding: 13px;
+    border: 1px solid #e4ece8;
+    border-radius: 13px;
+    background: #fff;
+}
+
+.agronomy-reference-points b {
+    color: #a0ada7;
+    font-size: .63rem;
+}
+
+.agronomy-reference-points strong,
+.agronomy-reference-points small {
+    display: block;
+}
+
+.agronomy-reference-points strong {
+    color: #294e41;
+    font-size: .7rem;
+}
+
+.agronomy-reference-points small {
+    margin-top: 4px;
+    color: #84918c;
+    font-size: .62rem;
+    line-height: 1.35;
+}
+
+.agronomy-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(300px, .7fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.agronomy-editor,
+.agronomy-saved {
+    min-width: 0;
+}
+
+.agronomy-section-title {
+    margin-bottom: 14px;
+}
+
+.agronomy-section-title.compact {
+    margin-top: 24px;
+}
+
+.agronomy-suggestions {
+    display: grid;
+    gap: 9px;
+}
+
+.agronomy-suggestion {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 13px;
+    align-items: center;
+    width: 100%;
+    padding: 13px 14px;
+    border: 1px solid #e2ebe7;
+    border-radius: 14px;
+    color: inherit;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+
+.agronomy-suggestion:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--client-primary, #176247) 28%, #dce6e1);
+    box-shadow: 0 8px 22px rgba(18, 56, 44, .06);
+}
+
+.agronomy-suggestion-number {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 10px;
+    color: var(--client-primary, #176247);
+    background: #eaf6f0;
+    font-size: .65rem;
+    font-weight: 900;
+}
+
+.agronomy-suggestion strong,
+.agronomy-suggestion p,
+.agronomy-suggestion small {
+    display: block;
+}
+
+.agronomy-suggestion strong {
+    color: #25473b;
+    font-size: .76rem;
+}
+
+.agronomy-suggestion p {
+    margin: 3px 0 0;
+    color: #76857e;
+    font-size: .66rem;
+    line-height: 1.4;
+}
+
+.agronomy-suggestion small {
+    margin-top: 5px;
+    color: #9aa6a1;
+    font-size: .6rem;
+}
+
+.agronomy-suggestion > i {
+    color: var(--client-primary, #176247);
+    font-style: normal;
+    font-size: 1rem;
+}
+
+.agronomy-suggestion-empty,
+.agronomy-empty-list,
+.agronomy-readonly {
+    padding: 20px;
+    border: 1px dashed #dce6e1;
+    border-radius: 14px;
+    color: #75847d;
+    background: #fafcfb;
+    text-align: center;
+}
+
+.agronomy-suggestion-empty strong,
+.agronomy-empty-list strong {
+    display: block;
+    color: #36564b;
+    font-size: .76rem;
+}
+
+.agronomy-suggestion-empty p,
+.agronomy-empty-list p {
+    margin: 5px 0 0;
+    font-size: .66rem;
+}
+
+.agronomy-form {
+    padding: 18px;
+    margin-top: 18px;
+    border: 1px solid #e2ebe7;
+    border-radius: 17px;
+    background: #fbfdfc;
+}
+
+.agronomy-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.agronomy-form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.agronomy-form-grid label.full {
+    grid-column: 1 / -1;
+}
+
+.agronomy-form-grid label > span,
+.agronomy-variable-picker > div:first-child strong {
+    color: #53665f;
+    font-size: .66rem;
+    font-weight: 800;
+}
+
+.agronomy-form input[type="text"],
+.agronomy-form input:not([type]),
+.agronomy-form select,
+.agronomy-form textarea,
+.agronomy-form-grid input,
+.agronomy-form-grid select,
+.agronomy-form-grid textarea {
+    width: 100%;
+    padding: 10px 11px;
+    border: 1px solid #d8e3de;
+    border-radius: 10px;
+    outline: none;
+    color: #24483c;
+    background: #fff;
+    font: inherit;
+}
+
+.agronomy-form input:focus,
+.agronomy-form select:focus,
+.agronomy-form textarea:focus {
+    border-color: var(--client-primary, #176247);
+    box-shadow: 0 0 0 3px rgba(23, 98, 71, .08);
+}
+
+.agronomy-variable-picker {
+    margin: 17px 0;
+    padding: 15px 0;
+    border-top: 1px solid #e6ede9;
+    border-bottom: 1px solid #e6ede9;
+}
+
+.agronomy-variable-picker > div:first-child small {
+    display: block;
+    margin-top: 3px;
+    color: #8a9892;
+    font-size: .62rem;
+}
+
+.agronomy-variable-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 11px;
+}
+
+.agronomy-variable-chip {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 54px;
+    padding: 9px 10px;
+    border: 1px solid #e0e9e5;
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+}
+
+.agronomy-variable-chip input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.agronomy-variable-chip span {
+    min-width: 0;
+    flex: 1;
+}
+
+.agronomy-variable-chip strong,
+.agronomy-variable-chip small {
+    display: block;
+}
+
+.agronomy-variable-chip strong {
+    overflow: hidden;
+    color: #345449;
+    font-size: .68rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.agronomy-variable-chip small {
+    margin-top: 3px;
+    color: #929f99;
+    font-size: .58rem;
+}
+
+.agronomy-variable-chip > i {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #ccd9d3;
+    border-radius: 5px;
+}
+
+.agronomy-variable-chip:has(input:checked) {
+    border-color: rgba(23, 98, 71, .34);
+    background: #f0f8f4;
+}
+
+.agronomy-variable-chip:has(input:checked) > i {
+    border-color: var(--client-primary, #176247);
+    background: var(--client-primary, #176247);
+    box-shadow: inset 0 0 0 4px #fff;
+}
+
+.agronomy-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+    margin-top: 16px;
+}
+
+.agronomy-actions label {
+    color: #60726a;
+    font-size: .66rem;
+}
+
+.agronomy-actions button {
+    padding: 10px 15px;
+    border: 0;
+    border-radius: 10px;
+    color: #fff;
+    background: var(--client-primary, #176247);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.agronomy-actions button:disabled {
+    opacity: .55;
+    cursor: wait;
+}
+
+.agronomy-form-message {
+    padding: 9px 11px;
+    margin-top: 12px;
+    border-radius: 9px;
+    color: #176247;
+    background: #eaf7f1;
+    font-size: .66rem;
+    font-weight: 750;
+}
+
+.agronomy-form-message.error {
+    color: #8d3e3e;
+    background: #fff0f0;
+}
+
+.agronomy-saved {
+    padding: 18px;
+    border: 1px solid #e2ebe7;
+    border-radius: 17px;
+    background: #f8fbf9;
+}
+
+.agronomy-saved-list {
+    display: grid;
+    gap: 10px;
+}
+
+.agronomy-saved-card {
+    padding: 13px;
+    border: 1px solid #e0e8e4;
+    border-radius: 13px;
+    background: #fff;
+}
+
+.agronomy-saved-top {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.agronomy-saved-top div > span,
+.agronomy-saved-top strong {
+    display: block;
+}
+
+.agronomy-saved-top div > span {
+    color: #8c9993;
+    font-size: .58rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.agronomy-saved-top strong {
+    margin-top: 3px;
+    color: #2e5044;
+    font-size: .74rem;
+}
+
+.agronomy-state {
+    padding: 4px 6px;
+    border-radius: 999px;
+    font-size: .54rem;
+    font-weight: 900;
+}
+
+.agronomy-state.on {
+    color: #176247;
+    background: #e6f5ee;
+}
+
+.agronomy-state.off {
+    color: #777f7b;
+    background: #edf0ef;
+}
+
+.agronomy-variable-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.agronomy-variable-list span {
+    padding: 4px 6px;
+    border-radius: 7px;
+    color: #4f6b61;
+    background: #eef5f2;
+    font-size: .58rem;
+}
+
+.agronomy-saved-card > p {
+    margin: 9px 0 0;
+    color: #76857f;
+    font-size: .64rem;
+    line-height: 1.4;
+}
+
+.agronomy-delete {
+    padding: 0;
+    margin-top: 10px;
+    border: 0;
+    color: #9b5b5b;
+    background: none;
+    font-size: .6rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.agronomy-empty-list > span {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    margin: 0 auto 9px;
+    place-items: center;
+    border-radius: 10px;
+    color: var(--client-primary, #176247);
+    background: #e9f5ef;
+    font-weight: 900;
+}
+
+@media (max-width: 980px) {
+    .agronomy-head,
+    .agronomy-reference,
+    .agronomy-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .agronomy-head {
+        display: grid;
+    }
+
+    .agronomy-reference-points,
+    .agronomy-variable-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .agronomy-head,
+    .agronomy-body {
+        padding: 20px;
+    }
+
+    .agronomy-reference-points,
+    .agronomy-variable-grid,
+    .agronomy-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .agronomy-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .agronomy-actions button {
+        width: 100%;
+    }
+}

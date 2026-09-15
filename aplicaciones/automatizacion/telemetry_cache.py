@@ -1,6 +1,12 @@
 """
 Helpers de rendimiento para el dashboard de telemetría (s2).
+
+El alias de base de datos se mantiene en un ContextVar por request para que
+clientes distintos puedan reutilizar las vistas legacy sin compartir conexión
+ni caché accidentalmente.
 """
+
+from contextvars import ContextVar
 
 from django.conf import settings
 from django.core.cache import cache
@@ -8,8 +14,26 @@ from django.core.cache import cache
 from .models import SensorReading
 
 
+_telemetry_database_alias = ContextVar(
+    "osiris_telemetry_database_alias",
+    default="telemetry",
+)
+
+
+def set_telemetry_database_alias(database_alias):
+    return _telemetry_database_alias.set(database_alias)
+
+
+def reset_telemetry_database_alias(token):
+    _telemetry_database_alias.reset(token)
+
+
+def get_telemetry_database_alias():
+    return _telemetry_database_alias.get()
+
+
 def telemetry_queryset():
-    return SensorReading.objects.using("telemetry")
+    return SensorReading.objects.using(get_telemetry_database_alias())
 
 
 def get_cache_ttl(name, default):
@@ -41,7 +65,8 @@ def downsample_readings(readings, max_points):
 
 
 def get_telemetry_devices(force_refresh=False):
-    cache_key = "telemetry:devices:v1"
+    database_alias = get_telemetry_database_alias()
+    cache_key = f"telemetry:{database_alias}:devices:v2"
     ttl = get_cache_ttl(
         "TELEMETRY_DEVICES_CACHE_TTL",
         300,
@@ -65,7 +90,8 @@ def get_telemetry_devices(force_refresh=False):
 
 
 def get_latest_device_id(force_refresh=False):
-    cache_key = "telemetry:latest_device:v1"
+    database_alias = get_telemetry_database_alias()
+    cache_key = f"telemetry:{database_alias}:latest_device:v2"
     ttl = get_cache_ttl(
         "TELEMETRY_DEVICES_CACHE_TTL",
         300,
@@ -94,7 +120,8 @@ def build_dashboard_cache_key(
     date_to,
     range_key,
 ):
+    database_alias = get_telemetry_database_alias()
     return (
-        "telemetry:dashboard:v2:"
-        f"{device_id}:{date_from}:{date_to}:{range_key}"
+        "telemetry:dashboard:v3:"
+        f"{database_alias}:{device_id}:{date_from}:{date_to}:{range_key}"
     )

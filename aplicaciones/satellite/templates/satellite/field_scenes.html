@@ -1,0 +1,390 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Escenas Satelitales | OSIRIS{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'satellite/satellite.css' %}?v=20260905-4">
+<link rel="stylesheet" href="{% static 'satellite/satellite_imagery.css' %}?v=20260906-3">
+{% endblock %}
+
+{% block content %}
+<section class="satellite-detail-hero">
+    <div>
+        <a class="satellite-back-link" href="{% url 'satellite:dashboard' %}">← Volver a Monitoreo Satelital</a>
+        <p class="eyebrow">Historial Sentinel-2</p>
+        <h1>{{ field.name }}</h1>
+        <p>
+            {{ scene_count }} escena{{ scene_count|pluralize }} guardada{{ scene_count|pluralize }} para este lote.
+            Usa Contexto para ubicar el lote y Detalle para acercarte al perímetro sin perder referencia.
+        </p>
+    </div>
+    <div class="satellite-detail-summary">
+        <span>{{ scene_count }}</span>
+        <small>escenas disponibles</small>
+    </div>
+</section>
+
+<section class="satellite-stats" aria-label="Resumen del lote">
+    <article>
+        <span>Área</span>
+        <strong>{% if field.area_ha %}{{ field.area_ha|floatformat:2 }} ha{% else %}—{% endif %}</strong>
+    </article>
+    <article>
+        <span>Cultivo</span>
+        <strong>{{ field.crop_type|default:'—' }}</strong>
+    </article>
+    <article>
+        <span>EOSDA field ID</span>
+        <strong>{{ field.eosda_field_id|default:'—' }}</strong>
+    </article>
+    <article>
+        <span>Perímetro</span>
+        <strong>{{ field.geometry.coordinates.0|length }} puntos</strong>
+    </article>
+</section>
+
+<section class="panel satellite-scenes-panel">
+    <div class="satellite-section-header">
+        <div>
+            <p class="eyebrow">Escenas encontradas</p>
+            <h2>Historial satelital</h2>
+        </div>
+        <span>Ordenado de más reciente a más antigua</span>
+    </div>
+
+    {% if scene_cards %}
+        <div class="satellite-scene-grid">
+            {% for card in scene_cards %}
+                {% with scene=card.scene natural=card.imagery.natural_color ndvi=card.imagery.ndvi %}
+                {% with natural_context=natural.context natural_detail=natural.detail ndvi_context=ndvi.context ndvi_detail=ndvi.detail %}
+                <article class="satellite-scene-card">
+                    <div class="satellite-scene-card-header">
+                        <div>
+                            <span class="satellite-scene-provider">Sentinel-2</span>
+                            <h3>{{ scene.captured_at|date:'d/m/Y' }}</h3>
+                        </div>
+                        {% if scene.cloud_cover != None %}
+                            <span class="satellite-cloud-badge">{{ scene.cloud_cover|floatformat:1 }}% nubes</span>
+                        {% else %}
+                            <span class="satellite-cloud-badge">Nubes —</span>
+                        {% endif %}
+                    </div>
+
+                    <dl class="satellite-scene-meta">
+                        <div>
+                            <dt>Scene ID</dt>
+                            <dd><code>{{ scene.metadata.sceneID|default:'—' }}</code></dd>
+                        </div>
+                        <div>
+                            <dt>View ID</dt>
+                            <dd><code>{{ scene.view_id }}</code></dd>
+                        </div>
+                        <div>
+                            <dt>Dataset</dt>
+                            <dd>{{ scene.dataset }}</dd>
+                        </div>
+                        <div>
+                            <dt>Cobertura del lote</dt>
+                            <dd>
+                                {% if scene.metadata.dataCoveragePercentage != None %}
+                                    {{ scene.metadata.dataCoveragePercentage|floatformat:1 }}%
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </dl>
+
+                    <div class="satellite-imagery-grid">
+                        <section class="satellite-image-product">
+                            <div class="satellite-image-product-header">
+                                <strong>Color natural</strong>
+                                {% if natural_detail.waiting %}
+                                    <span class="satellite-status is-pending">Detalle procesando</span>
+                                {% elif natural_detail.ready %}
+                                    <span class="satellite-status is-ok">Detalle lista</span>
+                                {% elif natural_context.waiting %}
+                                    <span class="satellite-status is-pending">Contexto procesando</span>
+                                {% elif natural_context.ready %}
+                                    <span class="satellite-status is-ok">Contexto listo</span>
+                                {% elif natural_detail.failed or natural_context.failed %}
+                                    <span class="satellite-status is-error">Error</span>
+                                {% else %}
+                                    <span class="satellite-muted">Sin generar</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="satellite-view-switch" role="group" aria-label="Encuadre Color natural">
+                                <button
+                                    type="button"
+                                    class="satellite-view-switch-button js-satellite-view-toggle{% if not natural_detail.has_asset and not natural_detail.waiting %} is-active{% endif %}"
+                                    data-view-target="natural-{{ scene.id }}-context"
+                                    aria-pressed="{% if not natural_detail.has_asset and not natural_detail.waiting %}true{% else %}false{% endif %}"
+                                >Contexto</button>
+                                <button
+                                    type="button"
+                                    class="satellite-view-switch-button js-satellite-view-toggle{% if natural_detail.has_asset or natural_detail.waiting %} is-active{% endif %}"
+                                    data-view-target="natural-{{ scene.id }}-detail"
+                                    aria-pressed="{% if natural_detail.has_asset or natural_detail.waiting %}true{% else %}false{% endif %}"
+                                >Detalle</button>
+                            </div>
+
+                            <div
+                                id="natural-{{ scene.id }}-context"
+                                class="satellite-view-panel"
+                                {% if natural_detail.has_asset or natural_detail.waiting %}hidden{% endif %}
+                            >
+                                {% if natural_context.has_asset %}
+                                    <div class="satellite-image-frame">
+                                        <img
+                                            class="satellite-scene-image"
+                                            src="{{ natural_context.asset.url }}"
+                                            alt="Color natural contextual Sentinel-2 del {{ scene.captured_at|date:'d/m/Y' }}"
+                                            loading="lazy"
+                                        >
+                                        {% if natural_context.asset.overlay_points %}
+                                            <svg class="satellite-field-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                                <polygon points="{{ natural_context.asset.overlay_points }}"></polygon>
+                                            </svg>
+                                            <span class="satellite-field-label">Lote</span>
+                                        {% endif %}
+                                        <button
+                                            type="button"
+                                            class="satellite-fullscreen-button js-open-satellite-viewer"
+                                            data-image-url="{{ natural_context.asset.url }}"
+                                            data-overlay-points="{{ natural_context.asset.overlay_points|default:'' }}"
+                                            data-title="Color natural · Contexto"
+                                            data-subtitle="{{ scene.captured_at|date:'d/m/Y' }} · Sentinel-2"
+                                        >Abrir grande</button>
+                                    </div>
+                                    <p class="satellite-view-caption">Vista contextual · alrededor de 400 m para ubicar el lote.</p>
+                                {% elif natural_context.waiting %}
+                                    <div class="satellite-image-empty"><span>Generando contexto</span><small>EOSDA está procesando la imagen.</small></div>
+                                {% else %}
+                                    <div class="satellite-image-empty"><span>Contexto no generado</span><small>Genera primero la vista contextual.</small></div>
+                                {% endif %}
+                            </div>
+
+                            <div
+                                id="natural-{{ scene.id }}-detail"
+                                class="satellite-view-panel"
+                                {% if not natural_detail.has_asset and not natural_detail.waiting %}hidden{% endif %}
+                            >
+                                {% if natural_detail.has_asset %}
+                                    <div class="satellite-image-frame">
+                                        <img
+                                            class="satellite-scene-image"
+                                            src="{{ natural_detail.asset.url }}"
+                                            alt="Color natural detalle Sentinel-2 del {{ scene.captured_at|date:'d/m/Y' }}"
+                                            loading="lazy"
+                                        >
+                                        {% if natural_detail.asset.overlay_points %}
+                                            <svg class="satellite-field-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                                <polygon points="{{ natural_detail.asset.overlay_points }}"></polygon>
+                                            </svg>
+                                            <span class="satellite-field-label">Lote</span>
+                                        {% endif %}
+                                        <button
+                                            type="button"
+                                            class="satellite-fullscreen-button js-open-satellite-viewer"
+                                            data-image-url="{{ natural_detail.asset.url }}"
+                                            data-overlay-points="{{ natural_detail.asset.overlay_points|default:'' }}"
+                                            data-title="Color natural · Detalle"
+                                            data-subtitle="{{ scene.captured_at|date:'d/m/Y' }} · Sentinel-2"
+                                        >Abrir grande</button>
+                                    </div>
+                                    <p class="satellite-view-caption">Vista detalle · alrededor de 150 m. La resolución fuente sigue siendo Sentinel-2.</p>
+                                {% elif natural_detail.waiting %}
+                                    <div class="satellite-image-empty"><span>Generando detalle</span><small>EOSDA está procesando la vista cercana.</small></div>
+                                {% else %}
+                                    <div class="satellite-image-empty"><span>Detalle no generado</span><small>Usa “Generar vista detalle” debajo de la escena.</small></div>
+                                {% endif %}
+                            </div>
+                        </section>
+
+                        <section class="satellite-image-product">
+                            <div class="satellite-image-product-header">
+                                <strong>NDVI</strong>
+                                {% if ndvi_detail.waiting %}
+                                    <span class="satellite-status is-pending">Detalle procesando</span>
+                                {% elif ndvi_detail.ready %}
+                                    <span class="satellite-status is-ok">Detalle lista</span>
+                                {% elif ndvi_context.waiting %}
+                                    <span class="satellite-status is-pending">Contexto procesando</span>
+                                {% elif ndvi_context.ready %}
+                                    <span class="satellite-status is-ok">Contexto listo</span>
+                                {% elif ndvi_detail.failed or ndvi_context.failed %}
+                                    <span class="satellite-status is-error">Error</span>
+                                {% else %}
+                                    <span class="satellite-muted">Sin generar</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="satellite-view-switch" role="group" aria-label="Encuadre NDVI">
+                                <button
+                                    type="button"
+                                    class="satellite-view-switch-button js-satellite-view-toggle{% if not ndvi_detail.has_asset and not ndvi_detail.waiting %} is-active{% endif %}"
+                                    data-view-target="ndvi-{{ scene.id }}-context"
+                                    aria-pressed="{% if not ndvi_detail.has_asset and not ndvi_detail.waiting %}true{% else %}false{% endif %}"
+                                >Contexto</button>
+                                <button
+                                    type="button"
+                                    class="satellite-view-switch-button js-satellite-view-toggle{% if ndvi_detail.has_asset or ndvi_detail.waiting %} is-active{% endif %}"
+                                    data-view-target="ndvi-{{ scene.id }}-detail"
+                                    aria-pressed="{% if ndvi_detail.has_asset or ndvi_detail.waiting %}true{% else %}false{% endif %}"
+                                >Detalle</button>
+                            </div>
+
+                            <div
+                                id="ndvi-{{ scene.id }}-context"
+                                class="satellite-view-panel"
+                                {% if ndvi_detail.has_asset or ndvi_detail.waiting %}hidden{% endif %}
+                            >
+                                {% if ndvi_context.has_asset %}
+                                    <div class="satellite-image-frame">
+                                        <img
+                                            class="satellite-scene-image"
+                                            src="{{ ndvi_context.asset.url }}"
+                                            alt="NDVI contextual Sentinel-2 del {{ scene.captured_at|date:'d/m/Y' }}"
+                                            loading="lazy"
+                                        >
+                                        {% if ndvi_context.asset.overlay_points %}
+                                            <svg class="satellite-field-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                                <polygon points="{{ ndvi_context.asset.overlay_points }}"></polygon>
+                                            </svg>
+                                            <span class="satellite-field-label">Lote</span>
+                                        {% endif %}
+                                        <button
+                                            type="button"
+                                            class="satellite-fullscreen-button js-open-satellite-viewer"
+                                            data-image-url="{{ ndvi_context.asset.url }}"
+                                            data-overlay-points="{{ ndvi_context.asset.overlay_points|default:'' }}"
+                                            data-title="NDVI · Contexto"
+                                            data-subtitle="{{ scene.captured_at|date:'d/m/Y' }} · Sentinel-2"
+                                        >Abrir grande</button>
+                                    </div>
+                                    <p class="satellite-view-caption">Vista contextual NDVI · alrededor de 400 m.</p>
+                                {% elif ndvi_context.waiting %}
+                                    <div class="satellite-image-empty is-ndvi"><span>Generando contexto</span><small>EOSDA está procesando el NDVI.</small></div>
+                                {% else %}
+                                    <div class="satellite-image-empty is-ndvi"><span>Contexto no generado</span><small>Genera primero la vista contextual.</small></div>
+                                {% endif %}
+                            </div>
+
+                            <div
+                                id="ndvi-{{ scene.id }}-detail"
+                                class="satellite-view-panel"
+                                {% if not ndvi_detail.has_asset and not ndvi_detail.waiting %}hidden{% endif %}
+                            >
+                                {% if ndvi_detail.has_asset %}
+                                    <div class="satellite-image-frame">
+                                        <img
+                                            class="satellite-scene-image"
+                                            src="{{ ndvi_detail.asset.url }}"
+                                            alt="NDVI detalle Sentinel-2 del {{ scene.captured_at|date:'d/m/Y' }}"
+                                            loading="lazy"
+                                        >
+                                        {% if ndvi_detail.asset.overlay_points %}
+                                            <svg class="satellite-field-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                                <polygon points="{{ ndvi_detail.asset.overlay_points }}"></polygon>
+                                            </svg>
+                                            <span class="satellite-field-label">Lote</span>
+                                        {% endif %}
+                                        <button
+                                            type="button"
+                                            class="satellite-fullscreen-button js-open-satellite-viewer"
+                                            data-image-url="{{ ndvi_detail.asset.url }}"
+                                            data-overlay-points="{{ ndvi_detail.asset.overlay_points|default:'' }}"
+                                            data-title="NDVI · Detalle"
+                                            data-subtitle="{{ scene.captured_at|date:'d/m/Y' }} · Sentinel-2"
+                                        >Abrir grande</button>
+                                    </div>
+                                    <p class="satellite-view-caption">Vista detalle NDVI · alrededor de 150 m.</p>
+                                {% elif ndvi_detail.waiting %}
+                                    <div class="satellite-image-empty is-ndvi"><span>Generando detalle</span><small>EOSDA está procesando el NDVI cercano.</small></div>
+                                {% else %}
+                                    <div class="satellite-image-empty is-ndvi"><span>Detalle no generado</span><small>Usa “Generar vista detalle” debajo de la escena.</small></div>
+                                {% endif %}
+                            </div>
+                        </section>
+                    </div>
+
+                    {% if can_manage_imagery %}
+                        <div class="satellite-imagery-actions">
+                            {% if natural_context.waiting or ndvi_context.waiting or natural_detail.waiting or ndvi_detail.waiting %}
+                                <form method="post" action="{% url 'satellite:refresh_scene_images' scene.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="satellite-action-button">Actualizar imágenes</button>
+                                </form>
+                            {% elif natural_context.ready and ndvi_context.ready %}
+                                {% if natural_detail.ready and ndvi_detail.ready %}
+                                    <form method="post" action="{% url 'satellite:request_scene_images' scene.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="view_mode" value="detail">
+                                        <input type="hidden" name="regenerate" value="1">
+                                        <button type="submit" class="satellite-action-button">Regenerar detalle</button>
+                                    </form>
+                                    <form method="post" action="{% url 'satellite:request_scene_images' scene.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="view_mode" value="context">
+                                        <input type="hidden" name="regenerate" value="1">
+                                        <button type="submit" class="satellite-action-button is-secondary">Regenerar contexto</button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{% url 'satellite:request_scene_images' scene.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="view_mode" value="detail">
+                                        <button type="submit" class="satellite-action-button">Generar vista detalle</button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <form method="post" action="{% url 'satellite:request_scene_images' scene.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="view_mode" value="context">
+                                    <button type="submit" class="satellite-action-button">Generar Color Natural + NDVI</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </article>
+                {% endwith %}
+                {% endwith %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="satellite-empty">
+            <strong>No hay escenas guardadas todavía.</strong>
+            <p>Vuelve al módulo y usa “Buscar escenas” para consultar Sentinel-2.</p>
+        </div>
+    {% endif %}
+</section>
+
+<dialog id="satellite-image-dialog" class="satellite-image-dialog" aria-labelledby="satellite-viewer-title">
+    <div class="satellite-dialog-shell">
+        <div class="satellite-dialog-header">
+            <div>
+                <h2 id="satellite-viewer-title">Imagen satelital</h2>
+                <p id="satellite-viewer-subtitle"></p>
+            </div>
+            <form method="dialog">
+                <button type="submit" class="satellite-dialog-close" aria-label="Cerrar visor">×</button>
+            </form>
+        </div>
+        <div class="satellite-dialog-image-frame">
+            <img id="satellite-viewer-image" src="" alt="">
+            <svg id="satellite-viewer-overlay" class="satellite-field-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <polygon id="satellite-viewer-polygon" points=""></polygon>
+            </svg>
+            <span id="satellite-viewer-label" class="satellite-field-label">Lote</span>
+        </div>
+        <p class="satellite-dialog-note">
+            La vista detalle mejora el encuadre y el tamaño de salida, pero no cambia la resolución nativa de Sentinel-2.
+        </p>
+    </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'satellite/satellite_imagery.js' %}?v=20260906-1" defer></script>
+{% endblock %}

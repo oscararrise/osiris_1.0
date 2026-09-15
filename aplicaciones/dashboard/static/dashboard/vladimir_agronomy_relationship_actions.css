@@ -1,0 +1,34 @@
+.agronomy-saved-actions {
+    display: grid;
+    gap: 9px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #e7eeea;
+}
+
+.agronomy-open-relationship {
+    width: 100%;
+    min-height: 38px;
+    gap: 8px;
+    border-radius: 10px;
+    font-size: .68rem;
+    letter-spacing: .01em;
+}
+
+.agronomy-open-relationship span {
+    margin-left: auto;
+    font-size: .86rem;
+}
+
+.agronomy-saved-actions .agronomy-delete {
+    justify-self: start;
+    margin-top: 0;
+}
+
+.agronomy-saved-card:has(.agronomy-open-relationship) {
+    box-shadow: 0 8px 22px rgba(18, 56, 44, .045);
+}
+
+.agronomy-saved-card:has(.agronomy-open-relationship):hover {
+    border-color: color-mix(in srgb, var(--client-primary, #176247) 28%, #e0e8e4);
+}

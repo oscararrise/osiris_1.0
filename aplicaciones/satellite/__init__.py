@@ -1,0 +1,1 @@
+"""Satellite monitoring application."""

@@ -1,0 +1,403 @@
+.osiris-context-shell {
+    display: grid;
+    grid-template-columns: minmax(310px, .78fr) minmax(0, 1.52fr);
+    gap: 18px;
+    margin: 0 0 20px;
+}
+
+.osiris-context-card,
+.osiris-map-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #dce7e2;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(18, 56, 44, .055);
+}
+
+.osiris-context-card::before {
+    content: "";
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    right: -84px;
+    top: -96px;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--primary) 15%, transparent), transparent 67%);
+    pointer-events: none;
+}
+
+.osiris-context-head,
+.osiris-map-head {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 21px 22px 16px;
+}
+
+.osiris-context-kicker {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 0 5px;
+    color: var(--primary);
+    font-size: .64rem;
+    font-weight: 850;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+.osiris-context-kicker i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.osiris-context-head h2,
+.osiris-map-head h2 {
+    margin: 0;
+    color: #173b30;
+    font-size: 1.06rem;
+    letter-spacing: -.02em;
+}
+
+.osiris-context-head p,
+.osiris-map-head p {
+    margin: 5px 0 0;
+    color: #82918b;
+    font-size: .68rem;
+    line-height: 1.5;
+}
+
+.osiris-context-badge,
+.osiris-map-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 31px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    color: #1c664e;
+    background: #e9f6f1;
+    font-size: .66rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.osiris-context-identity {
+    display: flex;
+    gap: 13px;
+    align-items: center;
+    margin: 0 22px 17px;
+    padding: 14px;
+    border: 1px solid #e6eeea;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #fbfdfc, #f3f9f6);
+}
+
+.osiris-context-avatar {
+    display: grid;
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border-radius: 13px;
+    color: #fff;
+    background: linear-gradient(145deg, #174c3b, var(--primary));
+    font-size: .84rem;
+    font-weight: 900;
+    box-shadow: 0 9px 18px rgba(23, 98, 71, .18);
+}
+
+.osiris-context-identity strong,
+.osiris-context-identity small {
+    display: block;
+}
+
+.osiris-context-identity strong {
+    color: #1b3d31;
+    font-size: .8rem;
+}
+
+.osiris-context-identity small {
+    margin-top: 4px;
+    color: #7d8c86;
+    font-size: .64rem;
+}
+
+.osiris-context-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0 22px;
+    border: 1px solid #e7eeeb;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.osiris-context-field {
+    min-width: 0;
+    padding: 13px 14px;
+    border-right: 1px solid #edf2ef;
+    border-bottom: 1px solid #edf2ef;
+}
+
+.osiris-context-field:nth-child(even) { border-right: 0; }
+.osiris-context-field:nth-last-child(-n + 2) { border-bottom: 0; }
+.osiris-context-field span,
+.osiris-context-field strong,
+.osiris-context-field small { display: block; }
+.osiris-context-field span {
+    margin-bottom: 5px;
+    color: #8b9993;
+    font-size: .59rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.osiris-context-field strong {
+    overflow-wrap: anywhere;
+    color: #304f44;
+    font-size: .73rem;
+}
+.osiris-context-field small {
+    margin-top: 3px;
+    color: #98a49f;
+    font-size: .6rem;
+}
+
+.osiris-context-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 22px 20px;
+}
+
+.osiris-context-actions > span {
+    color: #89968f;
+    font-size: .62rem;
+    line-height: 1.45;
+}
+
+.osiris-context-edit {
+    display: inline-flex;
+    min-height: 35px;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 11px;
+    border: 1px solid color-mix(in srgb, var(--primary) 22%, #d8e4df);
+    border-radius: 10px;
+    color: var(--primary);
+    background: #fff;
+    font-size: .66rem;
+    font-weight: 800;
+}
+
+.osiris-context-empty {
+    padding: 10px 22px 22px;
+    color: #81908a;
+    font-size: .7rem;
+    line-height: 1.6;
+}
+
+.osiris-map-head {
+    padding-bottom: 13px;
+}
+
+.osiris-map-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 190px;
+    min-height: 390px;
+    border-top: 1px solid #edf2ef;
+}
+
+.osiris-sensor-map {
+    min-height: 390px;
+    background:
+        radial-gradient(circle at 25% 30%, rgba(23, 98, 71, .1), transparent 20%),
+        linear-gradient(135deg, #edf4f1, #f8fbf9);
+}
+
+.osiris-map-sidebar {
+    max-height: 390px;
+    overflow-y: auto;
+    padding: 12px;
+    border-left: 1px solid #edf2ef;
+    background: #fbfdfc;
+}
+
+.osiris-map-sidebar-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 9px;
+    color: #71817a;
+    font-size: .61rem;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.osiris-map-sensor {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 7px;
+    border: 1px solid #e2ebe7;
+    border-radius: 11px;
+    text-align: left;
+    background: #fff;
+    transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+
+.osiris-map-sensor:hover,
+.osiris-map-sensor.selected {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--primary) 32%, #dbe6e1);
+    box-shadow: 0 6px 14px rgba(18, 56, 44, .06);
+}
+
+.osiris-map-sensor.selected { background: #f1f9f5; }
+.osiris-map-sensor strong,
+.osiris-map-sensor span { display: block; }
+.osiris-map-sensor strong {
+    color: #294a3e;
+    font-size: .67rem;
+}
+.osiris-map-sensor span {
+    margin-top: 3px;
+    color: #87958f;
+    font-size: .58rem;
+    line-height: 1.4;
+}
+
+.osiris-map-empty {
+    display: grid;
+    min-height: 390px;
+    place-items: center;
+    align-content: center;
+    padding: 30px;
+    text-align: center;
+    color: #7f8e88;
+}
+
+.osiris-map-empty strong {
+    color: #365449;
+    font-size: .82rem;
+}
+
+.osiris-map-empty p {
+    max-width: 340px;
+    margin: 6px auto 0;
+    font-size: .67rem;
+    line-height: 1.6;
+}
+
+.osiris-map-marker-wrapper {
+    background: transparent;
+    border: 0;
+}
+
+.osiris-map-marker {
+    position: relative;
+    display: block;
+    width: 22px;
+    height: 22px;
+    border: 3px solid #fff;
+    border-radius: 50% 50% 50% 4px;
+    background: var(--primary, #176247);
+    box-shadow: 0 4px 10px rgba(20, 63, 49, .28);
+    transform: rotate(-45deg);
+}
+
+.osiris-map-marker::after {
+    content: "";
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    top: 5px;
+    left: 5px;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.osiris-map-marker.selected {
+    width: 27px;
+    height: 27px;
+    background: #d98a22;
+    box-shadow: 0 0 0 6px rgba(217, 138, 34, .14), 0 5px 13px rgba(20, 63, 49, .3);
+}
+
+.osiris-map-marker.selected::after {
+    width: 7px;
+    height: 7px;
+    top: 7px;
+    left: 7px;
+}
+
+.osiris-map-popup {
+    min-width: 210px;
+    padding: 3px 1px;
+}
+.osiris-map-popup strong,
+.osiris-map-popup span,
+.osiris-map-popup small { display: block; }
+.osiris-map-popup strong { color: #1e4336; font-size: .82rem; }
+.osiris-map-popup span { margin-top: 5px; color: #547267; font-size: .68rem; }
+.osiris-map-popup small { margin-top: 3px; color: #87958e; font-size: .62rem; }
+.osiris-map-popup button {
+    min-height: 31px;
+    padding: 5px 9px;
+    margin-top: 10px;
+    border: 0;
+    border-radius: 8px;
+    color: #fff;
+    background: var(--primary, #176247);
+    font-size: .64rem;
+    font-weight: 800;
+}
+
+.osiris-map-card .leaflet-control-zoom a {
+    color: #315448;
+}
+
+.osiris-map-card .leaflet-control-attribution {
+    font-size: 9px;
+}
+
+@media (max-width: 1050px) {
+    .osiris-context-shell { grid-template-columns: 1fr; }
+    .osiris-map-layout { grid-template-columns: minmax(0, 1fr) 220px; }
+}
+
+@media (max-width: 700px) {
+    .osiris-map-layout { grid-template-columns: 1fr; }
+    .osiris-map-sidebar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+        max-height: none;
+        border-top: 1px solid #edf2ef;
+        border-left: 0;
+    }
+    .osiris-map-sidebar-title { grid-column: 1 / -1; }
+    .osiris-map-sensor { margin: 0; }
+}
+
+@media (max-width: 520px) {
+    .osiris-context-grid { grid-template-columns: 1fr; }
+    .osiris-context-field,
+    .osiris-context-field:nth-child(even),
+    .osiris-context-field:nth-last-child(-n + 2) {
+        border-right: 0;
+        border-bottom: 1px solid #edf2ef;
+    }
+    .osiris-context-field:last-child { border-bottom: 0; }
+    .osiris-map-sidebar { grid-template-columns: 1fr; }
+    .osiris-context-actions { align-items: flex-start; flex-direction: column; }
+}

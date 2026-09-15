@@ -1,12 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import (
-    data,
-    SensorData,
-    ControlData,
-    Support,
     SensorReading,
 )
+from aplicaciones.core.models import ControlEvent, SupportRequest
 from django.http import JsonResponse
 from django.core.mail import EmailMessage
 from django.http import HttpResponse
@@ -24,6 +21,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.views.decorators.http import require_POST
 
 from .telemetry_cache import (
     build_dashboard_cache_key,
@@ -1039,82 +1037,36 @@ def export_sensor_history(queryset):
     return response
 
 
+@require_POST
 def actualizar_control_data(request):
-    if request.method == 'POST':
-        estado_bomba1 = request.POST.get('estadoBomba1', '0')  # Obtiene el estado de la bomba1
-        estado_bomba2 = request.POST.get('estadoBomba2', '0')  # Obtiene el estado de la bomba1
-        print("ESTADO BOMBA 1: ", estado_bomba1)
-        fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        data_insert = {"bomba1_state": estado_bomba1,
-                       "bombas2_state": estado_bomba2,}
-        # Aquí insertas una nueva fila en tu tabla ControlData
-        control_data_insert = ControlData.objects.create(
-            cliente= 'Juan Ochoa',  # Aquí debes poner el valor que corresponda
-            fecha= f'{fecha}',  # Aquí se inserta la fecha y hora actual
-            control_data= f'{data_insert}' # Aquí se inserta el objeto JSON
-        )
-        messages.success(request, 'Control actualizado correctamente')  # Aquí creas el mensaje
-        return JsonResponse({'status': 'success'})
+    estado_bomba1 = request.POST.get("estadoBomba1", "0")
+    estado_bomba2 = request.POST.get("estadoBomba2", "0")
+    payload = {"bomba1_state": estado_bomba1, "bomba2_state": estado_bomba2}
+    ControlEvent.objects.create(
+        client=request.client,
+        created_by=request.user,
+        payload=payload,
+    )
+    messages.success(request, "Control actualizado correctamente")
+    return JsonResponse({"status": "success"})
     
-def home(request):
-    users = data.objects.all()
-    return render(request, "home.html", {"users": users})
-
 def enviar_mail(request):
     if request.method == 'POST':
         tipo = request.POST.get('tipo')
-        cliente = request.POST.get('cliente')
         descripcion = request.POST.get('descripcion')
 
-        fecha = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
         # Persistir registro de soporte
-        Support.objects.create(
-            estado=(tipo or 'Solicitud'),
-            cliente=(cliente or 'N/D'),
-            support_information=str(descripcion or ''),
-            fecha=fecha,
+        SupportRequest.objects.create(
+            client=request.client,
+            created_by=request.user,
+            request_type=(tipo or "Solicitud")[:80],
+            description=str(descripcion or "")[:4000],
         )
 
         msg = 'Tu solicitud fue registrada correctamente.'
         return render(request, "support.html", {'messages': msg})
     # GET: mostrar formulario vacío
     return render(request, "support.html")
-
-def get_data_sensor(request):
-    if request.method == 'POST':
-        print("POST request received")
-        db_informations = SensorData.objects.values('DB_information')
-        print("DB_information: ", db_informations)
-        db_informations = [{"Luz_ultravioleta" : "20", "Presion_barometrica" : "30", "Luminosidad" : "40", "Lluvia" : "NO", "temperatura_aire" : "60", "Humedad_aire" : "70"}]
-        print("DB_information: ", db_informations)
-        return render(request, 's2.html', {"data": list(db_informations)})
-
-def login(request):
-    print("Función login_validate llamada")
-    if request.method == 'POST':
-        print("Método POST detectado")
-        user_id = request.POST.get('user_id').strip()  # Elimina espacios en blanco
-        password = request.POST.get('clave').strip()  # Elimina espacios en blanco
-        print(f"user_id recibido: {user_id}, password recibida: {password}")
-        try:
-            print("=============")
-            user = data.objects.get(id=user_id)
-            # Convierte la clave a str antes de comparar, si es necesario
-            if str(user.clave) == password:
-                print("La contraseña es correcta, redirigiendo...")
-                return render(request, "grid.html")
-            else:
-                print("La contraseña no coincide, mostrando mensaje de error")
-                messages.error(request, 'Contraseña incorrecta')
-        except data.DoesNotExist:
-            print("El usuario no existe, mostrando mensaje de error")
-            messages.error(request, 'El usuario no existe')
-    
-    print("Re-renderizando el formulario con la lista de usuarios")
-    users = data.objects.all()
-    return render(request, "home.html", {'users': users})
-
 
 def s1(request):
     return render(request, "s1.html")
@@ -1407,14 +1359,6 @@ def nvid(request):
 def drones(request):
     # Módulo de planificación y supervisión de drones y tareas
     return render(request, "drones.html")
-
-
-#import google.generativeai as genai
-#
-## Create your views here.
-## add here to your generated API key
-#genai.configure(api_key="AIzaSyDDURhIdmkTmkxvPKTnya0kg63hGStcSkk")
-#from django.views.decorators.csrf import csrf_exempt
 
 
 def _demo_response(user_text: str) -> str:
